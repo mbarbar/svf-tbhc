@@ -7,15 +7,21 @@
 
 #include "Util/SVFModule.h"
 #include "MemoryModel/PointerAnalysis.h"
+#include "MemoryModel/ConsG.h"
+
 
 #ifndef INCLUDE_VARIABLETYPEANALYSIS_H_
 #define INCLUDE_VARIABLETYPEANALYSIS_H_
 
 class VariableTypeAnalysis : public PointerAnalysis {
+private:
+    ConstraintGraph *cg;
+
 public:
     /// Constructor
     VariableTypeAnalysis(PTATY ty = PTATY::VariableTypeCPP_WPA)
                         : PointerAnalysis(ty) {
+        cg = new ConstraintGraph(pag);
     }
 
     /// Destructor
@@ -23,13 +29,13 @@ public:
     }
 
     /// Variable type analysis
-    void analyze(SVFModule svfModule);
+    virtual void analyze(SVFModule svfModule);
 
     /// Initialize analysis
-    void initialize(SVFModule svfModule);
+    virtual void initialize(SVFModule svfModule);
 
     /// Finalize analysis
-    virtual inline void finalize();
+    virtual void finalize();
 };
 
 #endif /* INCLUDE_VARIABLETYPEANALYSIS_H_ */

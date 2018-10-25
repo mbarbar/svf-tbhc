@@ -8,10 +8,11 @@
 #include "WPA/VariableTypeAnalysis.h"
 #include "MemoryModel/ConsG.h"
 
-void VariableTypeAnalysis::analyze(SVFModule module) {
+void VariableTypeAnalysis::initialize(SVFModule module) {
     PointerAnalysis::initialize(module);
-    ConstraintGraph *cg = new ConstraintGraph(pag);
+}
 
+void VariableTypeAnalysis::analyze(SVFModule module) {
     for (auto nodeI = cg->begin(); nodeI != cg->end(); ++nodeI) {
 
     }
