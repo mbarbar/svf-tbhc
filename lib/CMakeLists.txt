@@ -30,6 +30,7 @@ set(SOURCES
     MemoryModel/PAG.cpp
     MemoryModel/CHA.cpp
     MemoryModel/PointerAnalysis.cpp
+    MemoryModel/VTAGraph.cpp
     MSSA/MemPartition.cpp
     MSSA/MemRegion.cpp
     MSSA/MemSSA.cpp

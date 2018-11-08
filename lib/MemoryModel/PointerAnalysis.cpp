@@ -39,6 +39,7 @@
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
+#include "MemoryModel/VTAGraph.h"
 #include <fstream>
 #include <sstream>
 
@@ -168,6 +169,9 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
         ptaCallGraph = new PTACallGraph(svfModule);
     callGraphSCCDetection();
     svfMod = svfModule;
+
+    VTAGraph *vtg = new VTAGraph(pag);
+    vtg->removeMemoryObjectNodes();
 }
 
 

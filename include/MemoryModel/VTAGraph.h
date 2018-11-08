@@ -19,11 +19,15 @@
  */
 class VTAGraph: public OfflineConsG {
 private:
+    // Maps types to the new nodes generated to replace
+    // all the memory objects of that type.
+    std::map<Type *, NodeID> typeToNode;
 
 public:
-    VTAGraph(PAG *p) : OfflineConstG(p) {
+    VTAGraph(PAG *p) : OfflineConsG(p) {
     }
 
+    void removeMemoryObjectNodes(void);
 };
 
 #endif // VTAGRAPH_H
