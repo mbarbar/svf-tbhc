@@ -57,7 +57,8 @@ public:
         GepObjNode,
         FIObjNode,
         DummyValNode,
-        DummyObjNode
+        DummyObjNode,
+        TypeObjNode
     };
 
 
@@ -93,7 +94,7 @@ public:
 
     inline bool hasValue() const {
         return (this->getNodeKind() != DummyValNode &&
-                this->getNodeKind() != DummyObjNode &&
+                this->getNodeKind() != DummyObjNode && this->getNodeKind() != TypeObjNode &&
                 (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false)) ;
     }
     /// Whether it is a pointer
@@ -207,10 +208,11 @@ public:
                 node.getNodeKind() == GepValNode ||
                 node.getNodeKind() == DummyValNode) {
             o << "ValPN\n";
-        } else if (node.getNodeKind() == ObjNode ||
-                   node.getNodeKind() == GepObjNode ||
-                   node.getNodeKind() == FIObjNode ||
-                   node.getNodeKind() == DummyObjNode) {
+		} else if (node.getNodeKind() == ObjNode
+				|| node.getNodeKind() == GepObjNode
+				|| node.getNodeKind() == FIObjNode
+				|| node.getNodeKind() == DummyObjNode
+				|| node.getNodeKind() == TypeObjNode) {
             o << "ObjPN\n";
         } else if (node.getNodeKind() == RetNode) {
             o << "RetPN\n";
@@ -290,12 +292,14 @@ public:
         return node->getNodeKind() == PAGNode::ObjNode ||
                node->getNodeKind() == PAGNode::GepObjNode ||
                node->getNodeKind() == PAGNode::FIObjNode ||
-               node->getNodeKind() == PAGNode::DummyObjNode;
+               node->getNodeKind() == PAGNode::TypeObjNode ||
+			   node->getNodeKind() == PAGNode::DummyObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
         return node->getNodeKind() == PAGNode::ObjNode ||
                node->getNodeKind() == PAGNode::GepObjNode ||
                node->getNodeKind() == PAGNode::FIObjNode ||
+               node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::DummyObjNode;
     }
     //@}
@@ -557,21 +561,58 @@ public:
     static inline bool classof(const DummyObjPN *) {
         return true;
     }
-    static inline bool classof(const PAGNode *node) {
-        return node->getNodeKind() == PAGNode::DummyObjNode;
-    }
-    static inline bool classof(const GenericPAGNodeTy *node) {
-        return node->getNodeKind() == PAGNode::DummyObjNode;
-    }
+	static inline bool classof(const PAGNode *node) {
+		return node->getNodeKind() == PAGNode::DummyObjNode
+				|| node->getNodeKind() == PAGNode::TypeObjNode;
+	}
+	static inline bool classof(const GenericPAGNodeTy *node) {
+		return node->getNodeKind() == PAGNode::DummyObjNode
+				|| node->getNodeKind() == PAGNode::TypeObjNode;
+	}
     //@}
 
     /// Constructor
-    DummyObjPN(NodeID i,const MemObj* m) : ObjPN(NULL, i, m, DummyObjNode) {
+    DummyObjPN(NodeID i,const MemObj* m, PNODEK ty = DummyObjNode) : ObjPN(NULL, i, m, ty) {
     }
 
     /// Return name of this node
     inline const std::string getValueName() const {
         return "dummyObj";
+    }
+};
+
+
+/*
+ * Dummy node
+ */
+class TypeObjPN: public DummyObjPN {
+
+private:
+	const Type* type;
+public:
+
+    //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
+    static inline bool classof(const TypeObjPN *) {
+        return true;
+    }
+    static inline bool classof(const PAGNode *node) {
+        return node->getNodeKind() == PAGNode::TypeObjNode;
+    }
+    static inline bool classof(const GenericPAGNodeTy *node) {
+        return node->getNodeKind() == PAGNode::TypeObjNode;
+    }
+    //@}
+
+    /// Constructor
+    TypeObjPN(NodeID i, const MemObj* m, const Type* t) : DummyObjPN(i, m, DummyObjNode), type(t) {
+    }
+
+    /// Return name of this node
+    inline const std::string getValueName() const {
+        std::string str;
+        raw_string_ostream rawstr(str);
+        type->print(rawstr);
+        return "TypeObj:" + rawstr.str();
     }
 };
 

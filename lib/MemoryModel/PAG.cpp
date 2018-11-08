@@ -670,15 +670,16 @@ PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
         break;
     }
 
-    case ObjNode:
-    case GepObjNode:
-    case FIObjNode:
-    case DummyObjNode: {
-        isTLPointer = false;
-        isATPointer = true;
-        break;
-    }
-    }
+	case ObjNode:
+	case GepObjNode:
+	case FIObjNode:
+	case TypeObjNode:
+	case DummyObjNode: {
+		isTLPointer = false;
+		isATPointer = true;
+		break;
+	}
+	}
 }
 
 /*!

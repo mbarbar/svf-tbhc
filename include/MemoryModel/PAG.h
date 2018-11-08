@@ -554,13 +554,17 @@ public:
         return addValNode(NULL, new DummyValPN(i), i);
     }
     inline NodeID addDummyObjNode() {
-        const MemObj* mem = SymbolTableInfo::Symbolnfo()->createDummyObj(nodeNum);
+        const MemObj* mem = addDummyMemObj(nodeNum);
         return addObjNode(NULL, new DummyObjPN(nodeNum,mem), nodeNum);
     }
     inline NodeID addDummyObjNode(NodeID i) {
         const MemObj* mem = addDummyMemObj(i);
         return addObjNode(NULL, new DummyObjPN(i,mem), i);
     }
+	inline NodeID addDummyTypeObjNode(const Type* type) {
+		const MemObj* mem = addDummyMemObj(nodeNum);
+		return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
+	}
     inline const MemObj* addDummyMemObj(NodeID i) {
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i);
     }
