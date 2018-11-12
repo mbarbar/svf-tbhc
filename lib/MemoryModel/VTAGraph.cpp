@@ -35,23 +35,47 @@ std::string nodeKindName(GenericNode<PAGNode, PAGEdge>::GNodeK nk) {
         return "TypeObjNode";
 }
 
-void VTAGraph::removeMemoryObjectNodes(void) {
-    llvm::outs() << "removeMemoryObjectNodes\n";
+std::string edgeKindName(ConstraintEdge::GEdgeKind ek) {
+    if (ek == ConstraintEdge::Addr)
+        return "Addr";
+    else if (ek == ConstraintEdge::Copy)
+        return "Copy";
+    else if (ek == ConstraintEdge::Store)
+        return "Store";
+    else if (ek == ConstraintEdge::Load)
+        return "Load";
+    else if (ek == ConstraintEdge::NormalGep)
+        return "NormalGep";
+    else if (ek == ConstraintEdge::VariantGep)
+        return "VariantGep";
+}
+
+std::set<NodeID> VTAGraph::getFIObjectNodes(void) {
+    std::set<NodeID> objNodes;
+
     for (auto nodeI = begin(); nodeI != end(); ++nodeI) {
         NodeID nodeId = nodeI->first;
         PAGNode *pagNode = pag->getPAGNode(nodeId);
+
+        if (pagNode->getNodeKind() == PAGNode::FIObjNode) {
+            objNodes.insert(nodeId);
+        }
+    }
+
+    return objNodes;
+}
+
+void VTAGraph::removeMemoryObjectNodes(void) {
+    std::set<NodeID> objNodes = getFIObjectNodes();
+    for (auto nodeI = objNodes.begin(); nodeI != objNodes.end(); ++nodeI) {
+        NodeID nodeId = *nodeI;
+        PAGNode *pagNode = pag->getPAGNode(nodeId);
         ConstraintNode *constraintNode = getConstraintNode(nodeId);
-        /*
-        llvm::outs() << "NodeID: " << nodeId << " - "
-                     << "kind: "   << nodeKindName(pagNode->getNodeKind()) << "\n";
-        llvm::outs() << pagNode << "\n";
-        */
-        if (!ObjPN::classof(pagNode)) continue;
-        if (pagNode->getNodeKind() != PAGNode::FIObjNode) continue;
 
         ObjPN *objNode = static_cast<FIObjPN *>(pagNode);
         Type *objType = objNode->getMemObj()->getTypeInfo()->getLLVMType();
 
+        // Get the string representation of the type.
         std::string typeName;
         llvm::raw_string_ostream rso(typeName);
         objType->print(rso);
@@ -62,42 +86,26 @@ void VTAGraph::removeMemoryObjectNodes(void) {
 
         NodeID newSrcID;
 
-        llvm::outs() << typeToNode.count(objType) << "\n";
         if (typeToNode.count(objType) != 0) {
+            // A type node was created.
             newSrcID = typeToNode.at(objType);
-            llvm::outs() << "Type: " << *objType
-                         << "newSrcID: " << newSrcID
-                         << " - IF\n";
         } else {
+            // No type node for objType, so make one.
             newSrcID = pag->addDummyTypeObjNode(objType);
-            llvm::outs() << "newSrcID is " << newSrcID << "\n";
             addConstraintNode(new ConstraintNode(newSrcID), newSrcID);
             typeToNode[objType] = newSrcID;
-            llvm::outs() << "Type: " << *objType
-                         << "newSrcID: " << newSrcID
-                         << " - ELSE\n";
         }
 
         for (auto edgeI = constraintNode->getOutEdges().begin();
              edgeI != constraintNode->getOutEdges().end();
              ++edgeI) {
-            if ((*edgeI)->getEdgeKind() != PAGEdge::Addr) continue;
+            if ((*edgeI)->getEdgeKind() != ConstraintEdge::Addr) continue;
             AddrCGEdge *addrEdge = static_cast<AddrCGEdge *>(*edgeI);
+
             // Keep the old dst, attach it to the new src.
             NodeID dstId = addrEdge->getDstID();
             addAddrCGEdge(newSrcID, dstId);
             removeAddrEdge(addrEdge);
-        }
-
-        llvm::outs() << "Mem: " << *(objNode->getMemObj()->getRefVal()->getType()) << "\n";
-        if (objType == NULL) {
-            llvm::outs() << "Type is null\n";
-        } else {
-            llvm::outs() << "NodeID: " << nodeId
-                         << "  Type: " << *objType
-                         << "  Kind: " << nodeKindName(pagNode->getNodeKind())
-                         << " struct type? " << objNode->getMemObj()->getRefVal()->getName()
-                         << "\n";
         }
     }
 }

@@ -172,6 +172,7 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
 
     VTAGraph *vtg = new VTAGraph(pag);
     vtg->removeMemoryObjectNodes();
+    vtg->dump("vta_graph");
 }
 
 
