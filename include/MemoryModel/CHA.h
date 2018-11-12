@@ -220,6 +220,9 @@ public:
 	inline const CHNodeSetTy &getDescendants(const std::string className) {
 		return classNameToDescendantsMap[className];
 	}
+	inline const CHNodeSetTy &getAncestors(const std::string className) {
+		return classNameToAncestorsMap[className];
+	}
 	inline const CHNodeSetTy &getInstances(const std::string className) {
 		return templateNameToInstancesMap[className];
 	}
