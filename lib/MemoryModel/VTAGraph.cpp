@@ -72,8 +72,8 @@ void VTAGraph::removeMemoryObjectNodes(void) {
         PAGNode *pagNode = pag->getPAGNode(nodeId);
         ConstraintNode *constraintNode = getConstraintNode(nodeId);
 
-        ObjPN *objNode = static_cast<FIObjPN *>(pagNode);
-        Type *objType = objNode->getMemObj()->getTypeInfo()->getLLVMType();
+        const ObjPN *objNode = static_cast<FIObjPN *>(pagNode);
+        const Type *objType = objNode->getMemObj()->getTypeInfo()->getType();
 
         // Get the string representation of the type.
         std::string typeName;
@@ -81,6 +81,7 @@ void VTAGraph::removeMemoryObjectNodes(void) {
         objType->print(rso);
         typeName = rso.str();
 
+        llvm::outs() << "type: " << objType << "\n";
         // TODO: this is unreliable. Case: %"class ...
         if (typeName.compare(0, std::string("%class").size(), "%class") != 0) continue;
 
