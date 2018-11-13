@@ -66,14 +66,18 @@ std::set<NodeID> VTAGraph::getFIObjectNodes(void) {
 }
 
 void VTAGraph::removeMemoryObjectNodes(void) {
-    std::set<NodeID> objNodes = getFIObjectNodes();
-    for (auto nodeI = objNodes.begin(); nodeI != objNodes.end(); ++nodeI) {
-        NodeID nodeId = *nodeI;
-        PAGNode *pagNode = pag->getPAGNode(nodeId);
-        ConstraintNode *constraintNode = getConstraintNode(nodeId);
+    std::set<const FIObjPN*> objNodes;
+    for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
+        const PAGNode *pagNode = nodeI->second;
+        if (const FIObjPN* fiObj = SVFUtil::dyn_cast<FIObjPN>(pagNode))
+            objNodes.insert(fiObj);
+    }
 
-        const ObjPN *objNode = static_cast<FIObjPN *>(pagNode);
-        const Type *objType = objNode->getMemObj()->getTypeInfo()->getType();
+
+    for (auto nodeI = objNodes.begin(); nodeI != objNodes.end(); ++nodeI) {
+		const FIObjPN *fiObj = *nodeI;
+		ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
+		const Type *objType = fiObj->getMemObj()->getType();
 
         // Get the string representation of the type.
         std::string typeName;
@@ -97,17 +101,17 @@ void VTAGraph::removeMemoryObjectNodes(void) {
             typeToNode[objType] = newSrcID;
         }
 
-        for (auto edgeI = constraintNode->getOutEdges().begin();
-             edgeI != constraintNode->getOutEdges().end();
-             ++edgeI) {
-            if ((*edgeI)->getEdgeKind() != ConstraintEdge::Addr) continue;
-            AddrCGEdge *addrEdge = static_cast<AddrCGEdge *>(*edgeI);
-
-            // Keep the old dst, attach it to the new src.
-            NodeID dstId = addrEdge->getDstID();
-            addAddrCGEdge(newSrcID, dstId);
-            removeAddrEdge(addrEdge);
-        }
+        std::set<AddrCGEdge*> addrs;
+		for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
+			if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
+				addrs.insert(addrEdge);
+			assert(addrs.size() == 1 && "an object does not have one outgoing address edge?");
+		}
+		for(auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++){
+			NodeID dstId = (*edgeI)->getDstID();
+			removeAddrEdge(*edgeI);
+			addAddrCGEdge(newSrcID, dstId);
+		}
     }
 }
 

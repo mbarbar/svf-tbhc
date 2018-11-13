@@ -169,10 +169,6 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
         ptaCallGraph = new PTACallGraph(svfModule);
     callGraphSCCDetection();
     svfMod = svfModule;
-
-    VTAGraph *vtg = new VTAGraph(pag);
-    vtg->removeMemoryObjectNodes();
-    vtg->dump("vta_graph");
 }
 
 

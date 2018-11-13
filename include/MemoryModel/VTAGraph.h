@@ -34,4 +34,16 @@ private:
     std::set<NodeID> getFIObjectNodes(void);
 };
 
+namespace llvm {
+/* !
+ * GraphTraits specializations for the generic graph algorithms.
+ * Provide graph traits for traversing from a constraint node using standard graph traversals.
+ */
+
+template<> struct GraphTraits<VTAGraph*> : public GraphTraits<GenericGraph<ConstraintNode,ConstraintEdge>* > {
+typedef ConstraintNode *NodeRef;
+};
+
+}
+
 #endif // VTAGRAPH_H
