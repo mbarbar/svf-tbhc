@@ -27,6 +27,7 @@ public:
     VTGraph(PAG *p) : OfflineConsG(p) {
     }
 
+    // Replaces memory objects with type objects.
     void removeMemoryObjectNodes(void);
 
     /// Dump the VT graph.
