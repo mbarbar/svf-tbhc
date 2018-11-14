@@ -50,31 +50,16 @@ std::string edgeKindName(ConstraintEdge::GEdgeKind ek) {
         return "VariantGep";
 }
 
-std::set<NodeID> VTAGraph::getFIObjectNodes(void) {
-    std::set<NodeID> objNodes;
-
-    for (auto nodeI = begin(); nodeI != end(); ++nodeI) {
-        NodeID nodeId = nodeI->first;
-        PAGNode *pagNode = pag->getPAGNode(nodeId);
-
-        if (pagNode->getNodeKind() == PAGNode::FIObjNode) {
-            objNodes.insert(nodeId);
-        }
-    }
-
-    return objNodes;
-}
-
 void VTAGraph::removeMemoryObjectNodes(void) {
-    std::set<const FIObjPN*> objNodes;
+    std::set<const FIObjPN*> fiObjNodes;
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         const PAGNode *pagNode = nodeI->second;
         if (const FIObjPN* fiObj = SVFUtil::dyn_cast<FIObjPN>(pagNode))
-            objNodes.insert(fiObj);
+            fiObjNodes.insert(fiObj);
     }
 
 
-    for (auto nodeI = objNodes.begin(); nodeI != objNodes.end(); ++nodeI) {
+    for (auto nodeI = fiObjNodes.begin(); nodeI != fiObjNodes.end(); ++nodeI) {
 		const FIObjPN *fiObj = *nodeI;
 		ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
 		const Type *objType = fiObj->getMemObj()->getType();
@@ -85,12 +70,10 @@ void VTAGraph::removeMemoryObjectNodes(void) {
         objType->print(rso);
         typeName = rso.str();
 
-        llvm::outs() << "type: " << objType << "\n";
         // TODO: this is unreliable. Case: %"class ...
         if (typeName.compare(0, std::string("%class").size(), "%class") != 0) continue;
 
         NodeID newSrcID;
-
         if (typeToNode.count(objType) != 0) {
             // A type node was created.
             newSrcID = typeToNode.at(objType);
@@ -107,7 +90,8 @@ void VTAGraph::removeMemoryObjectNodes(void) {
 				addrs.insert(addrEdge);
 			assert(addrs.size() == 1 && "an object does not have one outgoing address edge?");
 		}
-		for(auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++){
+
+		for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
 			NodeID dstId = (*edgeI)->getDstID();
 			removeAddrEdge(*edgeI);
 			addAddrCGEdge(newSrcID, dstId);

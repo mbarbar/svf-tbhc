@@ -28,10 +28,6 @@ public:
     }
 
     void removeMemoryObjectNodes(void);
-
-private:
-    // Returns the set of FI Object nodes in the graph.
-    std::set<NodeID> getFIObjectNodes(void);
 };
 
 namespace llvm {
