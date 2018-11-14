@@ -47,7 +47,6 @@ VTGraph* VTAnalysis::createVTGraph(){
     /// Build Constraint Graph
     VTGraph *vtg = new VTGraph(pag);
     vtg->removeMemoryObjectNodes();
-    vtg->dump("vta_graph");
     VSCC* vscc = new VSCC(vtg);
     vscc->find();
 
