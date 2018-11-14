@@ -28,6 +28,9 @@ public:
     }
 
     void removeMemoryObjectNodes(void);
+
+    /// Dump the VT graph.
+    void dump(std::string name);
 };
 
 namespace llvm {

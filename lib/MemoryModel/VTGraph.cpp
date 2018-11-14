@@ -12,6 +12,9 @@
 #include "Util/BasicTypes.h"
 #include "MemoryModel/PAGNode.h"
 
+llvm::cl::opt<bool> VTGDotGraph("dump-vtg", llvm::cl::init(false),
+                                llvm::cl::desc("Dump dot graph of Vartiable Type Graph"));
+
 std::string nodeKindName(GenericNode<PAGNode, PAGEdge>::GNodeK nk) {
     if (nk == PAGNode::ValNode)
         return "ValNode";
@@ -99,3 +102,7 @@ void VTGraph::removeMemoryObjectNodes(void) {
     }
 }
 
+void VTGraph::dump(std::string name) {
+    if (VTGDotGraph)
+        GraphPrinter::WriteGraphToFile(SVFUtil::outs(), name, this);
+}
