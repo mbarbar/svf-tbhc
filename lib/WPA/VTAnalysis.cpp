@@ -43,9 +43,9 @@ void VTAnalysis::validateTests() {
 }
 
 
-VTAGraph* VTAnalysis::createVTAGraph(){
+VTGraph* VTAnalysis::createVTGraph(){
     /// Build Constraint Graph
-    VTAGraph *vtg = new VTAGraph(pag);
+    VTGraph *vtg = new VTGraph(pag);
     vtg->removeMemoryObjectNodes();
     vtg->dump("vta_graph");
     VSCC* vscc = new VSCC(vtg);

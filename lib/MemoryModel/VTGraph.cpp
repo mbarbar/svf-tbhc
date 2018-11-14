@@ -1,13 +1,13 @@
-//===- VTAGraph.cpp -- Offline constraint graph -----------------------------//
+//===- VTGraph.cpp -- Offline constraint graph -----------------------------//
 
 /*
- * VTAGraph.cpp
+ * VTGraph.cpp
  *
  *  Created on: Nov 07, 2018
  *      Author: Mohamad Barbar
  */
 
-#include "MemoryModel/VTAGraph.h"
+#include "MemoryModel/VTGraph.h"
 #include "Util/SVFUtil.h"
 #include "Util/BasicTypes.h"
 #include "MemoryModel/PAGNode.h"
@@ -50,7 +50,7 @@ std::string edgeKindName(ConstraintEdge::GEdgeKind ek) {
         return "VariantGep";
 }
 
-void VTAGraph::removeMemoryObjectNodes(void) {
+void VTGraph::removeMemoryObjectNodes(void) {
     std::set<const FIObjPN*> fiObjNodes;
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         const PAGNode *pagNode = nodeI->second;

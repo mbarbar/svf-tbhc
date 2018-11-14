@@ -39,7 +39,7 @@
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
-#include "MemoryModel/VTAGraph.h"
+#include "MemoryModel/VTGraph.h"
 #include <fstream>
 #include <sstream>
 

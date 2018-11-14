@@ -4,19 +4,19 @@
 #define INCLUDE_WPA_VTANALYSIS_H_
 
 #include "WPA/Andersen.h"
-#include "MemoryModel/VTAGraph.h"
+#include "MemoryModel/VTGraph.h"
 
 class VTAnalysis: public Andersen {
 
 public:
-    typedef SCCDetection<VTAGraph*> VSCC;
+    typedef SCCDetection<VTGraph*> VSCC;
 
     /// Initialize analysis
     virtual inline void initialize(SVFModule svfModule) {
         resetData();
         /// Build PAG
         PointerAnalysis::initialize(svfModule);
-        consCG = createVTAGraph();
+        consCG = createVTGraph();
         setGraph(consCG);
         /// Create statistic class
         stat = new AndersenStat(this);
@@ -35,7 +35,7 @@ public:
 
     void validateTests();
 
-    VTAGraph* createVTAGraph();
+    VTGraph* createVTGraph();
 };
 
 
