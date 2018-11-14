@@ -58,7 +58,8 @@ static llvm::cl::bits<PointerAnalysis::PTATY> PASelected(llvm::cl::desc("Select 
             clEnumValN(PointerAnalysis::AndersenWaveDiff_WPA, "ander", "Diff wave propagation inclusion-based analysis"),
             clEnumValN(PointerAnalysis::AndersenWaveDiffWithType_WPA, "andertype", "Diff wave propagation with type inclusion-based analysis"),
             clEnumValN(PointerAnalysis::FSSPARSE_WPA, "fspta", "Sparse flow sensitive pointer analysis"),
-			clEnumValN(PointerAnalysis::TypeCPP_WPA, "type", "Type-based fast analysis for Callgraph, PAG and CHA")
+			clEnumValN(PointerAnalysis::TypeCPP_WPA, "type", "Type-based fast analysis for Callgraph, PAG and CHA"),
+			clEnumValN(PointerAnalysis::VariableTypeCPP_WPA, "vta", "Variable Type Analysis")
         ));
 
 
@@ -124,6 +125,9 @@ void WPAPass::runPointerAnalysis(SVFModule svfModule, u32_t kind)
             _pta = new FlowSensitive();
             break;
         case PointerAnalysis::TypeCPP_WPA:
+            _pta = new TypeAnalysis();
+            break;
+        case PointerAnalysis::VariableTypeCPP_WPA:
             _pta = new VTAnalysis();
             break;
         default:
