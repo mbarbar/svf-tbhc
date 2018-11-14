@@ -39,6 +39,7 @@
 #include "WPA/Andersen.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/TypeAnalysis.h"
+#include "WPA/VTAnalysis.h"
 
 char WPAPass::ID = 0;
 
@@ -123,7 +124,7 @@ void WPAPass::runPointerAnalysis(SVFModule svfModule, u32_t kind)
             _pta = new FlowSensitive();
             break;
         case PointerAnalysis::TypeCPP_WPA:
-            _pta = new TypeAnalysis();
+            _pta = new VTAnalysis();
             break;
         default:
             assert(false && "This pointer analysis has not been implemented yet.\n");
