@@ -30,7 +30,7 @@ public:
     void removeMemoryObjectNodes(void);
 
     /// Dump the VT graph.
-    void dump(std::string name);
+    virtual void dump(std::string name) override;
 };
 
 namespace llvm {

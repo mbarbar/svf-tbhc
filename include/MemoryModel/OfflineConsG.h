@@ -93,7 +93,7 @@ public:
     //@}
 
     // Dump graph into dot file
-    void dump(std::string name);
+    virtual void dump(std::string name) override;
 
 protected:
     inline bool hasNorRep(NodeID nor) const {
