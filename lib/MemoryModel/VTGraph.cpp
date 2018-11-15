@@ -106,3 +106,113 @@ void VTGraph::dump(std::string name) {
     if (VTGDotGraph)
         GraphPrinter::WriteGraphToFile(SVFUtil::outs(), name, this);
 }
+
+namespace llvm {
+    template<>
+    struct DOTGraphTraits<VTGraph *> : public DOTGraphTraits<PAG*> {
+
+        typedef ConstraintNode NodeType;
+        DOTGraphTraits(bool isSimple = false) :
+                DOTGraphTraits<PAG*>(isSimple) {
+        }
+
+        /// Return name of the graph
+        static std::string getGraphName(VTGraph *graph) {
+            return "Variable Type Graph";
+        }
+
+        /// Return label of a VFG node with two display mode
+        /// Either you can choose to display the name of the value or the whole instruction
+        static std::string getNodeLabel(NodeType *n, VTGraph*graph) {
+            std::string str;
+            raw_string_ostream rawstr(str);
+            if (PAG::getPAG()->findPAGNode(n->getId())) {
+                PAGNode *node = PAG::getPAG()->getPAGNode(n->getId());
+                bool briefDisplay = true;
+                bool nameDisplay = true;
+
+
+                if (briefDisplay) {
+                    if (SVFUtil::isa<ValPN>(node)) {
+                        if (nameDisplay)
+                            rawstr << node->getId() << ":" << node->getValueName();
+                        else
+                            rawstr << node->getId();
+                    } else
+                        rawstr << node->getId();
+                } else {
+                    // print the whole value
+                    if (!SVFUtil::isa<DummyValPN>(node) && !SVFUtil::isa<DummyObjPN>(node))
+                        rawstr << *node->getValue();
+                    else
+                        rawstr << "";
+
+                }
+
+                return rawstr.str();
+            } else {
+                rawstr<< n->getId();
+                return rawstr.str();
+            }
+        }
+
+        static std::string getNodeAttributes(NodeType *n, VTGraph *graph) {
+            if (PAG::getPAG()->findPAGNode(n->getId())) {
+                PAGNode *node = PAG::getPAG()->getPAGNode(n->getId());
+                if (SVFUtil::isa<ValPN>(node)) {
+                    if (SVFUtil::isa<GepValPN>(node))
+                        return "shape=hexagon";
+                    else if (SVFUtil::isa<DummyValPN>(node))
+                        return "shape=diamond";
+                    else
+                        return "shape=circle";
+                } else if (SVFUtil::isa<ObjPN>(node)) {
+                    if (SVFUtil::isa<GepObjPN>(node))
+                        return "shape=doubleoctagon";
+                    else if (SVFUtil::isa<FIObjPN>(node))
+                        return "shape=septagon";
+                    else if (SVFUtil::isa<DummyObjPN>(node))
+                        return "shape=Mcircle";
+                    else
+                        return "shape=doublecircle";
+                } else if (SVFUtil::isa<RetPN>(node)) {
+                    return "shape=Mrecord";
+                } else if (SVFUtil::isa<VarArgPN>(node)) {
+                    return "shape=octagon";
+                } else {
+                    assert(0 && "no such kind node!!");
+                }
+                return "";
+            } else {
+                return "shape=doublecircle";
+            }
+        }
+
+        template<class EdgeIter>
+        static std::string getEdgeAttributes(NodeType *node, EdgeIter EI, VTGraph *pag) {
+            ConstraintEdge* edge = *(EI.getCurrent());
+            assert(edge && "No edge found!!");
+            if (edge->getEdgeKind() == ConstraintEdge::Addr) {
+                return "color=green";
+            } else if (edge->getEdgeKind() == ConstraintEdge::Copy) {
+                return "color=black";
+            } else if (edge->getEdgeKind() == ConstraintEdge::NormalGep
+                       || edge->getEdgeKind() == ConstraintEdge::VariantGep) {
+                return "color=purple";
+            } else if (edge->getEdgeKind() == ConstraintEdge::Store) {
+                return "color=blue";
+            } else if (edge->getEdgeKind() == ConstraintEdge::Load) {
+                return "color=red";
+            } else {
+                assert(0 && "No such kind edge!!");
+            }
+            return "";
+        }
+
+        template<class EdgeIter>
+        static std::string getEdgeSourceLabel(NodeType *node, EdgeIter EI) {
+            return "";
+        }
+    };
+}
+
