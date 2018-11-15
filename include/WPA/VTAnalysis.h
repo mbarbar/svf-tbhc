@@ -26,6 +26,11 @@ public:
         consCG->dump("vtg_initial");
     }
 
+    virtual inline void analyze(SVFModule svfModule) {
+        initialize(svfModule);
+        finalize();
+    }
+
     /// Finalize analysis
     virtual inline void finalize() {
         consCG->dump("vtg_final");
