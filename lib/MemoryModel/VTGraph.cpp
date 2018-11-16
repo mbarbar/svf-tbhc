@@ -15,6 +15,8 @@
 llvm::cl::opt<bool> VTGDotGraph("dump-vtg", llvm::cl::init(false),
                                 llvm::cl::desc("Dump dot graph of Vartiable Type Graph"));
 
+const std::string VTGraph::CLASS_NAME_PREFIX = "class.";
+
 std::string nodeKindName(GenericNode<PAGNode, PAGEdge>::GNodeK nk) {
     if (nk == PAGNode::ValNode)
         return "ValNode";
@@ -101,6 +103,64 @@ void VTGraph::removeMemoryObjectNodes(void) {
 		}
     }
 }
+
+void VTGraph::collapseFields(void) {
+    std::set<NormalGepCGEdge *> gepEdges;
+    ConstraintEdge::ConstraintEdgeSetTy &directEdges = getDirectCGEdges();
+    for (auto edgeI = directEdges.begin(); edgeI != directEdges.end(); ++edgeI) {
+        if (NormalGepCGEdge *gepEdge = SVFUtil::dyn_cast<NormalGepCGEdge>(*edgeI)) {
+            gepEdges.insert(gepEdge);
+        }
+    }
+
+    for (auto gepEdgeI = gepEdges.begin(); gepEdgeI != gepEdges.end(); ++gepEdgeI) {
+        ConstraintNode *srcConstraintNode = (*gepEdgeI)->getSrcNode();
+        ConstraintNode *dstConstraintNode = (*gepEdgeI)->getDstNode();
+
+        NodeID srcId = srcConstraintNode->getId();
+        NodeID dstId = dstConstraintNode->getId();
+
+        PAGNode *srcPagNode = pag->getPAGNode(srcId);
+        PAGNode *dstPagNode = pag->getPAGNode(dstId);
+
+        NormalGepPE *pagGepEdge = static_cast<NormalGepPE *>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
+        u32_t offset = pagGepEdge->getOffset();
+
+        // Does the src have a type? If not, keep moving backwards.
+        const Type *srcType = srcPagNode->getType();
+        if (srcType == NULL) {
+            // TODO: what to do?
+            assert("Cannot determine type of GEP accessor.");
+        }
+
+        // If it's not a StructType, getClassNameFromPointerType will handle it.
+        const std::string className = getClassNameFromPointerType(srcType);
+        if (chg->getNode(className) == NULL) continue;
+
+    }
+}
+
+std::string VTGraph::getClassNameFromPointerType(const Type *type) {
+    // Not given a pointer.
+    if (!type->isPointerTy()) return "";
+
+    const PointerType *ptrType = static_cast<const PointerType *>(type);
+    while (ptrType->getContainedType(0)->isPointerTy()) {
+        ptrType = static_cast<const PointerType *>(ptrType->getElementType());
+    }
+
+    // It's not a class.
+    if (!ptrType->getElementType()->isStructTy()) {
+        return "";
+    }
+
+    const StructType *st = static_cast<const StructType *>(ptrType->getContainedType(0));
+    std::string name = st->getName();
+    name.erase(0, VTGraph::CLASS_NAME_PREFIX.length());
+
+    return name;
+}
+
 
 void VTGraph::dump(std::string name) {
     if (VTGDotGraph)

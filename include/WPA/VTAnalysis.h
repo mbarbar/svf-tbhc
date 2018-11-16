@@ -5,6 +5,7 @@
 
 #include "WPA/Andersen.h"
 #include "MemoryModel/VTGraph.h"
+#include "MemoryModel/CHA.h"
 
 class VTAnalysis: public Andersen {
 public:
@@ -12,18 +13,32 @@ public:
 
     /// Initialize analysis
     virtual inline void initialize(SVFModule svfModule) {
+        CHGraph *chg = new CHGraph(svfModule);
+        chg->buildCHG();
+        Type *t = NULL;
+
+        for (auto nodeI = chg->begin(); nodeI != chg->end(); ++nodeI) {
+            llvm::outs() << "NODE: " << nodeI->second->getName() << "\n";
+        }
+
         resetData();
 
         /// Build PAG
         PointerAnalysis::initialize(svfModule);
 
-        consCG = createVTGraph();
+        consCG = createVTGraph(svfModule);
         setGraph(consCG);
 
         /// Create statistic class
         stat = new AndersenStat(this);
 
         consCG->dump("vtg_initial");
+
+
+        PAGNode *node = pag->getPAGNode(4);
+        const Type *type = node->getType();
+        const Value *value = node->getValue();
+        const PointerType *ptrType = static_cast<const PointerType *>(type);
     }
 
     virtual inline void analyze(SVFModule svfModule) {
@@ -42,7 +57,7 @@ public:
 
     void validateTests();
 
-    VTGraph* createVTGraph();
+    VTGraph* createVTGraph(SVFModule svfModule);
 };
 
 

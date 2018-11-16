@@ -10,7 +10,10 @@
 #ifndef VTGRAPH_H
 #define VTGRAPH_H
 
+#include <tuple>
+
 #include "MemoryModel/OfflineConsG.h"
+#include "MemoryModel/CHA.h"
 
 /*!
  * Offline constraint graph for Andersen's analysis.
@@ -19,19 +22,34 @@
  */
 class VTGraph: public OfflineConsG {
 private:
+    // What prefixes every class (type) name in LLVM.
+    static const std::string CLASS_NAME_PREFIX;
+
     // Maps types to the new nodes generated to replace
     // all the memory objects of that type.
     std::map<const Type *, NodeID> typeToNode;
 
+    CHGraph *chg;
+
 public:
-    VTGraph(PAG *p) : OfflineConsG(p) {
+    VTGraph(PAG *p, SVFModule svfModule) : OfflineConsG(p) {
+        chg = new CHGraph(svfModule);
+        chg->buildCHG();
     }
 
     // Replaces memory objects with type objects.
     void removeMemoryObjectNodes(void);
 
+    // Collapses all fields to a single node.
+    // Nodes referring to field f collapse to node X::f
+    // where X is the class declaring f.
+    void collapseFields(void);
+
     /// Dump the VT graph.
     virtual void dump(std::string name) override;
+
+private:
+    std::string getClassNameFromPointerType(const Type *type);
 };
 
 namespace llvm {
