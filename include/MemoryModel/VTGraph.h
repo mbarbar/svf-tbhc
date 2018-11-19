@@ -50,6 +50,10 @@ public:
 
 private:
     std::string getClassNameFromPointerType(const Type *type);
+    std::string getClassNameFromStructType(const StructType *structType);
+    const Type *dereferencePointerType(const PointerType *pt);
+
+    std::string getFieldDeclarer(std::string accessingClass, const StructType *ptrType, u32_t fieldOffset);
 };
 
 namespace llvm {
