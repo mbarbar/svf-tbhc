@@ -29,6 +29,10 @@ private:
     // all the memory objects of that type.
     std::map<const Type *, NodeID> typeToNode;
 
+    // Maps a field (declarer + offset) to the node which
+    // will represent that field.
+    std::map<std::tuple<std::string, u32_t>, NodeID> fieldRepresentationMap;
+
     CHGraph *chg;
 
 public:

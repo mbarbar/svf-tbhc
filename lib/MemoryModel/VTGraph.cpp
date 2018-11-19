@@ -7,6 +7,8 @@
  *      Author: Mohamad Barbar
  */
 
+#include <tuple>
+
 #include "MemoryModel/VTGraph.h"
 #include "Util/SVFUtil.h"
 #include "Util/BasicTypes.h"
@@ -166,7 +168,7 @@ void VTGraph::collapseFields(void) {
         NormalGepPE *pagGepEdge = static_cast<NormalGepPE *>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
         u32_t offset = pagGepEdge->getOffset();
 
-        // Does the src have a type? If not, keep moving backwards.
+        // Does the src have a type?
         const Type *srcType = srcPagNode->getType();
         if (srcType == NULL) {
             // TODO: what to do?
@@ -174,10 +176,23 @@ void VTGraph::collapseFields(void) {
         }
 
         // If it's not a StructType, getClassNameFromPointerType will handle it.
-        const std::string className = getClassNameFromPointerType(srcType);
-        if (chg->getNode(className) == NULL) continue;
+        const std::string accessorClass = getClassNameFromPointerType(srcType);
+        if (chg->getNode(accessorClass) == NULL) continue;
 
-        getFieldDeclarer(className, static_cast<const StructType *>(dereferencePointerType(static_cast<const PointerType *>(srcType))), offset);
+        // getFieldDeclarer(className, static_cast<const StructType *>(dereferencePointerType(static_cast<const PointerType *>(srcType))), offset);
+        std::tuple<std::string, u32_t> fieldKey = std::tuple<std::string, u32_t>(accessorClass, offset);
+
+        if (fieldRepresentationMap.count(fieldKey) == 0) {
+            // Make the gep node the field representation, nothing more to do.
+            fieldRepresentationMap[fieldKey] = dstId;
+        } else {
+            // Use the existing one.
+            NodeID fieldRepresentationNodeId = fieldRepresentationMap.at(fieldKey);
+
+            // Detatch from the actual dst, attach to the representation.
+            removeDirectEdge(*gepEdgeI);
+            addNormalGepCGEdge(srcId, fieldRepresentationNodeId, (*gepEdgeI)->getLocationSet());
+        }
     }
 }
 
