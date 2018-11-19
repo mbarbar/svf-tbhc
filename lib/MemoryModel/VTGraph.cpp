@@ -111,14 +111,9 @@ void VTGraph::removeMemoryObjectNodes(void) {
         llvm::outs() << "]";
         */
 
-        // Get the string representation of the type.
-        std::string typeName;
-        llvm::raw_string_ostream rso(typeName);
-        objType->print(rso);
-        typeName = rso.str();
-
-        // TODO: this is unreliable. Case: %"class ...
-        if (typeName.compare(0, std::string("%class").size(), "%class") != 0) continue;
+        std::string className = getClassNameFromPointerType(objType);
+        // Not in the class hierarchy... ignore because whole-program analysis.
+        if (chg->getNode(className) == NULL) continue;
 
         NodeID newSrcID;
         if (typeToNode.count(objType) != 0) {
