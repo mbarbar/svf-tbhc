@@ -32,7 +32,7 @@ public:
         /// Create statistic class
         stat = new AndersenStat(this);
 
-        consCG->dump("vtg_initial");
+        //consCG->dump("vtg_initial");
 
 
         PAGNode *node = pag->getPAGNode(4);
