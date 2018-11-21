@@ -3,20 +3,24 @@
 using namespace SVFUtil;
 
 void VTAnalysis::validateTests() {
-	for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
-		Module *module = svfMod.getModule(i);
-		if (Function* checkFun = module->getFunction("_Z9checkTypePvS_")) {
-			if (!checkFun->use_empty())
-				SVFUtil::outs() << "[" << this->PTAName() << "] Checking" << "\n";
+    for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
+        Module *module = svfMod.getModule(i);
+        if (Function* checkFun = module->getFunction("_Z9checkTypePvPKc")) {
+            if (!checkFun->use_empty())
+                SVFUtil::outs() << "[" << this->PTAName() << "] Checking" << "\n";
 
-			for (Value::user_iterator i = checkFun->user_begin(), e = checkFun->user_end(); i != e; ++i)
-				if (SVFUtil::isa < CallInst > (*i) || SVFUtil::isa < InvokeInst > (*i)) {
-
+            for (Value::user_iterator i = checkFun->user_begin(), e = checkFun->user_end(); i != e; ++i)
+                if (SVFUtil::isa < CallInst > (*i) || SVFUtil::isa < InvokeInst > (*i)) {
                     CallSite cs(*i);
-                    assert(cs.getNumArgOperands() == 2
-                           && "arguments should be two pointers!!");
+                    assert(cs.getNumArgOperands() == 2 && "arguments (pointer, string)!!");
+
                     Value* v1 = cs.getArgOperand(0);
                     Value* v2 = cs.getArgOperand(1);
+                    StringRef typeString = static_cast<ConstantDataArray *>(static_cast<Constant *>(static_cast<User *>(cs.getArgument(1))->getOperand(0))->getOperand(0))->getAsCString();
+
+                    //NodeID node1 = pag->getValueNode(v1);
+
+                    /*
                     Instruction* inst = SVFUtil::cast<Instruction>(v2);
                     const Type* type = inst->getType();
                     if(const Instruction* preInst =  inst->getPrevNode()){
@@ -24,17 +28,22 @@ void VTAnalysis::validateTests() {
                             type = SVFUtil::dyn_cast<PointerType>(cast->getType());
                         }
                     }
+                    */
+                    std::string expectedType = typeString;
 
                     NodeID node1 = pag->getValueNode(v1);
                     PointsTo& pts = this->getPts(node1);
                     for(PointsTo::iterator it = pts.begin(), eit = pts.end(); it!=eit; ++it){
                         ObjPN* obj = SVFUtil::cast<ObjPN>(pag->getPAGNode(*it));
-                        if(obj->getMemObj()->getType() == type)
-                            outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << *type << "> at ("
-                                   << getSourceLoc(inst) << ")\n";
+                        llvm::outs() << "id: " << obj->getId() << "type: " << *(obj->getMemObj()->getType()) << "-\n";
+                        std::string actualType = VTGraph::getClassNameFromStructType(static_cast<const StructType *>(obj->getMemObj()->getType()));
+                        llvm::outs() << "actual: -" << actualType << "-\n";
+                        if(actualType == expectedType)
+                            outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("
+                                  // << getSourceLoc(inst) << ")\n";
                         else
-                            errs() << errMsg("\t FAIL :") << " check <id:" << obj->getId() << ", type:" << *type << "> at ("
-                                   << getSourceLoc(inst) << ")\n";
+                            errs() << errMsg("\t FAIL :") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("
+                                  // << getSourceLoc(inst) << ")\n";
                     }
 				}
 		}

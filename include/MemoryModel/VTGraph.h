@@ -52,10 +52,11 @@ public:
     /// Dump the VT graph.
     virtual void dump(std::string name) override;
 
+    static std::string getClassNameFromPointerType(const Type *type);
+    static std::string getClassNameFromStructType(const StructType *structType);
+    static const Type *dereferencePointerType(const PointerType *pt);
+
 private:
-    std::string getClassNameFromPointerType(const Type *type);
-    std::string getClassNameFromStructType(const StructType *structType);
-    const Type *dereferencePointerType(const PointerType *pt);
 
     std::string getFieldDeclarer(std::string accessingClass, const StructType *ptrType, u32_t fieldOffset);
 };

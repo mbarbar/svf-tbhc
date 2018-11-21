@@ -43,6 +43,8 @@ public:
 
     virtual inline void analyze(SVFModule svfModule) {
         initialize(svfModule);
+        processAllAddr();
+        solve();
         finalize();
     }
 
@@ -52,7 +54,7 @@ public:
         consCG->print();
 
         PointerAnalysis::finalize();
-        validateTests();
+        //validateTests();
     }
 
     void validateTests();
