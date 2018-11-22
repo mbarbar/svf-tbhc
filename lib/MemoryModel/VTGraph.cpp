@@ -213,7 +213,8 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
     }
 
     const StructType *st = static_cast<const StructType *>(ptrType->getContainedType(0));
-    std::string name = st->getName();
+    std::string name = "";
+    if (st->hasName()) name = st->getName();
     name.erase(0, VTGraph::CLASS_NAME_PREFIX.length());
 
     return name;
