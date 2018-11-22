@@ -5,7 +5,7 @@ using namespace SVFUtil;
 void VTAnalysis::validateTests() {
     for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
         Module *module = svfMod.getModule(i);
-        if (Function* checkFun = module->getFunction("_Z9checkTypePvPKc")) {
+        if (Function* checkFun = module->getFunction("_Z9checkTypePvS_")) {
             if (!checkFun->use_empty())
                 SVFUtil::outs() << "[" << this->PTAName() << "] Checking" << "\n";
 
@@ -16,30 +16,28 @@ void VTAnalysis::validateTests() {
 
                     Value* v1 = cs.getArgOperand(0);
                     Value* v2 = cs.getArgOperand(1);
-                    StringRef typeString = SVFUtil::dyn_cast<ConstantDataArray>(SVFUtil::dyn_cast<Constant>(SVFUtil::dyn_cast<User>(cs.getArgument(1))->getOperand(0))->getOperand(0))->getAsCString();
 
-                    /*
                     Instruction* inst = SVFUtil::cast<Instruction>(v2);
-                    const Type* type = inst->getType();
-                    if(const Instruction* preInst =  inst->getPrevNode()){
-                        if(const CastInst* cast = SVFUtil::dyn_cast<CastInst>(preInst)){
-                            type = SVFUtil::dyn_cast<PointerType>(cast->getType());
+                    const Type* expectedType = inst->getType();
+                    if (const Instruction* preInst =  inst->getPrevNode()){
+                        if (const CastInst* cast = SVFUtil::dyn_cast<CastInst>(preInst)){
+                            expectedType = SVFUtil::dyn_cast<PointerType>(cast->getType());
                         }
                     }
-                    */
-                    std::string expectedType = typeString;
+
+                    if (expectedType->isPointerTy()) expectedType = SVFUtil::dyn_cast<StructType>(expectedType->getPointerElementType());
 
                     NodeID node1 = pag->getValueNode(v1);
                     PointsTo& pts = this->getPts(node1);
                     for(PointsTo::iterator it = pts.begin(), eit = pts.end(); it!=eit; ++it){
                         ObjPN* obj = SVFUtil::cast<ObjPN>(pag->getPAGNode(*it));
-                        std::string actualType = VTGraph::getClassNameFromStructType(SVFUtil::dyn_cast<const StructType>(obj->getMemObj()->getType()));
-                        if(actualType == expectedType)
-                            outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("
-                                  // << getSourceLoc(inst) << ")\n";
+                        const Type *actualType = obj->getType();
+                        if (actualType == expectedType)
+                            outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << expectedType << "> at ("
+                                   << getSourceLoc(inst) << ")\n";
                         else
-                            errs() << errMsg("\t FAIL :") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("
-                                  // << getSourceLoc(inst) << ")\n";
+                            errs() << errMsg("\t FAIL :") << " check <id:" << obj->getId() << ", type:" << expectedType << "> at ("
+                                   << getSourceLoc(inst) << ")\n";
                     }
 				}
 		}
