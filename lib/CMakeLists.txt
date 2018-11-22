@@ -57,6 +57,7 @@ set(SOURCES
     WPA/FlowSensitive.cpp
     WPA/FlowSensitiveStat.cpp
     WPA/TypeAnalysis.cpp
+    WPA/RapidTypeAnalysis.cpp
     WPA/WPAPass.cpp
     WPA/VTAnalysis.cpp
     DDA/ContextDDA.cpp
