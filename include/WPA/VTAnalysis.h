@@ -17,10 +17,6 @@ public:
         chg->buildCHG();
         Type *t = NULL;
 
-        for (auto nodeI = chg->begin(); nodeI != chg->end(); ++nodeI) {
-            llvm::outs() << "NODE: " << nodeI->second->getName() << "\n";
-        }
-
         resetData();
 
         /// Build PAG
@@ -33,12 +29,6 @@ public:
         stat = new AndersenStat(this);
 
         //consCG->dump("vtg_initial");
-
-
-        PAGNode *node = pag->getPAGNode(4);
-        const Type *type = node->getType();
-        const Value *value = node->getValue();
-        const PointerType *ptrType = SVFUtil::dyn_cast<const PointerType>(type);
     }
 
     virtual inline void analyze(SVFModule svfModule) {

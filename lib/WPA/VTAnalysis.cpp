@@ -18,8 +18,6 @@ void VTAnalysis::validateTests() {
                     Value* v2 = cs.getArgOperand(1);
                     StringRef typeString = SVFUtil::dyn_cast<ConstantDataArray>(SVFUtil::dyn_cast<Constant>(SVFUtil::dyn_cast<User>(cs.getArgument(1))->getOperand(0))->getOperand(0))->getAsCString();
 
-                    //NodeID node1 = pag->getValueNode(v1);
-
                     /*
                     Instruction* inst = SVFUtil::cast<Instruction>(v2);
                     const Type* type = inst->getType();
@@ -35,9 +33,7 @@ void VTAnalysis::validateTests() {
                     PointsTo& pts = this->getPts(node1);
                     for(PointsTo::iterator it = pts.begin(), eit = pts.end(); it!=eit; ++it){
                         ObjPN* obj = SVFUtil::cast<ObjPN>(pag->getPAGNode(*it));
-                        llvm::outs() << "id: " << obj->getId() << "type: " << *(obj->getMemObj()->getType()) << "-\n";
                         std::string actualType = VTGraph::getClassNameFromStructType(SVFUtil::dyn_cast<const StructType>(obj->getMemObj()->getType()));
-                        llvm::outs() << "actual: -" << actualType << "-\n";
                         if(actualType == expectedType)
                             outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("
                                   // << getSourceLoc(inst) << ")\n";
@@ -75,7 +71,6 @@ VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     // each node will have a rep node
     for(NodeBS::iterator it = changedRepNodes.begin(), eit = changedRepNodes.end(); it!=eit; ++it)
         updateNodeRepAndSubs(*it);
-
 
     return vtg;
 }
