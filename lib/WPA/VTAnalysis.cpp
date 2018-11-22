@@ -16,7 +16,7 @@ void VTAnalysis::validateTests() {
 
                     Value* v1 = cs.getArgOperand(0);
                     Value* v2 = cs.getArgOperand(1);
-                    StringRef typeString = static_cast<ConstantDataArray *>(static_cast<Constant *>(static_cast<User *>(cs.getArgument(1))->getOperand(0))->getOperand(0))->getAsCString();
+                    StringRef typeString = SVFUtil::dyn_cast<ConstantDataArray>(SVFUtil::dyn_cast<Constant>(SVFUtil::dyn_cast<User>(cs.getArgument(1))->getOperand(0))->getOperand(0))->getAsCString();
 
                     //NodeID node1 = pag->getValueNode(v1);
 
@@ -36,7 +36,7 @@ void VTAnalysis::validateTests() {
                     for(PointsTo::iterator it = pts.begin(), eit = pts.end(); it!=eit; ++it){
                         ObjPN* obj = SVFUtil::cast<ObjPN>(pag->getPAGNode(*it));
                         llvm::outs() << "id: " << obj->getId() << "type: " << *(obj->getMemObj()->getType()) << "-\n";
-                        std::string actualType = VTGraph::getClassNameFromStructType(static_cast<const StructType *>(obj->getMemObj()->getType()));
+                        std::string actualType = VTGraph::getClassNameFromStructType(SVFUtil::dyn_cast<const StructType>(obj->getMemObj()->getType()));
                         llvm::outs() << "actual: -" << actualType << "-\n";
                         if(actualType == expectedType)
                             outs() << sucMsg("\t SUCCESS:") << " check <id:" << obj->getId() << ", type:" << expectedType << ">\n";// at ("

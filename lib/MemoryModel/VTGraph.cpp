@@ -160,7 +160,7 @@ void VTGraph::collapseFields(void) {
         PAGNode *srcPagNode = pag->getPAGNode(srcId);
         PAGNode *dstPagNode = pag->getPAGNode(dstId);
 
-        NormalGepPE *pagGepEdge = static_cast<NormalGepPE *>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
+        NormalGepPE *pagGepEdge = SVFUtil::dyn_cast<NormalGepPE>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
         u32_t offset = pagGepEdge->getOffset();
 
         // Does the src have a type?
@@ -202,9 +202,9 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
     // Not given a pointer.
     if (!type->isPointerTy()) return "";
 
-    const PointerType *ptrType = static_cast<const PointerType *>(type);
+    const PointerType *ptrType = SVFUtil::dyn_cast<const PointerType>(type);
     while (ptrType->getContainedType(0)->isPointerTy()) {
-        ptrType = static_cast<const PointerType *>(ptrType->getElementType());
+        ptrType = SVFUtil::dyn_cast<const PointerType>(ptrType->getElementType());
     }
 
     // It's not a class.
@@ -212,7 +212,7 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
         return "";
     }
 
-    const StructType *st = static_cast<const StructType *>(ptrType->getContainedType(0));
+    const StructType *st = SVFUtil::dyn_cast<const StructType>(ptrType->getContainedType(0));
     std::string name = "";
     if (st->hasName()) name = st->getName();
     name.erase(0, VTGraph::CLASS_NAME_PREFIX.length());
@@ -222,7 +222,7 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
 
 const Type *VTGraph::dereferencePointerType(const PointerType *pt) {
     while (pt->getElementType()->isPointerTy()) {
-        pt = static_cast<const PointerType *>(pt->getElementType());
+        pt = SVFUtil::dyn_cast<const PointerType>(pt->getElementType());
     }
 
     return pt->getElementType();
@@ -276,13 +276,13 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
                     break;
                 } else {
                     // Need to go into currFieldType.
-                    containingType = static_cast<const StructType *>(currFieldType);
+                    containingType = SVFUtil::dyn_cast<const StructType>(currFieldType);
                     break;
                 }
             } else if (currFieldOffset > fieldOffset) {
                 // We've skipped over what we need.
                 auto prevI = fieldOffsetI - 1;
-                containingType = static_cast<const StructType *>(si->getFieldTypeWithFldIdx(*prevI));
+                containingType = SVFUtil::dyn_cast<const StructType>(si->getFieldTypeWithFldIdx(*prevI));
                 break;
             } else {
                 // Try the next one...

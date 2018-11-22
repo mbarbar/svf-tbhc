@@ -38,7 +38,7 @@ public:
         PAGNode *node = pag->getPAGNode(4);
         const Type *type = node->getType();
         const Value *value = node->getValue();
-        const PointerType *ptrType = static_cast<const PointerType *>(type);
+        const PointerType *ptrType = SVFUtil::dyn_cast<const PointerType>(type);
     }
 
     virtual inline void analyze(SVFModule svfModule) {
