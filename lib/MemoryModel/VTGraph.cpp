@@ -20,44 +20,6 @@ llvm::cl::opt<bool> VTGDotGraph("dump-vtg", llvm::cl::init(false),
 
 const std::string VTGraph::CLASS_NAME_PREFIX = "class.";
 
-std::string nodeKindName(GenericNode<PAGNode, PAGEdge>::GNodeK nk) {
-    if (nk == PAGNode::ValNode)
-        return "ValNode";
-    else if (nk == PAGNode::ObjNode)
-        return "ObjNode";
-    else if(nk == PAGNode::RetNode)
-        return "RetNode";
-    else if(nk == PAGNode::VarargNode)
-        return "VarargNode";
-    else if(nk == PAGNode::GepValNode)
-        return "GepValNode";
-    else if(nk == PAGNode::GepObjNode)
-        return "GepObjNode";
-    else if(nk == PAGNode::FIObjNode)
-        return "FIObjNode";
-    else if(nk == PAGNode::DummyValNode)
-        return "DummyValNode";
-    else if(nk == PAGNode::DummyObjNode)
-        return "DummyObjNode";
-    else if(nk == PAGNode::TypeObjNode)
-        return "TypeObjNode";
-}
-
-std::string edgeKindName(ConstraintEdge::GEdgeKind ek) {
-    if (ek == ConstraintEdge::Addr)
-        return "Addr";
-    else if (ek == ConstraintEdge::Copy)
-        return "Copy";
-    else if (ek == ConstraintEdge::Store)
-        return "Store";
-    else if (ek == ConstraintEdge::Load)
-        return "Load";
-    else if (ek == ConstraintEdge::NormalGep)
-        return "NormalGep";
-    else if (ek == ConstraintEdge::VariantGep)
-        return "VariantGep";
-}
-
 void VTGraph::removeMemoryObjectNodes(void) {
     std::set<const FIObjPN*> fiObjNodes;
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
@@ -73,43 +35,6 @@ void VTGraph::removeMemoryObjectNodes(void) {
 		const Type *objType = fiObj->getMemObj()->getType();
 
         const MemObj* mem = pag->getBaseObj(fiObj->getId());
-
-        std::string classname = getClassNameFromPointerType(objType);
-        /*
-        llvm::outs() << "--fields type: '" << classname
-                     << "' max: " << mem->getMaxFieldOffsetLimit() << "--\n";
-        SymbolTableInfo *symInfo = SymbolTableInfo::Symbolnfo();
-        const PointerType *ptrType = static_cast<const PointerType *>(objType);
-        while (ptrType->getElementType()->isPointerTy())
-            ptrType = static_cast<const PointerType *>(ptrType->getElementType());
-
-        if (!ptrType->getElementType()->isStructTy()) continue;
-        StInfo *si = symInfo->getStructInfo(static_cast<const StructType *>(ptrType->getElementType()));
-        auto fldToType = si->getFldIdx2TypeMap();
-        auto idxVec = si->getFieldIdxVec();
-        auto flat = si->getFlattenFieldInfoVec();
-
-        for (auto it = fldToType.begin(); it != fldToType.end(); ++it) {
-            llvm::outs() << "   field: " << it->first
-                         << "type: " << *((it->second)) << "struct? " << it->second->isStructTy()<< "!!!\n";
-            if (it->second->isStructTy()) {
-                const StructType *st = static_cast<const StructType *>(it->second);
-                llvm::outs() << "STRUCT IS " << st->getName() << "\n";
-            }
-        }
-
-        llvm::outs() << "idxVec = [ ";
-        for (auto it = idxVec.begin(); it != idxVec.end(); ++it) {
-            llvm::outs() << *it << ", ";
-        }
-        llvm::outs() << "]";
-
-        llvm::outs() << "flat = [ ";
-        for (auto it = flat.begin(); it != flat.end(); ++it) {
-            llvm::outs() << "( offset = " << it->getFlattenFldIdx() << ", type = " << *(it->getFlattenElemTy()) << ", ";
-        }
-        llvm::outs() << "]";
-        */
 
         std::string className = getClassNameFromPointerType(objType);
         // Not in the class hierarchy... ignore because whole-program analysis.
@@ -130,7 +55,7 @@ void VTGraph::removeMemoryObjectNodes(void) {
 		for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
 			if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
 				addrs.insert(addrEdge);
-			assert(addrs.size() == 1 && "an object does not have one outgoing address edge?");
+			assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
 		}
 
 		for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
@@ -151,16 +76,12 @@ void VTGraph::collapseFields(void) {
     }
 
     for (auto gepEdgeI = gepEdges.begin(); gepEdgeI != gepEdges.end(); ++gepEdgeI) {
-        ConstraintNode *srcConstraintNode = (*gepEdgeI)->getSrcNode();
-        ConstraintNode *dstConstraintNode = (*gepEdgeI)->getDstNode();
-
-        NodeID srcId = srcConstraintNode->getId();
-        NodeID dstId = dstConstraintNode->getId();
+        NodeID srcId = (*gepEdgeI)->getSrcID();
+        NodeID dstId = (*gepEdgeI)->getDstID();
 
         PAGNode *srcPagNode = pag->getPAGNode(srcId);
-        PAGNode *dstPagNode = pag->getPAGNode(dstId);
 
-        NormalGepPE *pagGepEdge = static_cast<NormalGepPE *>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
+        NormalGepPE *pagGepEdge = SVFUtil::dyn_cast<NormalGepPE>(pag->getIntraPAGEdge(srcId, dstId, PAGEdge::NormalGep));
         u32_t offset = pagGepEdge->getOffset();
 
         // Does the src have a type?
@@ -192,9 +113,9 @@ void VTGraph::collapseFields(void) {
 }
 
 std::string VTGraph::getClassNameFromStructType(const StructType *structType) {
+    if (!structType->hasName()) return "";
     std::string name = structType->getName();
     name.erase(0, VTGraph::CLASS_NAME_PREFIX.length());
-
     return name;
 }
 
@@ -202,9 +123,9 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
     // Not given a pointer.
     if (!type->isPointerTy()) return "";
 
-    const PointerType *ptrType = static_cast<const PointerType *>(type);
+    const PointerType *ptrType = SVFUtil::dyn_cast<const PointerType>(type);
     while (ptrType->getContainedType(0)->isPointerTy()) {
-        ptrType = static_cast<const PointerType *>(ptrType->getElementType());
+        ptrType = SVFUtil::dyn_cast<const PointerType>(ptrType->getElementType());
     }
 
     // It's not a class.
@@ -212,8 +133,9 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
         return "";
     }
 
-    const StructType *st = static_cast<const StructType *>(ptrType->getContainedType(0));
-    std::string name = st->getName();
+    const StructType *st = SVFUtil::dyn_cast<const StructType>(ptrType->getContainedType(0));
+    std::string name = "";
+    if (st->hasName()) name = st->getName();
     name.erase(0, VTGraph::CLASS_NAME_PREFIX.length());
 
     return name;
@@ -221,7 +143,7 @@ std::string VTGraph::getClassNameFromPointerType(const Type *type) {
 
 const Type *VTGraph::dereferencePointerType(const PointerType *pt) {
     while (pt->getElementType()->isPointerTy()) {
-        pt = static_cast<const PointerType *>(pt->getElementType());
+        pt = SVFUtil::dyn_cast<const PointerType>(pt->getElementType());
     }
 
     return pt->getElementType();
@@ -244,26 +166,10 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
         StInfo *si = symInfo->getStructInfo(containingType);
         std::vector<u32_t> fieldOffsets = si->getFieldIdxVec();
 
-        /*
-        for (auto fieldOffsetI = fieldOffsets.begin(); fieldOffsetI != fieldOffsets.end(); ++fieldOffsetI) {
-            const Type *currFieldType = si->getFieldTypeWithFldIdx(*fieldOffsetI);
-            llvm::outs() << "Accessing class: " << accessingClass
-                         << " fieldOffset = " << fieldOffset
-                         << " i = " << *fieldOffsetI
-                         << " currFieldType = " << *currFieldType
-                         << "\n";
-        }
-        break;
-        */
-
         for (auto fieldOffsetI = fieldOffsets.begin(); fieldOffsetI != fieldOffsets.end(); ++fieldOffsetI) {
             u32_t currFieldOffset = *fieldOffsetI;
             const Type *currFieldType = si->getFieldTypeWithFldIdx(currFieldOffset);
 
-            /*
-            llvm::outs() << "!currFieldType = " << *currFieldType <<"\n";
-            llvm::outs() << "!(fieldOffset, currFieldOffset) = (" << fieldOffset << ", " << currFieldOffset << ")" << accessingClass << "\n";
-            */
             if (currFieldOffset == fieldOffset) {
                 // If the next offset belongs to this type, then we found what
                 // we needed, and not to a parent type.
@@ -275,13 +181,13 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
                     break;
                 } else {
                     // Need to go into currFieldType.
-                    containingType = static_cast<const StructType *>(currFieldType);
+                    containingType = SVFUtil::dyn_cast<const StructType>(currFieldType);
                     break;
                 }
             } else if (currFieldOffset > fieldOffset) {
                 // We've skipped over what we need.
                 auto prevI = fieldOffsetI - 1;
-                containingType = static_cast<const StructType *>(si->getFieldTypeWithFldIdx(*prevI));
+                containingType = SVFUtil::dyn_cast<const StructType>(si->getFieldTypeWithFldIdx(*prevI));
                 break;
             } else {
                 // Try the next one...
@@ -290,12 +196,6 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
 
         if (done) break;
     }
-
-    /*
-    llvm::outs() << "Accessing class: " << accessingClass
-                 << " offset: " << fieldOffset
-                 << " declarer: " << declarer << "@\n";
-     */
 
     return declarer;
 }
