@@ -35,6 +35,11 @@ void RapidTypeAnalysis::performRTA(SVFModule svfModule) {
      analyzeFunction(svfModule.getFunction("main"), false);
 }
 
+void RapidTypeAnalysis::addCall(const CallSite *cs) {
+    liveCallsites.insert(cs);
+    analyzeFunction(cs->getCalledFunction(), isBaseConstructorCall(cs));
+}
+
 void RapidTypeAnalysis::instantiate(const std::string className) {
     if (liveClasses.find(className) != liveClasses.end()) {
         // Class already instantiated; already live.
