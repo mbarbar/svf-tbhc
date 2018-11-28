@@ -75,3 +75,19 @@ void RapidTypeAnalysis::instantiate(const std::string className) {
         callsites.erase(*csI);
     }
 }
+
+void RapidTypeAnalysis::addVirtualMappings(const CallSite *cs) {
+    const Function *calledFunction = cs->getCalledFunction();
+    struct cppUtil::DemangledName demangledName = cppUtil::demangle(calledFunction->getName());
+    std::string className = demangledName.className;
+
+    // Descendants are the possible classes.
+    CHGraph::CHNodeSetTy descendants = chg->getDescendants(className);
+
+    // Obviously, the set of possible classes includes the static type as well.
+    classToVCallsMap[className].insert(cs);
+    for (auto descendantI = descendants.begin(); descendantI != descendants.end(); ++descendantI) {
+        classToVCallsMap[(*descendantI)->getName()].insert(cs);
+    }
+}
+
