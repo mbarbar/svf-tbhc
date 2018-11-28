@@ -62,6 +62,7 @@ private:
     //@{
     /// Returns true if a constructor call is used to build the base object of another.
     static bool isBaseConstructorCall(const CallSite *cs) {
+        return false;
         // TODO.
     }
 
