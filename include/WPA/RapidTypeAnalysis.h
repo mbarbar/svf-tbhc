@@ -19,7 +19,7 @@ private:
     std::set<std::string> liveClasses;         // C_L
     /// Maps class names to callsite which may possibly be making calls to a
     /// method within that class.
-    std::map<const std::string, const CallSite *> classToVCallMap;  // Q_V
+    std::map<const std::string, std::set<const CallSite *>> classToVCallsMap;  // Q_V
 
 public:
     /// Constructor
