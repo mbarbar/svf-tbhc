@@ -7,6 +7,8 @@
  *      Author: Mohamad Barbar
  */
 
+#include "Util/CPPUtil.h"
+#include "MemoryModel/CHA.h"
 #include "WPA/RapidTypeAnalysis.h"
 
 void RapidTypeAnalysis::analyze(SVFModule svfModule) {
@@ -14,6 +16,8 @@ void RapidTypeAnalysis::analyze(SVFModule svfModule) {
 }
 
 void RapidTypeAnalysis::initialize(SVFModule svfModule) {
+    chg = new CHGraph(svfModule);
+    chg->buildCHG();
     PointerAnalysis::initialize(svfModule);
 }
 

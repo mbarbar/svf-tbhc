@@ -14,6 +14,8 @@
 
 class RapidTypeAnalysis:  public BVDataPTAImpl{
 private:
+    CHGraph *chg;
+
     std::set<const Function *> liveFunctions;  // F_L
     std::set<const CallSite *> liveCallsites;  // S_L
     std::set<std::string> liveClasses;         // C_L
