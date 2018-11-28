@@ -30,3 +30,8 @@ void RapidTypeAnalysis::callGraphSolveBasedOnRTA(PTACallGraph *chaCallGraph, Cal
 void dumpRTAStats() {
 
 }
+
+void RapidTypeAnalysis::performRTA(SVFModule svfModule) {
+     analyzeFunction(svfModule.getFunction("main"), false);
+}
+
