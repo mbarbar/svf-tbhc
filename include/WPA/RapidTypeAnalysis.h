@@ -68,6 +68,10 @@ private:
         // TODO.
     }
 
+    /// Returns true if any candidate class of the object at cs (according to CHA)
+    /// is currently live.
+    bool hasLiveClass(const CallSite *cs);
+
     /// Entry into RTA.
     void performRTA(SVFModule svfModule);
     /// Analyzes all callsites in a function.

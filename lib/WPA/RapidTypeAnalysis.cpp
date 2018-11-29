@@ -8,12 +8,9 @@
  */
 
 #include "Util/CPPUtil.h"
+#include "Util/SVFUtil.h"
 #include "MemoryModel/CHA.h"
 #include "WPA/RapidTypeAnalysis.h"
-
-void RapidTypeAnalysis::analyze(SVFModule svfModule) {
-
-}
 
 void RapidTypeAnalysis::initialize(SVFModule svfModule) {
     chg = new CHGraph(svfModule);
@@ -35,8 +32,54 @@ void dumpRTAStats() {
 
 }
 
+bool RapidTypeAnalysis::hasLiveClass(const CallSite *cs) {
+    if (!cppUtil::isVirtualCallSite(*cs)) return false;
+
+    const Function *calledFunction = cs->getCalledFunction();
+    struct cppUtil::DemangledName demangledName = cppUtil::demangle(calledFunction->getName());
+    std::string className = demangledName.className;
+    CHGraph::CHNodeSetTy descendants = chg->getDescendants(className);
+
+    if (liveClasses.find(className) != liveClasses.end()) return true;
+    for (auto descendantI = descendants.begin(); descendantI != descendants.end(); ++descendantI) {
+        if (liveClasses.find((*descendantI)->getName()) != liveClasses.end()) return true;
+    }
+
+    return false;
+}
+
 void RapidTypeAnalysis::performRTA(SVFModule svfModule) {
      analyzeFunction(svfModule.getFunction("main"), false);
+}
+
+void RapidTypeAnalysis::analyzeFunction(const Function *fun, bool isBase) {
+    if (cppUtil::isConstructor(fun) && !isBase) {
+        // *Programmer* is explicitly constructing an object.
+        struct cppUtil::DemangledName demangledName = cppUtil::demangle(fun->getName());
+        instantiate(demangledName.className);
+    }
+
+    if (liveFunctions.find(fun) != liveFunctions.end()) {
+        // Already analyzed.
+        return;
+    }
+
+    liveFunctions.insert(fun);
+
+    for (auto bbI = fun->begin(); bbI != fun->end(); ++bbI) {
+        for (auto instI = bbI->begin(); instI != bbI->end(); ++instI) {
+            // Only callsites matter.
+            if (!SVFUtil::isa<CallInst>(*instI)) continue;
+            const CallSite cs = SVFUtil::getLLVMCallSite(&(*instI));
+
+            // TODO: function calls unconsidered...
+            if (!cppUtil::isVirtualCallSite(cs) || (cppUtil::isVirtualCallSite(cs) && hasLiveClass(&cs))) {
+                addCall(&cs);
+            } else {
+                addVirtualMappings(&cs);
+            }
+        }
+    }
 }
 
 void RapidTypeAnalysis::addCall(const CallSite *cs) {
