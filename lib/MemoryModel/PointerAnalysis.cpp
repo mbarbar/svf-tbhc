@@ -303,7 +303,8 @@ void PointerAnalysis::dumpAllTypes()
 BVDataPTAImpl::BVDataPTAImpl(PointerAnalysis::PTATY type) :
 		PointerAnalysis(type) {
 	if (type == Andersen_WPA || type == AndersenWave_WPA || type == AndersenHCD_WPA
-			|| type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA) {
+			|| type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA
+			|| type == VariableTypeCPP_WPA || type == RapidTypeCPP_WPA) {
 		ptD = new PTDataTy();
 	} else if (type == AndersenWaveDiff_WPA || type == AndersenWaveDiffWithType_WPA) {
 		ptD = new DiffPTDataTy();

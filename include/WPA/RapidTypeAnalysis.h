@@ -11,11 +11,10 @@
 #define INCLUDE_WPA_RAPIDTYPEANALYSIS_H_
 
 #include "MemoryModel/PointerAnalysis.h"
+#include "WPA/Andersen.h"
 
-class RapidTypeAnalysis:  public BVDataPTAImpl{
+class RapidTypeAnalysis: public Andersen {
 private:
-    CHGraph *chg;
-
     std::set<const Function *> liveFunctions;  // F_L
     std::set<const CallSite *> liveCallsites;  // S_L
     std::set<std::string> liveClasses;         // C_L
@@ -26,24 +25,33 @@ private:
 public:
     /// Constructor
     RapidTypeAnalysis(PTATY type = RapidTypeCPP_WPA)
-        :  BVDataPTAImpl(type){
+        :  Andersen(type){
     }
 
     /// Destructor
     virtual ~RapidTypeAnalysis() {
     }
 
-    /// Rapid Type Analysis
-    void analyze(SVFModule svfModule);
-
     /// Initialize analysis
-    void initialize(SVFModule svfModule);
+    virtual inline void initialize(SVFModule svfModule) {
+        PointerAnalysis::initialize(svfModule);
+    }
+
+    /// Rapid Type Analysis
+    virtual inline void analyze(SVFModule svfModule) {
+        initialize(svfModule);
+        performRTA(svfModule);
+        finalize();
+    }
 
     /// Finalize analysis
-    virtual inline void finalize();
+    virtual inline void finalize() {
+        PointerAnalysis::finalize();
+        dumpRTAStats();
+    }
 
     /// Resolve callgraph based on CHA
-    void callGraphSolveBasedOnRTA(PTACallGraph *chaCallGraph, CallEdgeMap& newEdges);
+    void RapidTypeAnalysiscallGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges);
 
     /// Statistics of RTA and callgraph
     void dumpRTAStats();

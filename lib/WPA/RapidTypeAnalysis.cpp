@@ -12,23 +12,10 @@
 #include "MemoryModel/CHA.h"
 #include "WPA/RapidTypeAnalysis.h"
 
-void RapidTypeAnalysis::initialize(SVFModule svfModule) {
-    chg = new CHGraph(svfModule);
-    chg->buildCHG();
-    PointerAnalysis::initialize(svfModule);
+void RapidTypeAnalysiscallGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges) {
 }
 
-void RapidTypeAnalysis::finalize() {
-    PointerAnalysis::finalize();
-    if (printStat())
-        dumpRTAStats();
-}
-
-void RapidTypeAnalysis::callGraphSolveBasedOnRTA(PTACallGraph *chaCallGraph, CallEdgeMap& newEdges) {
-
-}
-
-void dumpRTAStats() {
+void RapidTypeAnalysis::dumpRTAStats() {
 
 }
 
@@ -121,8 +108,6 @@ void RapidTypeAnalysis::instantiate(const std::string className) {
 }
 
 void RapidTypeAnalysis::addVirtualMappings(const CallSite *cs) {
-    llvm::outs() << "addvm: " << "\n";
-    llvm::outs().flush();
     std::string funName = cppUtil::getFunNameOfVCallSite(*cs);
     struct cppUtil::DemangledName demangledName = cppUtil::demangle(funName);
     std::string className = demangledName.className;
