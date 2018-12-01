@@ -36,9 +36,10 @@ bool RapidTypeAnalysis::hasLiveClass(const CallSite *cs) {
     if (!cppUtil::isVirtualCallSite(*cs)) return false;
 
     const Function *calledFunction = cs->getCalledFunction();
-    struct cppUtil::DemangledName demangledName = cppUtil::demangle(calledFunction->getName());
+    std::string funName = cppUtil::getFunNameOfVCallSite(*cs);
+    struct cppUtil::DemangledName demangledName = cppUtil::demangle(funName);
     std::string className = demangledName.className;
-    CHGraph::CHNodeSetTy descendants = chg->getDescendants(className);
+    CHGraph::CHNodeSetTy descendants = chgraph->getDescendants(className);
 
     if (liveClasses.find(className) != liveClasses.end()) return true;
     for (auto descendantI = descendants.begin(); descendantI != descendants.end(); ++descendantI) {
@@ -73,7 +74,7 @@ void RapidTypeAnalysis::analyzeFunction(const Function *fun, bool isBase) {
             const CallSite cs = SVFUtil::getLLVMCallSite(&(*instI));
 
             // TODO: function calls unconsidered...
-            if (!cppUtil::isVirtualCallSite(cs) || (cppUtil::isVirtualCallSite(cs) && hasLiveClass(&cs))) {
+            if ((!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) || (cppUtil::isVirtualCallSite(cs) && hasLiveClass(&cs))) {
                 addCall(&cs);
             } else {
                 addVirtualMappings(&cs);
@@ -120,12 +121,14 @@ void RapidTypeAnalysis::instantiate(const std::string className) {
 }
 
 void RapidTypeAnalysis::addVirtualMappings(const CallSite *cs) {
-    const Function *calledFunction = cs->getCalledFunction();
-    struct cppUtil::DemangledName demangledName = cppUtil::demangle(calledFunction->getName());
+    llvm::outs() << "addvm: " << "\n";
+    llvm::outs().flush();
+    std::string funName = cppUtil::getFunNameOfVCallSite(*cs);
+    struct cppUtil::DemangledName demangledName = cppUtil::demangle(funName);
     std::string className = demangledName.className;
 
     // Descendants are the possible classes.
-    CHGraph::CHNodeSetTy descendants = chg->getDescendants(className);
+    CHGraph::CHNodeSetTy descendants = chgraph->getDescendants(className);
 
     // Obviously, the set of possible classes includes the static type as well.
     classToVCallsMap[className].insert(cs);
