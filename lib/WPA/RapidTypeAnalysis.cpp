@@ -12,7 +12,38 @@
 #include "MemoryModel/CHA.h"
 #include "WPA/RapidTypeAnalysis.h"
 
-void RapidTypeAnalysiscallGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges) {
+void RapidTypeAnalysis::callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges) {
+    for (auto csFnI = callsites.begin(); csFnI != callsites.end(); ++csFnI) {
+        CallSite cs = csFnI->first;
+
+        CHGraph::CHNodeSetTy possibleClasses;
+        if (cppUtil::isVirtualCallSite(cs)) {
+            const CHGraph::CHNodeSetTy &chaClasses = chgraph->getCSClasses(cs);
+
+            // Intersect the CHA result with that of RTA.
+            for (auto chaClassI = chaClasses.begin(); chaClassI != chaClasses.end(); ++chaClassI) {
+                if (liveClasses.find((*chaClassI)->getName()) != liveClasses.end()) {
+                    possibleClasses.insert(*chaClassI);
+                }
+            }
+
+            CHGraph::VTableSet vtbls;
+            for (auto possibleClassI = possibleClasses.begin(); possibleClassI != possibleClasses.end(); ++possibleClassI) {
+                const GlobalValue *vtbl = (*possibleClassI)->getVTable();
+                if (vtbl != NULL) vtbls.insert(vtbl);
+            }
+
+            VFunSet virtualFunctions;
+            if (vtbls.size() > 0) {
+                chgraph->getVFnsFromVtbls(cs, vtbls, virtualFunctions);
+            } else {
+                // TODO: this shouldn't happen?
+                return;
+            }
+
+            connectVCallToVFns(cs, virtualFunctions, newEdges);
+        }
+    }
 }
 
 void RapidTypeAnalysis::dumpRTAStats() {

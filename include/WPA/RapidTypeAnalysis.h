@@ -41,6 +41,8 @@ public:
     virtual inline void analyze(SVFModule svfModule) {
         initialize(svfModule);
         performRTA(svfModule);
+        CallEdgeMap newEdges;
+        callGraphSolveBasedOnRTA(getIndirectCallsites(), newEdges);
         finalize();
     }
 
@@ -51,7 +53,7 @@ public:
     }
 
     /// Resolve callgraph based on CHA
-    void RapidTypeAnalysiscallGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges);
+    void callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges);
 
     /// Statistics of RTA and callgraph
     void dumpRTAStats();
