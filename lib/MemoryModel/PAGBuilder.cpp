@@ -227,9 +227,12 @@ void PAGBuilder::processCE(const Value *val) {
 			pag->addCopyEdge(pag->getValueNode(opnd), pag->getValueNode(ptr2Intce));
 			pag->setCurrentLocation(cval, cbb);
         }
+        else if(isTruncConstantExpr(ref) || isCmpConstantExpr(ref)){
+            // we don't handle trunc and cmp instruction for now
+        }
         else{
-        	if(SVFUtil::isa<ConstantExpr>(val))
-        		assert(false && "we don't handle all other constant expression for now!");
+        	    if(SVFUtil::isa<ConstantExpr>(val))
+        	        assert(false && "we don't handle all other constant expression for now!");
         }
     }
 }
@@ -469,6 +472,7 @@ void PAGBuilder::visitBinaryOperator(BinaryOperator &inst) {
         Value* opnd = inst.getOperand(i);
         NodeID src = getValueNode(opnd);
         pag->addBinaryOPEdge(src, dst);
+        pag->addBinaryNode(pag->getPAGNode(dst),pag->getPAGNode(src));
     }
 }
 
@@ -481,6 +485,7 @@ void PAGBuilder::visitCmpInst(CmpInst &inst) {
         Value* opnd = inst.getOperand(i);
         NodeID src = getValueNode(opnd);
         pag->addCmpEdge(src, dst);
+        pag->addCmpNode(pag->getPAGNode(dst),pag->getPAGNode(src));
     }
 }
 
