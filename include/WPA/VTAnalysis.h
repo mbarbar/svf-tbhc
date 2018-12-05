@@ -6,6 +6,7 @@
 #include "WPA/Andersen.h"
 #include "MemoryModel/VTGraph.h"
 #include "MemoryModel/CHA.h"
+#include "MemoryModel/PointerAnalysis.h"
 
 class VTAnalysis: public Andersen {
 public:
@@ -13,8 +14,6 @@ public:
 
     /// Initialize analysis
     virtual inline void initialize(SVFModule svfModule) {
-        CHGraph *chg = new CHGraph(svfModule);
-        chg->buildCHG();
         Type *t = NULL;
 
         resetData();

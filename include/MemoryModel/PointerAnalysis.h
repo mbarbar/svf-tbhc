@@ -375,7 +375,7 @@ public:
     //@}
 
     /// get CHGraph
-    CHGraph *getCHGraph() const {
+    static CHGraph *getCHGraph() {
         return chgraph;
     }
 

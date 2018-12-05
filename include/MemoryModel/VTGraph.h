@@ -14,6 +14,7 @@
 
 #include "MemoryModel/OfflineConsG.h"
 #include "MemoryModel/CHA.h"
+#include "MemoryModel/PointerAnalysis.h"
 
 /*!
  * Offline constraint graph for Andersen's analysis.
@@ -33,12 +34,12 @@ private:
     // will represent that field.
     std::map<std::tuple<std::string, u32_t>, NodeID> fieldRepresentationMap;
 
+    // For some queries
     CHGraph *chg;
 
 public:
     VTGraph(PAG *p, SVFModule svfModule) : OfflineConsG(p) {
-        chg = new CHGraph(svfModule);
-        chg->buildCHG();
+        chg = PointerAnalysis::getCHGraph();
     }
 
     // Replaces memory objects with type objects.
