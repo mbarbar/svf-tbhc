@@ -103,6 +103,8 @@ private:
     //@{
     /// Entry to iterative RTA.
     void iterativeRTA(SVFModule svfModule);
+    /// Handle virtual callsites, adding what is necessary to the worklist.
+    void handleVirtualCall(const CallSite *cs, RTAWorklist &worklist);
     //@}
 };
 

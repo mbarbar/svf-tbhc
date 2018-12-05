@@ -154,5 +154,39 @@ void RapidTypeAnalysis::addVirtualMappings(const CallSite *cs) {
 }
 
 void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
+    RTAWorklist worklist;
+    // TODO: main hardcoded; want to add all the roots in the callgraph.
+    worklist.push(svfModule.getFunction("main"));
+
+    while (!worklist.empty()) {
+        const Function *fun = worklist.front();
+        worklist.pop();
+
+        // Don't reanalyse.
+        if (liveFunctions.find(fun) != liveFunctions.end()) return;
+        liveFunctions.insert(fun);
+
+        for (auto bbI = fun->begin(); bbI != fun->end(); ++bbI) {
+            for (auto instI = bbI->begin(); instI != bbI->end(); ++instI) {
+                // Only callsites matter.
+                if (!SVFUtil::isNonInstricCallSite(&(*instI))) continue;
+                const CallSite cs = SVFUtil::getLLVMCallSite(&(*instI));
+
+                // TODO: function pointer calls unconsidered...
+                if (!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) {
+                    // Direct call.
+                    worklist.push(cs.getCalledFunction());
+                } else if (cppUtil::isVirtualCallSite(cs)) {
+                    handleVirtualCall(&cs, worklist);
+                } else {
+                    // TODO.
+                }
+            }
+        }
+    }
+}
+
+void RapidTypeAnalysis::handleVirtualCall(const CallSite *cs, RTAWorklist &worklist) {
+
 }
 
