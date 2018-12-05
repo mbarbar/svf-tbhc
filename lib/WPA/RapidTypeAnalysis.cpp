@@ -153,3 +153,6 @@ void RapidTypeAnalysis::addVirtualMappings(const CallSite *cs) {
     }
 }
 
+void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
+}
+

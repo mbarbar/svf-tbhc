@@ -10,10 +10,15 @@
 #ifndef INCLUDE_WPA_RAPIDTYPEANALYSIS_H_
 #define INCLUDE_WPA_RAPIDTYPEANALYSIS_H_
 
+#include <queue>
+
 #include "MemoryModel/PointerAnalysis.h"
 #include "WPA/Andersen.h"
 
 class RapidTypeAnalysis: public Andersen {
+public:
+    typedef std::queue<const Function *> RTAWorklist;
+
 private:
     std::set<const Function *> liveFunctions;  // F_L
     std::set<const CallSite *> liveCallsites;  // S_L
@@ -92,6 +97,12 @@ private:
     void instantiate(const std::string className);
     /// Maps all possible classes (i.e. which the callsite can resolve to) to the callsite.
     void addVirtualMappings(const CallSite *cs);
+    //@}
+
+    /// Methods for iterative RTA algorithm.
+    //@{
+    /// Entry to iterative RTA.
+    void iterativeRTA(SVFModule svfModule);
     //@}
 };
 
