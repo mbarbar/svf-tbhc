@@ -187,6 +187,19 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
 }
 
 void RapidTypeAnalysis::handleVirtualCall(const CallSite *cs, RTAWorklist &worklist) {
+    VFunSet chaVFns;
+    VTableSet chaVtbls = chgraph->getCSVtblsBasedonCHA(*cs);
+    chgraph->getVFnsFromVtbls(*cs, chaVtbls, chaVFns);
 
+    for (auto vfn = chaVFns.begin(); vfn != chaVFns.end(); ++vfn) {
+        cppUtil::DemangledName demangledName = cppUtil::demangle((*vfn)->getName());
+        if (liveClasses.find(demangledName.className) != liveClasses.end()) {
+            // Class is live so analyse the virtual function.
+            worklist.push(*vfn);
+        } else {
+            // It's not live, but it might be later.
+            deadClassToVfnsMap[demangledName.className].insert(*vfn);
+        }
+    }
 }
 

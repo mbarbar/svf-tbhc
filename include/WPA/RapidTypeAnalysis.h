@@ -27,6 +27,11 @@ private:
     /// method within that class.
     std::map<const std::string, std::set<const CallSite *>> classToVCallsMap;  // Q_V
 
+    /// Maps currently dead classes to all the vfns belonging to it that we have
+    /// come across (according to CHA). This is to analyse them once that class
+    /// is instantiated.
+    std::map<const std::string, std::set<const Function *>> deadClassToVfnsMap;
+
 public:
     /// Constructor
     RapidTypeAnalysis(PTATY type = RapidTypeCPP_WPA)
@@ -45,7 +50,7 @@ public:
     /// Rapid Type Analysis
     virtual inline void analyze(SVFModule svfModule) {
         initialize(svfModule);
-        performRTA(svfModule);
+        iterativeRTA(svfModule);
         CallEdgeMap newEdges;
         callGraphSolveBasedOnRTA(getIndirectCallsites(), newEdges);
         finalize();
