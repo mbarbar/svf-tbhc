@@ -195,8 +195,7 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
 
 void RapidTypeAnalysis::handleVirtualCall(const CallSite *cs, RTAWorklist &worklist) {
     VFunSet chaVFns;
-    VTableSet chaVtbls = chgraph->getCSVtblsBasedonCHA(*cs);
-    chgraph->getVFnsFromVtbls(*cs, chaVtbls, chaVFns);
+    getVFnsFromCHA(*cs, chaVFns);
 
     for (auto vfn = chaVFns.begin(); vfn != chaVFns.end(); ++vfn) {
         cppUtil::DemangledName demangledName = cppUtil::demangle((*vfn)->getName());
