@@ -79,43 +79,28 @@ public:
     //@}
 
 private:
-    /// Methods from the RTA algorithm in the thesis.
-    /// http://digitalassets.lib.berkeley.edu/techreports/ucb/text/CSD-98-1017.pdf page 61.
+    /// Methods for iterative RTA algorithm.
     //@{
+    /// Entry to iterative RTA.
+    void iterativeRTA(SVFModule svfModule);
+
+    /// Handle direct callsites, adding the function to the worklist.
+    void handleDirectCall(const CallSite *cs, RTAWorklist &worklist);
+
+    /// Handle virtual callsites, adding what is necessary to the worklist.
+    void handleVirtualCall(const CallSite *cs, RTAWorklist &worklist);
+
+    /// Handle constructors, setting a class as live if necessary.
+    void handleConstructorCall(const CallSite *cs, RTAWorklist &worklist);
+
+    /// Set class as live.
+    void instantiateClass(const std::string className, RTAWorklist &worklist);
+
     /// Returns true if a constructor call is used to build the base object of another.
     static bool isBaseConstructorCall(const CallSite *cs) {
         return false;
         // TODO.
     }
-
-    /// Returns true if any candidate class of the object at cs (according to CHA)
-    /// is currently live.
-    bool hasLiveClass(const CallSite *cs);
-
-    /// Entry into RTA.
-    void performRTA(SVFModule svfModule);
-    /// Analyzes all callsites in a function.
-    void analyzeFunction(const Function *fun, bool isBase);
-    /// Adds a callsite to the set of live callsites, and analyzes what it calls.
-    void addCall(const CallSite *cs);
-    /// Marks a class as active, and adds all relevant calls.
-    void instantiate(const std::string className);
-    /// Maps all possible classes (i.e. which the callsite can resolve to) to the callsite.
-    void addVirtualMappings(const CallSite *cs);
-    //@}
-
-    /// Methods for iterative RTA algorithm.
-    //@{
-    /// Entry to iterative RTA.
-    void iterativeRTA(SVFModule svfModule);
-    /// Handle direct callsites, adding the function to the worklist.
-    void handleDirectCall(const CallSite *cs, RTAWorklist &worklist);
-    /// Handle virtual callsites, adding what is necessary to the worklist.
-    void handleVirtualCall(const CallSite *cs, RTAWorklist &worklist);
-    /// Handle constructors, setting a class as live if necessary.
-    void handleConstructorCall(const CallSite *cs, RTAWorklist &worklist);
-    /// Set class as live.
-    void instantiateClass(const std::string className, RTAWorklist &worklist);
     //@}
 };
 
