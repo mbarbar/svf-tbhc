@@ -12,7 +12,7 @@
 #include "MemoryModel/CHA.h"
 #include "WPA/RapidTypeAnalysis.h"
 
-void RapidTypeAnalysis::callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges) {
+void RapidTypeAnalysis::callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites) {
     for (auto csFnI = callsites.begin(); csFnI != callsites.end(); ++csFnI) {
         CallSite cs = csFnI->first;
 
@@ -41,6 +41,7 @@ void RapidTypeAnalysis::callGraphSolveBasedOnRTA(const PointerAnalysis::CallSite
                 return;
             }
 
+            CallEdgeMap newEdges;
             connectVCallToVFns(cs, virtualFunctions, newEdges);
         }
     }

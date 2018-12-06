@@ -20,12 +20,8 @@ public:
     typedef std::queue<const Function *> RTAWorklist;
 
 private:
-    std::set<const Function *> liveFunctions;  // F_L
-    std::set<const CallSite *> liveCallsites;  // S_L
-    std::set<std::string> liveClasses;         // C_L
-    /// Maps class names to callsite which may possibly be making calls to a
-    /// method within that class.
-    std::map<const std::string, std::set<const CallSite *>> classToVCallsMap;  // Q_V
+    std::set<const Function *> liveFunctions;
+    std::set<std::string> liveClasses;
 
     /// Maps currently dead classes to all the vfns belonging to it that we have
     /// come across (according to CHA). This is to analyse them once that class
@@ -35,7 +31,7 @@ private:
 public:
     /// Constructor
     RapidTypeAnalysis(PTATY type = RapidTypeCPP_WPA)
-        :  Andersen(type){
+        : Andersen(type) {
     }
 
     /// Destructor
@@ -51,8 +47,7 @@ public:
     virtual inline void analyze(SVFModule svfModule) {
         initialize(svfModule);
         iterativeRTA(svfModule);
-        CallEdgeMap newEdges;
-        callGraphSolveBasedOnRTA(getIndirectCallsites(), newEdges);
+        callGraphSolveBasedOnRTA(getIndirectCallsites());
         finalize();
     }
 
@@ -63,7 +58,7 @@ public:
     }
 
     /// Resolve callgraph based on CHA
-    void callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites, PointerAnalysis::CallEdgeMap& newEdges);
+    void callGraphSolveBasedOnRTA(const PointerAnalysis::CallSiteToFunPtrMap& callsites);
 
     /// Statistics of RTA and callgraph
     void dumpRTAStats();
