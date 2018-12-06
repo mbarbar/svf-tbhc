@@ -52,8 +52,8 @@ void RapidTypeAnalysis::dumpRTAStats() {
 
 void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
     RTAWorklist worklist;
-    // TODO: main hardcoded; want to add all the roots in the callgraph.
-    worklist.push(svfModule.getFunction("main"));
+    // TODO: main hardcoded; want to add all the roots in the callgraph?
+    worklist.push(SVFUtil::getProgEntryFunction(svfModule));
 
     while (!worklist.empty()) {
         const Function *fun = worklist.front();
