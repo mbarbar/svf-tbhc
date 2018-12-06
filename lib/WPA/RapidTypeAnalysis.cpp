@@ -175,11 +175,13 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
                 // TODO: function pointer calls unconsidered...
                 const Function *calledFunction = cs.getCalledFunction();
                 if (calledFunction != NULL && cppUtil::isConstructor(calledFunction)) {
+                    // Constructor call.
                     handleConstructorCall(&cs, worklist);
                 } else if (!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) {
                     // Direct call.
-                    worklist.push(cs.getCalledFunction());
+                    handleDirectCall(&cs, worklist);
                 } else if (cppUtil::isVirtualCallSite(cs)) {
+                    // Virtual call.
                     handleVirtualCall(&cs, worklist);
                 } else {
                     // TODO.
@@ -217,3 +219,6 @@ void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &w
     worklist.push(calledConstructor);
 }
 
+void RapidTypeAnalysis::handleDirectCall(const CallSite *cs, RTAWorklist &worklist) {
+    worklist.push(cs->getCalledFunction());
+}

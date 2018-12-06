@@ -108,6 +108,8 @@ private:
     //@{
     /// Entry to iterative RTA.
     void iterativeRTA(SVFModule svfModule);
+    /// Handle direct callsites, adding the function to the worklist.
+    void handleDirectCall(const CallSite *cs, RTAWorklist &worklist);
     /// Handle virtual callsites, adding what is necessary to the worklist.
     void handleVirtualCall(const CallSite *cs, RTAWorklist &worklist);
     /// Handle constructors, setting a class as live if necessary.
