@@ -226,6 +226,8 @@ void RapidTypeAnalysis::handleDirectCall(const CallSite *cs, RTAWorklist &workli
 }
 
 void RapidTypeAnalysis::instantiateClass(const std::string className, RTAWorklist &worklist) {
+    // Class already instantiated.
+    if (liveClasses.find(className) != liveClasses.end()) return;
     // Set as live.
     liveClasses.insert(className);
 
