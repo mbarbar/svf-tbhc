@@ -173,7 +173,10 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
                 const CallSite cs = SVFUtil::getLLVMCallSite(&(*instI));
 
                 // TODO: function pointer calls unconsidered...
-                if (!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) {
+                const Function *calledFunction = cs.getCalledFunction();
+                if (calledFunction != NULL && cppUtil::isConstructor(calledFunction)) {
+                    handleConstructorCall(&cs, worklist);
+                } else if (!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) {
                     // Direct call.
                     worklist.push(cs.getCalledFunction());
                 } else if (cppUtil::isVirtualCallSite(cs)) {
@@ -201,5 +204,16 @@ void RapidTypeAnalysis::handleVirtualCall(const CallSite *cs, RTAWorklist &workl
             deadClassToVfnsMap[demangledName.className].insert(*vfn);
         }
     }
+}
+
+void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &worklist) {
+    const Function *calledConstructor = cs->getCalledFunction();
+    cppUtil::DemangledName demangledName = cppUtil::demangle(calledConstructor->getName());
+    if (!isBaseConstructorCall(cs)) {
+        // Class is being explicitly built by the programmer.
+        liveClasses.insert(demangledName.className);
+    }
+
+    worklist.push(calledConstructor);
 }
 
