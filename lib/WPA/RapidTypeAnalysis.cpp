@@ -163,7 +163,7 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
         worklist.pop();
 
         // Don't reanalyse.
-        if (liveFunctions.find(fun) != liveFunctions.end()) return;
+        if (liveFunctions.find(fun) != liveFunctions.end()) continue;
         liveFunctions.insert(fun);
 
         for (auto bbI = fun->begin(); bbI != fun->end(); ++bbI) {
