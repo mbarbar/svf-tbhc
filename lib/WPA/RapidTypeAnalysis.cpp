@@ -213,7 +213,7 @@ void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &w
     cppUtil::DemangledName demangledName = cppUtil::demangle(calledConstructor->getName());
     if (!isBaseConstructorCall(cs)) {
         // Class is being explicitly built by the programmer.
-        liveClasses.insert(demangledName.className);
+        instantiateClass(demangledName.className, worklist);
     }
 
     worklist.push(calledConstructor);
@@ -222,3 +222,20 @@ void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &w
 void RapidTypeAnalysis::handleDirectCall(const CallSite *cs, RTAWorklist &worklist) {
     worklist.push(cs->getCalledFunction());
 }
+
+void RapidTypeAnalysis::instantiateClass(const std::string className, RTAWorklist &worklist) {
+    // Set as live.
+    liveClasses.insert(className);
+
+    // Analyse the functions we missed due to className having been dead.
+    if (deadClassToVfnsMap.find(className) != deadClassToVfnsMap.end()) {
+        std::set<const Function *> vfns = deadClassToVfnsMap.at(className);
+
+        for (auto vfnI = vfns.begin(); vfnI != vfns.end(); ++vfnI) {
+            worklist.push(*vfnI);
+        }
+
+        deadClassToVfnsMap.erase(className);
+    }
+}
+

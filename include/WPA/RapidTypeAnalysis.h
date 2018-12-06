@@ -114,6 +114,8 @@ private:
     void handleVirtualCall(const CallSite *cs, RTAWorklist &worklist);
     /// Handle constructors, setting a class as live if necessary.
     void handleConstructorCall(const CallSite *cs, RTAWorklist &worklist);
+    /// Set class as live.
+    void instantiateClass(const std::string className, RTAWorklist &worklist);
     //@}
 };
 
