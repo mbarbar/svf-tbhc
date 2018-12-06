@@ -173,13 +173,15 @@ void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
                 const CallSite cs = SVFUtil::getLLVMCallSite(&(*instI));
 
                 // TODO: function pointer calls unconsidered...
-                const Function *calledFunction = cs.getCalledFunction();
-                if (calledFunction != NULL && cppUtil::isConstructor(calledFunction)) {
-                    // Constructor call.
-                    handleConstructorCall(&cs, worklist);
-                } else if (!cppUtil::isVirtualCallSite(cs) && !cs.isIndirectCall()) {
-                    // Direct call.
-                    handleDirectCall(&cs, worklist);
+                const Function *callee = SVFUtil::getCallee(cs);
+                if (SVFUtil::getCallee(cs) != NULL) {
+                    if (cppUtil::isConstructor(callee)) {
+                        // Constructor call.
+                        handleConstructorCall(&cs, worklist);
+                    } else {
+                        // Direct call.
+                        handleDirectCall(&cs, worklist);
+                    }
                 } else if (cppUtil::isVirtualCallSite(cs)) {
                     // Virtual call.
                     handleVirtualCall(&cs, worklist);
@@ -209,7 +211,7 @@ void RapidTypeAnalysis::handleVirtualCall(const CallSite *cs, RTAWorklist &workl
 }
 
 void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &worklist) {
-    const Function *calledConstructor = cs->getCalledFunction();
+    const Function *calledConstructor = SVFUtil::getCallee(*cs);
     cppUtil::DemangledName demangledName = cppUtil::demangle(calledConstructor->getName());
     if (!isBaseConstructorCall(cs)) {
         // Class is being explicitly built by the programmer.
@@ -220,7 +222,7 @@ void RapidTypeAnalysis::handleConstructorCall(const CallSite *cs, RTAWorklist &w
 }
 
 void RapidTypeAnalysis::handleDirectCall(const CallSite *cs, RTAWorklist &worklist) {
-    worklist.push(cs->getCalledFunction());
+    worklist.push(SVFUtil::getCallee(*cs));
 }
 
 void RapidTypeAnalysis::instantiateClass(const std::string className, RTAWorklist &worklist) {
