@@ -49,9 +49,11 @@ void VTAnalysis::validateTests() {
 VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     /// Build Constraint Graph
     VTGraph *vtg = new VTGraph(pag, svfModule);
+    consCG = vtg;
     vtg->dump("vtg_initial");
     vtg->removeMemoryObjectNodes();
     vtg->collapseFields();
+
     VSCC* vscc = new VSCC(vtg);
     vscc->find();
 

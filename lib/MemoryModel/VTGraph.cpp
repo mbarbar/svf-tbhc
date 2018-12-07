@@ -86,10 +86,7 @@ void VTGraph::collapseFields(void) {
 
         // Does the src have a type?
         const Type *srcType = srcPagNode->getType();
-        if (srcType == NULL) {
-            // TODO: what to do?
-            assert("Cannot determine type of GEP accessor.");
-        }
+        if (srcType == NULL) continue;
 
         // If it's not a StructType, getClassNameFromPointerType will handle it.
         const std::string accessorClass = getClassNameFromPointerType(srcType);

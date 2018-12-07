@@ -20,8 +20,7 @@ public:
 
         /// Build PAG
         PointerAnalysis::initialize(svfModule);
-
-        consCG = createVTGraph(svfModule);
+        createVTGraph(svfModule);
         setGraph(consCG);
 
         /// Create statistic class
