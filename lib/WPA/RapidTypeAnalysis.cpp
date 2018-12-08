@@ -53,8 +53,17 @@ void RapidTypeAnalysis::dumpRTAStats() {
 
 void RapidTypeAnalysis::iterativeRTA(SVFModule svfModule) {
     RTAWorklist worklist;
-    // TODO: main hardcoded; want to add all the roots in the callgraph?
-    worklist.push(SVFUtil::getProgEntryFunction(svfModule));
+
+    const Function *entry = SVFUtil::getProgEntryFunction(svfModule);
+    if (entry != NULL) {
+        // TODO: main hardcoded; is that okay?
+        worklist.push(entry);
+    } else {
+        // There is no entry, we're probably dealing with a library.
+        for (auto funI = svfModule.begin(); funI != svfModule.end(); ++funI) {
+            worklist.push(*funI);
+        }
+    }
 
     while (!worklist.empty()) {
         const Function *fun = worklist.front();
