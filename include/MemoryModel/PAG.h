@@ -594,7 +594,6 @@ public:
                 ObjTypeInfo *typeInfo = mem->getTypeInfo();
                 typeInfo->setType(type);
                 typeInfo->setFlag(ObjTypeInfo::HEAP_OBJ);
-                typeInfo->setFlag(ObjTypeInfo::VAR_STRUCT_OBJ);
 		return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
 	}
     inline const MemObj* addDummyMemObj(NodeID i) {
