@@ -300,8 +300,8 @@ NodeID PAG::getGepObjNode(NodeID id, const LocationSet& ls) {
         return getGepObjNode(gepNode->getMemObj(), gepNode->getLocationSet() + ls);
     else if (FIObjPN* baseNode = SVFUtil::dyn_cast<FIObjPN>(node))
         return getGepObjNode(baseNode->getMemObj(), ls);
-    else if (TypeObjPN* typeObjNode = SVFUtil::dyn_cast<TypeObjPN>(node))
-        return getGepObjNode(typeObjNode->getMemObj(), ls);
+    else if (DummyObjPN* baseNode = SVFUtil::dyn_cast<DummyObjPN>(node))
+        return getGepObjNode(baseNode->getMemObj(), ls);
     else
         assert(false && "new gep obj node kind?");
 }
