@@ -28,13 +28,10 @@ void VTGraph::removeMemoryObjectNodes(void) {
             fiObjNodes.insert(fiObj);
     }
 
-
     for (auto nodeI = fiObjNodes.begin(); nodeI != fiObjNodes.end(); ++nodeI) {
-		const FIObjPN *fiObj = *nodeI;
-		ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
-		const Type *objType = fiObj->getMemObj()->getType();
-
-        const MemObj* mem = pag->getBaseObj(fiObj->getId());
+        const FIObjPN *fiObj = *nodeI;
+        ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
+        const Type *objType = fiObj->getMemObj()->getType();
 
         std::string className = getClassNameFromPointerType(objType);
         // Not in the class hierarchy... ignore because whole-program analysis.
@@ -52,17 +49,17 @@ void VTGraph::removeMemoryObjectNodes(void) {
         }
 
         std::set<AddrCGEdge*> addrs;
-		for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
-			if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
-				addrs.insert(addrEdge);
-			assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
-		}
+        for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
+            if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
+                addrs.insert(addrEdge);
+            assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
+        }
 
-		for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
-			NodeID dstId = (*edgeI)->getDstID();
-			removeAddrEdge(*edgeI);
-			addAddrCGEdge(newSrcID, dstId);
-		}
+        for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
+            NodeID dstId = (*edgeI)->getDstID();
+            removeAddrEdge(*edgeI);
+            addAddrCGEdge(newSrcID, dstId);
+        }
     }
 }
 
@@ -92,9 +89,7 @@ void VTGraph::collapseFields(void) {
         const std::string accessorClass = getClassNameFromPointerType(srcType);
         if (chg->getNode(accessorClass) == NULL) continue;
 
-        // getFieldDeclarer(className, static_cast<const StructType *>(dereferencePointerType(static_cast<const PointerType *>(srcType))), offset);
         std::tuple<std::string, u32_t> fieldKey = std::tuple<std::string, u32_t>(accessorClass, offset);
-
         if (fieldRepresentationMap.count(fieldKey) == 0) {
             // Make the gep node the field representation, nothing more to do.
             fieldRepresentationMap[fieldKey] = dstId;
