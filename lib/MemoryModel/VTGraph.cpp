@@ -20,7 +20,7 @@ llvm::cl::opt<bool> VTGDotGraph("dump-vtg", llvm::cl::init(false),
 
 const std::string VTGraph::CLASS_NAME_PREFIX = "class.";
 
-void VTGraph::removeMemoryObjectNodes(void) {
+void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
     std::set<const FIObjPN*> fiObjNodes;
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         const PAGNode *pagNode = nodeI->second;

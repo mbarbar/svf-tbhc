@@ -43,7 +43,7 @@ public:
     }
 
     // Replaces memory objects with type objects.
-    void removeMemoryObjectNodes(void);
+    void collapseMemoryObjectsIntoTypeObjects(void);
 
     // Collapses all fields to a single node.
     // Nodes referring to field f collapse to node X::f
