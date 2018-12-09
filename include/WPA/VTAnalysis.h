@@ -9,7 +9,15 @@
 #include "MemoryModel/PointerAnalysis.h"
 
 class VTAnalysis: public Andersen {
+private:
+    bool vtaPlus;
 public:
+    /// Constructor
+    VTAnalysis(PTATY type = VariableTypeCPP_WPA) {
+        iterationForPrintStat = OnTheFlyIterBudgetForStat;
+        this->vtaPlus = vtaPlus;
+    }
+
     typedef SCCDetection<VTGraph*> VSCC;
 
     /// Initialize analysis
@@ -43,6 +51,10 @@ public:
 
         PointerAnalysis::finalize();
         //validateTests();
+    }
+
+    void inline setVtaPlus(bool vtaPlus) {
+        this->vtaPlus = vtaPlus;
     }
 
     void validateTests();

@@ -52,7 +52,7 @@ VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     consCG = vtg;
     vtg->dump("vtg_initial");
     vtg->removeMemoryObjectNodes();
-    vtg->collapseFields();
+    if (!vtaPlus) vtg->collapseFields();
 
     VSCC* vscc = new VSCC(vtg);
     vscc->find();
