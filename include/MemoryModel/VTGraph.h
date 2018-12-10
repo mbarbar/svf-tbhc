@@ -55,6 +55,7 @@ public:
 
     static std::string getClassNameFromPointerType(const Type *type);
     static std::string getClassNameFromStructType(const StructType *structType);
+    static std::string getClassNameFromType(const Type *type);
     static const Type *dereferencePointerType(const PointerType *pt);
 
 private:

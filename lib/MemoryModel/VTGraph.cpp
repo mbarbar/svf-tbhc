@@ -34,7 +34,7 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
         ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
         const Type *objType = fiObj->getMemObj()->getType();
 
-        std::string className = cppUtil::getClassNameFromType(objType);
+        std::string className = getClassNameFromType(objType);
         // Not in the class hierarchy... ignore because whole-program analysis.
         if (chg->getNode(className) == NULL) continue;
 
@@ -87,7 +87,7 @@ void VTGraph::collapseFields(void) {
         if (srcType == NULL) continue;
 
         // If it's not a StructType, getClassNameFromPointerType will handle it.
-        const std::string accessorClass = getClassNameFromPointerType(srcType);
+        const std::string accessorClass = getClassNameFromType(srcType);
         if (chg->getNode(accessorClass) == NULL) continue;
 
         std::tuple<std::string, u32_t> fieldKey = std::tuple<std::string, u32_t>(accessorClass, offset);
@@ -103,6 +103,18 @@ void VTGraph::collapseFields(void) {
             addNormalGepCGEdge(srcId, fieldRepresentationNodeId, (*gepEdgeI)->getLocationSet());
         }
     }
+}
+
+std::string VTGraph::getClassNameFromType(const Type *type) {
+    if (const StructType *structType = SVFUtil::dyn_cast<StructType>(type)) {
+        return getClassNameFromStructType(structType);
+    }
+
+    if (const PointerType *pointerType = SVFUtil::dyn_cast<PointerType>(type)) {
+        return getClassNameFromPointerType(pointerType);
+    }
+
+    return "???";
 }
 
 std::string VTGraph::getClassNameFromStructType(const StructType *structType) {
