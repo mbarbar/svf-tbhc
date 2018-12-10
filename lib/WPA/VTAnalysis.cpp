@@ -18,7 +18,7 @@ void VTAnalysis::validateTests() {
                     Value* v2 = cs.getArgOperand(1);
 
                     Instruction* inst = SVFUtil::cast<Instruction>(v2);
-                    const Type* expectedType = inst->getType();
+                    const Type* expectedType = inst->getOperand(0)->getType();
                     if (const Instruction* preInst =  inst->getPrevNode()){
                         if (const CastInst* cast = SVFUtil::dyn_cast<CastInst>(preInst)){
                             expectedType = SVFUtil::dyn_cast<PointerType>(cast->getType());
