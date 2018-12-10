@@ -12,6 +12,7 @@
 #include "MemoryModel/VTGraph.h"
 #include "Util/SVFUtil.h"
 #include "Util/BasicTypes.h"
+#include "Util/CPPUtil.h"
 #include "MemoryModel/PAGNode.h"
 #include "MemoryModel/CHA.h"
 
@@ -33,7 +34,7 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
         ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
         const Type *objType = fiObj->getMemObj()->getType();
 
-        std::string className = getClassNameFromPointerType(objType);
+        std::string className = cppUtil::getClassNameFromType(objType);
         // Not in the class hierarchy... ignore because whole-program analysis.
         if (chg->getNode(className) == NULL) continue;
 
