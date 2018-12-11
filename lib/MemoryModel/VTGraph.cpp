@@ -205,6 +205,33 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
     return declarer;
 }
 
+bool VTGraph::hasNonScalarTypes(const Type *type) {
+    if (type->isIntegerTy()) return false;
+
+    if (type->isPointerTy()) return true;
+    if (type->isFunctionTy()) return true;
+
+    if (type->isArrayTy()) {
+        return hasNonScalarTypes(type->getArrayElementType());
+    }
+
+    if (type->isVectorTy()) {
+        return hasNonScalarTypes(type->getVectorElementType());
+    }
+
+    if (type->isStructTy()) {
+        const StructType *structType = SVFUtil::dyn_cast<StructType>(type);
+        for (auto elementType = structType->element_begin(); elementType != structType->element_end(); ++elementType) {
+            if (hasNonScalarTypes(*elementType)) return true;
+        }
+
+        return false;
+    }
+
+    // In case something is missed, be conservative.
+    return true;
+}
+
 void VTGraph::dump(std::string name) {
     if (VTGDotGraph)
         GraphPrinter::WriteGraphToFile(SVFUtil::outs(), name, this);
