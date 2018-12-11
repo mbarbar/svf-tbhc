@@ -34,10 +34,6 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
         ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
         const Type *objType = fiObj->getMemObj()->getType();
 
-        std::string className = getClassNameFromType(objType);
-        // Not in the class hierarchy... ignore because whole-program analysis.
-        if (chg->getNode(className) == NULL) continue;
-
         NodeID newSrcID;
         if (typeToNode.count(objType) != 0) {
             // A type node was created.
@@ -206,29 +202,58 @@ std::string VTGraph::getFieldDeclarer(std::string accessingClass, const StructTy
 }
 
 bool VTGraph::hasNonScalarTypes(const Type *type) {
-    if (type->isIntegerTy()) return false;
+    static std::map<const Type *, bool> checkedTypes;
+    if (checkedTypes.find(type) != checkedTypes.end()) {
+        return checkedTypes.at(type);
+    }
 
-    if (type->isPointerTy()) return true;
-    if (type->isFunctionTy()) return true;
+    if (type->isIntegerTy()) {
+        checkedTypes[type] = false;
+        return false;
+    }
+
+    if (type->isPointerTy()) {
+        checkedTypes[type] = true;
+        return true;
+    }
+
+    if (type->isFunctionTy()) {
+        checkedTypes[type] = true;
+        return true;
+    }
 
     if (type->isArrayTy()) {
-        return hasNonScalarTypes(type->getArrayElementType());
+        bool ret = hasNonScalarTypes(type->getArrayElementType());
+        checkedTypes[type] = ret;
+        return ret;
     }
 
     if (type->isVectorTy()) {
-        return hasNonScalarTypes(type->getVectorElementType());
+        bool ret = hasNonScalarTypes(type->getVectorElementType());
+        checkedTypes[type] = ret;
+        return ret;
     }
 
     if (type->isStructTy()) {
         const StructType *structType = SVFUtil::dyn_cast<StructType>(type);
-        for (auto elementType = structType->element_begin(); elementType != structType->element_end(); ++elementType) {
-            if (hasNonScalarTypes(*elementType)) return true;
+        if (structType->hasName()) {
+            checkedTypes[type] = true;
+            return true;
         }
 
+        for (auto elementType = structType->element_begin(); elementType != structType->element_end(); ++elementType) {
+            if (hasNonScalarTypes(*elementType)) {
+                checkedTypes[type] = true;
+                return true;
+            }
+        }
+
+        checkedTypes[type] = false;
         return false;
     }
 
     // In case something is missed, be conservative.
+    checkedTypes[type] = true;
     return true;
 }
 
