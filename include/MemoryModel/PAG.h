@@ -582,22 +582,21 @@ public:
         return addValNode(NULL, new DummyValPN(i), i);
     }
     inline NodeID addDummyObjNode() {
-        const MemObj* mem = addDummyMemObj(nodeNum);
-        return addObjNode(NULL, new DummyObjPN(nodeNum,mem), nodeNum);
+        return addDummyObjNode(nodeNum);
     }
     inline NodeID addDummyObjNode(NodeID i) {
-        const MemObj* mem = addDummyMemObj(i);
+        const MemObj* mem = addDummyMemObj(i, NULL);
         return addObjNode(NULL, new DummyObjPN(i,mem), i);
     }
-	inline NodeID addDummyTypeObjNode(const Type* type) {
-		const MemObj* mem = addDummyMemObj(nodeNum);
-                ObjTypeInfo *typeInfo = mem->getTypeInfo();
-                typeInfo->setType(type);
-                typeInfo->setFlag(ObjTypeInfo::HEAP_OBJ);
-		return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
-	}
-    inline const MemObj* addDummyMemObj(NodeID i) {
-        return SymbolTableInfo::Symbolnfo()->createDummyObj(i);
+    inline NodeID addDummyTypeObjNode(const Type* type) {
+        const MemObj* mem = addDummyMemObj(nodeNum);
+        ObjTypeInfo *typeInfo = mem->getTypeInfo();
+        typeInfo->setType(type);
+        typeInfo->setFlag(ObjTypeInfo::HEAP_OBJ);
+        return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
+    }
+    inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
+        return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);
     }
     inline NodeID addBlackholeObjNode() {
         return addObjNode(NULL, new DummyObjPN(getBlackHoleNode(),getBlackHoleObj()), getBlackHoleNode());
