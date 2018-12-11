@@ -589,10 +589,7 @@ public:
         return addObjNode(NULL, new DummyObjPN(i,mem), i);
     }
     inline NodeID addDummyTypeObjNode(const Type* type) {
-        const MemObj* mem = addDummyMemObj(nodeNum);
-        ObjTypeInfo *typeInfo = mem->getTypeInfo();
-        typeInfo->setType(type);
-        typeInfo->setFlag(ObjTypeInfo::HEAP_OBJ);
+        const MemObj* mem = addDummyMemObj(nodeNum, type);
         return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
     }
     inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
