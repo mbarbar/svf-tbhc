@@ -34,6 +34,24 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
         ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
         const Type *objType = fiObj->getMemObj()->getType();
 
+        if (!hasNonScalarTypes(objType)) {
+            // Detach and continue - don't propagate these.
+            std::set<AddrCGEdge*> addrs;
+            for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
+                if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
+                    addrs.insert(addrEdge);
+            }
+
+            assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
+
+            for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
+                removeAddrEdge(*edgeI);
+            }
+
+            continue;
+        }
+
+
         NodeID newSrcID;
         if (typeToNode.count(objType) != 0) {
             // A type node was created.
