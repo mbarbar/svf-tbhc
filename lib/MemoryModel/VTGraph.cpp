@@ -218,8 +218,8 @@ bool VTGraph::hasNonScalarTypes(const Type *type) {
     }
 
     if (type->isFunctionTy()) {
-        checkedTypes[type] = true;
-        return true;
+        checkedTypes[type] = false;
+        return false;
     }
 
     if (type->isArrayTy()) {
