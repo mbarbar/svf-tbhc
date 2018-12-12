@@ -15,7 +15,7 @@ public:
     /// Constructor
     VTAnalysis(PTATY type = VariableTypeCPP_WPA) {
         iterationForPrintStat = OnTheFlyIterBudgetForStat;
-        this->vtaPlus = vtaPlus;
+        this->vtaPlus = false;
     }
 
     typedef SCCDetection<VTGraph*> VSCC;
