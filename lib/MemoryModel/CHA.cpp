@@ -40,6 +40,7 @@
 #include "MemoryModel/MemModel.h"
 #include "Util/SVFUtil.h"
 #include "Util/SVFModule.h"
+#include "llvm/IR/TypeFinder.h"
 
 using namespace SVFUtil;
 using namespace cppUtil;
@@ -92,6 +93,7 @@ void CHGraph::buildCHG() {
 			buildCHGNodes(&(*F));
 		for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
 			buildCHGEdges(&(*F));
+		extendCHGForMissingConstructors(*M);
 
 		analyzeVTables(*M);
 	}
@@ -153,6 +155,60 @@ void CHGraph::buildCHGEdges(const Function *F) {
 			}
 		}
 	}
+}
+
+void CHGraph::extendCHGForMissingConstructors(const Module &module) {
+    std::set<std::string> typesWithConstructors;
+    std::set<std::string> typesWithoutConstructors;
+
+    // Get all the struct types in the module.
+    llvm::TypeFinder structTypes;
+    structTypes.run(module, true);
+
+    // Determine all types which have a constructor or destructor, we expect
+    // these to be called by descendant classes when constructing.
+    for (auto funI = module.begin(); funI!= module.end(); ++funI) {
+        const Function *fun = &(*funI);
+        if (isConstructor(fun) || isDestructor(fun)) {
+            struct DemangledName fname = demangle(fun->getName());
+            typesWithConstructors.insert(fname.className);
+        }
+    }
+
+    // Determine all types which have no constructors (inverse of those which do
+    // have a constructor).
+    // They also would not have a CH node, so create one.
+    for (auto typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
+        StructType *type = *typeI;
+        std::string typeName = getClassNameFromType(type);
+        if (typesWithConstructors.find(typeName) == typesWithConstructors.end()) {
+            typesWithoutConstructors.insert(typeName);
+            if (getNode(typeName) == NULL) {
+                llvm::outs() << "Creating " << typeName << "\n";
+                createNode(typeName);
+            } else {
+                llvm::outs() << "Already have: '" << typeName << "'\n";
+            }
+        }
+    }
+
+    // Make classes with no constructors parents of any class which contains it
+    // as a subtype.
+    for (llvm::TypeFinder::iterator TypetypeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
+        StructType *type = *typeI;
+        std::string typeName = getClassNameFromType(type);
+
+        for (auto subTypeI = type->subtype_begin(); subTypeI != type->subtype_end(); ++subTypeI) {
+            Type *subType = *subTypeI;
+            std::string subTypeName = getClassNameFromType(subType);
+
+            if (typesWithoutConstructors.find(subTypeName) != typesWithoutConstructors.end()) {
+                // Subtype has no constructor so it's maybe a parent.
+                llvm::outs() << "Type: " << typeName << " subType: " << subTypeName << "\n";
+                addEdge(typeName, subTypeName, CHEdge::INHERITANCE);
+            }
+        }
+    }
 }
 
 

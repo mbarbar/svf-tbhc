@@ -173,6 +173,7 @@ public:
     void buildCHGNodes(const GlobalValue *V);
     void buildCHGNodes(const Function *F);
     void buildCHGEdges(const Function *F);
+    void extendCHGForMissingConstructors(const Module &module);
     void connectInheritEdgeViaCall(const Function *caller, CallSite cs);
     void connectInheritEdgeViaStore(const Function *caller, const StoreInst* store);
     void addEdge(const std::string className,
