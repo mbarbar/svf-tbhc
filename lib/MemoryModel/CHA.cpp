@@ -205,7 +205,6 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
 
             if (typesWithoutConstructors.find(subTypeName) != typesWithoutConstructors.end()) {
                 // Subtype has no constructor so it's maybe a parent.
-                llvm::outs() << "Type: " << typeName << " subType: " << subTypeName << "\n";
                 addEdge(typeName, subTypeName, CHEdge::INHERITANCE);
             }
         }
