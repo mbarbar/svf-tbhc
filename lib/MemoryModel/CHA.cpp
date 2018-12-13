@@ -168,7 +168,7 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
 
     // Determine all types which have a constructor or destructor, we expect
     // these to be called by descendant classes when constructing.
-    for (auto funI = module.begin(); funI!= module.end(); ++funI) {
+    for (Module::const_iterator funI = module.begin(); funI!= module.end(); ++funI) {
         const Function *fun = &(*funI);
         if (isConstructor(fun) || isDestructor(fun)) {
             struct DemangledName fname = demangle(fun->getName());
@@ -179,7 +179,7 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
     // Determine all types which have no constructors (inverse of those which do
     // have a constructor).
     // They also would not have a CH node, so create one.
-    for (auto typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
+    for (llvm::TypeFinder::iterator typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
         StructType *type = *typeI;
         std::string typeName = getClassNameFromType(type);
         if (typesWithConstructors.find(typeName) == typesWithConstructors.end()) {
@@ -195,11 +195,11 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
 
     // Make classes with no constructors parents of any class which contains it
     // as a subtype.
-    for (auto typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
+    for (llvm::TypeFinder::iterator typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
         StructType *type = *typeI;
         std::string typeName = getClassNameFromType(type);
 
-        for (auto subTypeI = type->subtype_begin(); subTypeI != type->subtype_end(); ++subTypeI) {
+        for (StructType::subtype_iterator subTypeI = type->subtype_begin(); subTypeI != type->subtype_end(); ++subTypeI) {
             Type *subType = *subTypeI;
             std::string subTypeName = getClassNameFromType(subType);
 
