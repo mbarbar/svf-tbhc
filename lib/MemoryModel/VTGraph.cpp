@@ -43,10 +43,11 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
             }
 
             assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
-
             for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
                 removeAddrEdge(*edgeI);
             }
+
+            removeConstraintNode(constraintNode);
 
             continue;
         }
@@ -63,18 +64,24 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
             typeToNode[objType] = newSrcID;
         }
 
+        // Collect the addr edge for removal.
         std::set<AddrCGEdge*> addrs;
         for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {
             if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI))
                 addrs.insert(addrEdge);
-            assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
         }
 
+        assert(addrs.size() == 1 && "object has more/less than 1 outgoing addr edge");
+
+        // Remove the addr edge and add the new one (typeObj->oldDst).
         for (auto edgeI = addrs.begin(); edgeI != addrs.end(); edgeI++) {
             NodeID dstId = (*edgeI)->getDstID();
             removeAddrEdge(*edgeI);
             addAddrCGEdge(newSrcID, dstId);
         }
+
+        // Remove the old constraintNode
+        removeConstraintNode(constraintNode);
     }
 }
 
