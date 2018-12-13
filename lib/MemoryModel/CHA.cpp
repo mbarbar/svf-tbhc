@@ -47,6 +47,7 @@ using namespace cppUtil;
 using namespace std;
 
 static llvm::cl::opt<bool> dumpCHA("dump-cha", llvm::cl::init(false), llvm::cl::desc("dump the class hierarchy graph"));
+static llvm::cl::opt<bool> extendCHG("extend-chg", llvm::cl::init(false), llvm::cl::desc("Extend the CHG by considering missing constructors"));
 
 const string pureVirtualFunName = "__cxa_pure_virtual";
 
@@ -93,7 +94,7 @@ void CHGraph::buildCHG() {
 			buildCHGNodes(&(*F));
 		for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
 			buildCHGEdges(&(*F));
-		extendCHGForMissingConstructors(*M);
+		if (extendCHG) extendCHGForMissingConstructors(*M);
 
 		analyzeVTables(*M);
 	}
@@ -194,7 +195,7 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
 
     // Make classes with no constructors parents of any class which contains it
     // as a subtype.
-    for (llvm::TypeFinder::iterator TypetypeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
+    for (auto typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
         StructType *type = *typeI;
         std::string typeName = getClassNameFromType(type);
 
