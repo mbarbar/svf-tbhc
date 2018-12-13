@@ -48,6 +48,7 @@ const string mInheritanceVFunLabel = "non-virtual thunk to ";
 
 const string clsName = "class.";
 const string structName = "struct.";
+const string unionName = "union.";
 
 static bool isOperOverload(const string name) {
     s32_t leftnum = 0, rightnum = 0;
@@ -291,24 +292,32 @@ u64_t cppUtil::getVCallIdx(CallSite cs) {
 string cppUtil::getClassNameFromType(const Type *ty) {
     string className = "";
     if (const PointerType *ptrType = SVFUtil::dyn_cast<PointerType>(ty)) {
-        const Type *elemType = ptrType->getElementType();
-        if (SVFUtil::isa<StructType>(elemType) &&
-                !((SVFUtil::cast<StructType>(elemType))->isLiteral())) {
-            string elemTypeName = elemType->getStructName().str();
-            if (elemTypeName.compare(0, clsName.size(), clsName) == 0) {
-                className = elemTypeName.substr(clsName.size());
-            } else if (elemTypeName.compare(0, structName.size(), structName) == 0) {
-                className = elemTypeName.substr(structName.size());
-            }
-        }
-    } else if (const StructType *structType = SVFUtil::dyn_cast<StructType>(ty)) {
+        ty = ptrType->getElementType();
+    }
+
+    const StructType *structType = SVFUtil::dyn_cast<StructType>(ty);
+    if (structType != NULL && !structType->isLiteral()) {
         string structTypeName = structType->getStructName();
         if (structTypeName.compare(0, clsName.size(), clsName) == 0) {
             className = structTypeName.substr(clsName.size());
+        } else if (structTypeName.compare(0, structName.size(), structName) == 0) {
+            className = structTypeName.substr(structName.size());
+        } else if (structTypeName.compare(0, unionName.size(), unionName) == 0) {
+            className = structTypeName.substr(unionName.size());
         }
     }
 
     return className;
+}
+
+bool cppUtil::isUnionType(StructType *st) {
+    // Literals can't have names, so can't really tell?
+    if (st->isLiteral()) return false;
+
+    string structTypeName = st->getStructName();
+    if (structTypeName.compare(0, unionName.size(), unionName) == 0) return true;
+
+    return false;
 }
 
 string cppUtil::getClassNameFromVtblObj(const Value *value) {

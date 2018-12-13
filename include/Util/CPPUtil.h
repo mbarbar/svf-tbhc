@@ -52,6 +52,7 @@ bool isLoadVtblInst(const LoadInst *loadInst);
 bool isVirtualCallSite(CallSite cs);
 bool isConstructor(const Function *F);
 bool isDestructor(const Function *F);
+bool isUnionType(StructType *st);
 
 /*
  * VtableA = {&A::foo}
