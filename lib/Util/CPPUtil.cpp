@@ -301,7 +301,13 @@ string cppUtil::getClassNameFromType(const Type *ty) {
                 className = elemTypeName.substr(structName.size());
             }
         }
+    } else if (const StructType *structType = SVFUtil::dyn_cast<StructType>(ty)) {
+        string structTypeName = structType->getStructName();
+        if (structTypeName.compare(0, clsName.size(), clsName) == 0) {
+            className = structTypeName.substr(clsName.size());
+        }
     }
+
     return className;
 }
 
