@@ -182,6 +182,10 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
     for (llvm::TypeFinder::iterator typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
         StructType *type = *typeI;
         std::string typeName = getClassNameFromType(type);
+
+        // Could be a literal struct.
+        if (type->isLiteral() || cppUtil::isUnionType(type)) continue;
+
         if (typesWithConstructors.find(typeName) == typesWithConstructors.end()) {
             typesWithoutConstructors.insert(typeName);
             if (getNode(typeName) == NULL) {
@@ -198,6 +202,7 @@ void CHGraph::extendCHGForMissingConstructors(const Module &module) {
     for (llvm::TypeFinder::iterator typeI = structTypes.begin(); typeI != structTypes.end(); ++typeI) {
         StructType *type = *typeI;
         std::string typeName = getClassNameFromType(type);
+        if (type->isLiteral() || cppUtil::isUnionType(type)) continue;
 
         for (StructType::subtype_iterator subTypeI = type->subtype_begin(); subTypeI != type->subtype_end(); ++subTypeI) {
             Type *subType = *subTypeI;
