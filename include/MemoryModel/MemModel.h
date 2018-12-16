@@ -247,8 +247,7 @@ private:
     SymID GSymID;
     /// Type information of this object
     ObjTypeInfo* typeInfo;
-    /// dummy object
-    bool isTainted;
+
 public:
 
     /// Constructor
@@ -301,17 +300,6 @@ public:
 
     /// Whether it is a black hole object
     bool isBlackHoleObj() const;
-
-    /// Whether it is a constant object
-    bool isConstantObj() const;
-
-    /// Whether it is a black hole or constant object
-    bool isBlackHoleOrConstantObj() const;
-
-    /// Whether it is a dummy obj
-    inline bool isTaintedObj() const {
-        return isTainted;
-    }
 
     /// object attributes methods
     //@{

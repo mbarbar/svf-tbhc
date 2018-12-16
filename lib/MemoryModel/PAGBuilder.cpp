@@ -145,6 +145,20 @@ void PAGBuilder::initalNode() {
         pag->addVarargNode(iter->first, iter->second);
     }
 
+    /// add address edges for constant nodes.
+    for (SymbolTableInfo::ValueToIDMapTy::iterator iter =
+                symTable->objSyms().begin(); iter != symTable->objSyms().end(); ++iter) {
+		DBOUT(DPAGBuild, outs() << "add address edges for constant node " << iter->second << "\n");
+		const Value* val = iter->first;
+		if (symTable->isConstantObjSym(val)) {
+			NodeID ptr = pag->getValueNode(val);
+			if(ptr!= pag->getBlkPtr() && ptr!= pag->getNullPtr()){
+				pag->setCurrentLocation(val, NULL);
+				pag->addAddrEdge(iter->second, ptr);
+			}
+		}
+    }
+
     assert(pag->getTotalNodeNum() >= symTable->getTotalSymNum()
            && "not all node been inititalize!!!");
 
@@ -227,15 +241,17 @@ void PAGBuilder::processCE(const Value *val) {
 			pag->addCopyEdge(pag->getValueNode(opnd), pag->getValueNode(ptr2Intce));
 			pag->setCurrentLocation(cval, cbb);
         }
-        else if(isTruncConstantExpr(ref) || isCmpConstantExpr(ref) || SVFUtil::isa<ConstantAggregate>(ref)){
+        else if(isTruncConstantExpr(ref) || isCmpConstantExpr(ref)){
             // we don't handle trunc and cmp instruction for now
-            // we don't handle constant agrgregate like constant vectors
             const Value* cval = pag->getCurrentValue();
             const BasicBlock* cbb = pag->getCurrentBB();
             pag->setCurrentLocation(ref, NULL);
             NodeID dst = pag->getValueNode(ref);
             pag->addBlackHoleAddrEdge(dst);
             pag->setCurrentLocation(cval, cbb);
+        }
+        else if (SVFUtil::isa<ConstantAggregate>(ref)){
+            // we don't handle constant agrgregate like constant vectors
         }
         else{
         	    if(SVFUtil::isa<ConstantExpr>(val))
@@ -281,7 +297,7 @@ void PAGBuilder::InitialGlobal(const GlobalVariable *gvar, Constant *C,
           outs() << "global " << *gvar << " constant initializer: " << *C
           << "\n");
 
-    if (C->getType()->isSingleValueType() && SVFUtil::isa<PointerType>(C->getType())) {
+    if (C->getType()->isSingleValueType()) {
         NodeID src = getValueNode(C);
         // get the field value if it is avaiable, otherwise we create a dummy field node.
         pag->setCurrentLocation(gvar, NULL);
@@ -296,7 +312,8 @@ void PAGBuilder::InitialGlobal(const GlobalVariable *gvar, Constant *C,
             pag->setCurrentLocation(C, NULL);
             pag->addStoreEdge(src, field);
         } else {
-            //TODO:assert(false,"what else do we have");
+            pag->setCurrentLocation(C, NULL);
+            pag->addStoreEdge(src, field);
         }
 
     } else if (SVFUtil::isa<ConstantArray>(C)) {
@@ -333,7 +350,7 @@ void PAGBuilder::visitGlobal(SVFModule svfModule) {
         pag->setCurrentLocation(gvar, NULL);
         pag->addAddrEdge(obj, idx);
 
-        if (gvar->hasDefinitiveInitializer()) {
+        if (gvar->hasInitializer()) {
             Constant *C = gvar->getInitializer();
             DBOUT(DPAGBuild, outs() << "add global var node " << *gvar << "\n");
             InitialGlobal(gvar, C, 0);
