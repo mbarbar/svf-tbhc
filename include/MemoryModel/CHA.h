@@ -136,6 +136,10 @@ public:
         ccLabel = cc;
     }
 
+    inline bool hasCCLabel(void) {
+        return ccLabel > -1;
+    }
+
 private:
     const GlobalValue* vtable;
     std::string className;
