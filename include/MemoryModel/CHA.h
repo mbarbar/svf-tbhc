@@ -128,7 +128,7 @@ public:
         vtable = vtbl;
     }
 
-    inline int getCCLabel() {
+    inline int getCCLabel() const {
         return ccLabel;
     }
 
@@ -136,7 +136,7 @@ public:
         ccLabel = cc;
     }
 
-    inline bool hasCCLabel(void) {
+    inline bool hasCCLabel(void) const {
         return ccLabel > -1;
     }
 
