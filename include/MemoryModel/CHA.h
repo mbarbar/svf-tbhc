@@ -73,6 +73,7 @@ public:
 
     CHNode (const std::string name, NodeID i = 0, GNodeK k = 0):
         GenericCHNodeTy(i, k), vtable(NULL), className(name), flags(0) {
+        ccLabel = -1;
     }
     ~CHNode() {
     }
@@ -127,9 +128,20 @@ public:
         vtable = vtbl;
     }
 
+    inline int getCCLabel() {
+        return ccLabel;
+    }
+
+    inline void setCCLabel(int cc) {
+        ccLabel = cc;
+    }
+
 private:
     const GlobalValue* vtable;
     std::string className;
+    /// Connected component label: which connected component does this
+    /// node belong to? Default value of -1.
+    int ccLabel;
     size_t flags;
     /*
      * virtual functions inherited from different classes are separately stored
