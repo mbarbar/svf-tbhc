@@ -678,12 +678,22 @@ void PointerAnalysis::getVFnsFromPts(CallSite cs, const PointsTo &target, VFunSe
         const VTableSet &chaVtbls = chgraph->getCSVtblsBasedonCHA(cs);
         for (PointsTo::iterator it = target.begin(), eit = target.end(); it != eit; ++it) {
             const PAGNode *ptdnode = pag->getPAGNode(*it);
-			if (ptdnode->hasValue()) {
-				if (const GlobalValue *vtbl = SVFUtil::dyn_cast<GlobalValue>(ptdnode->getValue())) {
-					if (chaVtbls.find(vtbl) != chaVtbls.end())
-						vtbls.insert(vtbl);
-				}
-			}
+            if (ptdnode->hasValue()) {
+                if (const GlobalValue *vtbl = SVFUtil::dyn_cast<GlobalValue>(ptdnode->getValue())) {
+                    if (chaVtbls.find(vtbl) != chaVtbls.end())
+                        vtbls.insert(vtbl);
+                }
+            } else if (const Type *type = ptdnode->getType()) {
+                for (VTableSet::iterator vtblI = chaVtbls.begin(); vtblI != chaVtbls.end(); ++vtblI) {
+                    std::string vtblTypeName = cppUtil::getClassNameFromVtblObj(*vtblI);
+                    std::string typeName = cppUtil::getClassNameFromType(type);
+                    if (typeName == vtblTypeName) {
+                        vtbls.insert(*vtblI);
+                    }
+                }
+            } else {
+                assert(false && "Node has neither type nor value.");
+            }
         }
         chgraph->getVFnsFromVtbls(cs, vtbls, vfns);
     }

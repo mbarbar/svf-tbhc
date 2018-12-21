@@ -94,8 +94,10 @@ public:
 
     inline bool hasValue() const {
         return (this->getNodeKind() != DummyValNode &&
-                this->getNodeKind() != DummyObjNode && this->getNodeKind() != TypeObjNode &&
-                (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false)) ;
+                this->getNodeKind() != DummyObjNode &&
+                this->getNodeKind() != TypeObjNode &&
+                (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false) &&
+                value != NULL);
     }
     /// Whether it is a pointer
     virtual inline bool isPointer() const {
