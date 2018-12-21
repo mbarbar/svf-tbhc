@@ -173,7 +173,7 @@ void CHGraph::connectInheritEdgeViaCall(const Function* caller, CallSite cs){
             return;
         const Value *csThisPtr = getVCallThisPtr(cs);
         const Argument *consThisPtr = getConstructorThisPtr(caller);
-        bool samePtr = true; // isSameThisPtrInConstructor(consThisPtr,csThisPtr);
+        bool samePtr = isSameThisPtrInConstructor(consThisPtr,csThisPtr);
         if (csThisPtr != NULL && samePtr) {
             struct DemangledName basename = demangle(callee->getName().str());
             if (!SVFUtil::isa<CallInst>(csThisPtr) && !SVFUtil::isa<InvokeInst>(csThisPtr) &&
