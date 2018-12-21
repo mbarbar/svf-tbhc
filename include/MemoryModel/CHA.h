@@ -194,6 +194,7 @@ public:
     void addEdge(const std::string className,
                  const std::string baseClassName,
                  CHEdge::CHEDGETYPE edgeType);
+    void labelNodesConnectedComponenets(void);
     CHNode *getNode(const std::string name) const;
     CHNode *createNode(const std::string name);
     void buildClassNameToAncestorsDescendantsMap();

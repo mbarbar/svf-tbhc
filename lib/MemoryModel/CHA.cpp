@@ -27,6 +27,7 @@
  *      Author: Xiaokang Fan
  */
 
+#include <queue>
 #include <set>
 #include <vector>
 #include <map>
@@ -98,6 +99,8 @@ void CHGraph::buildCHG() {
 
 	DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("build Internal Maps ...\n"));
 	buildInternalMaps();
+
+	labelNodesConnectedComponenets();
 
 	timeEnd = CLOCK_IN_MS();
 	buildingCHGTime = (timeEnd - timeStart) / TIMEINTERVAL;
@@ -232,6 +235,40 @@ void CHGraph::addEdge(const string className, const string baseClassName,
         CHEdge *edge = new CHEdge(srcNode, dstNode, edgeType);
         srcNode->addOutgoingEdge(edge);
         dstNode->addIncomingEdge(edge);
+    }
+}
+
+void CHGraph::labelNodesConnectedComponenets(void) {
+    int cc = -1;
+    for (CHGraph::iterator nodeI = begin(); nodeI != end(); ++nodeI) {
+        CHNode *node = nodeI->second;
+        // If it has a label, it's CC has been determined.
+        if (node->hasCCLabel()) continue;
+
+        // Otherwise, it's a new connected component.
+        ++cc;
+
+        std::queue<CHNode *> dfsQueue;
+        dfsQueue.push(node);
+        while (!dfsQueue.empty()) {
+            CHNode *curr = dfsQueue.front();
+            dfsQueue.pop();
+
+            if (curr->hasCCLabel()) continue;
+            curr->setCCLabel(cc);
+
+            // Add the dest. nodes of outg. edges.
+            CHEdge::CHEdgeSetTy outEdges = curr->getOutEdges();
+            for (CHEdge::CHEdgeSetTy::iterator edgeI = outEdges.begin(); edgeI != outEdges.end(); ++edgeI) {
+                dfsQueue.push((*edgeI)->getDstNode());
+            }
+
+            // Add the src nodes of inc. edges. We're trying to categorise into "islands" (CC), not reachability.
+            CHEdge::CHEdgeSetTy inEdges = curr->getInEdges();
+            for (CHEdge::CHEdgeSetTy::iterator edgeI = inEdges.begin(); edgeI != inEdges.end(); ++edgeI) {
+                dfsQueue.push((*edgeI)->getSrcNode());
+            }
+        }
     }
 }
 
