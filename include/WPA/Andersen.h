@@ -588,4 +588,16 @@ protected:
 
 };
 
+/*!
+ * Andersen's Analysis with Incompatible Type Collapse.
+ */
+class AndersenWaveDiffWithITC : public AndersenWaveDiff {
+private:
+
+public:
+    AndersenWaveDiffWithITC(PTATY type = AndersenWaveDiffWithITC_WPA) :
+        AndersenWaveDiff(type) {
+    }
+};
+
 #endif /* ANDERSENPASS_H_ */

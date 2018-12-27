@@ -59,6 +59,7 @@ public:
         AndersenHCD_WPA,    ///< Hybird cycle detection andersen-style WPA
         AndersenWave_WPA,	///< Wave propagation andersen-style WPA
         AndersenWaveDiff_WPA,	///< Diff wave propagation andersen-style WPA
+        AndersenWaveDiffWithITC_WPA,	///< Diff wave propagation with incompatible type collapse andersen-style WPA
         AndersenWaveDiffWithType_WPA,	///< Diff wave propagation with type info andersen-style WPA
         CSCallString_WPA,	///< Call string based context sensitive WPA
         CSSummary_WPA,		///< Summary based context sensitive WPA
