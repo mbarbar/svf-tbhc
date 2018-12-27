@@ -58,10 +58,10 @@ public:
     static std::string getClassNameFromType(const Type *type);
     static const Type *dereferencePointerType(const PointerType *pt);
 
-private:
     /// Returns true if type is a non scalar type or a non-class struct (i.e. not
     /// in class hierarchy) which has no non-scalar types (recursively). Conservative.
     static bool hasNonScalarTypes(const Type *type);
+private:
 
     std::string getFieldDeclarer(std::string accessingClass, const StructType *ptrType, u32_t fieldOffset);
 };
