@@ -8,7 +8,7 @@
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/PointerAnalysis.h"
 
-class VTAnalysis: public Andersen {
+class VTAnalysis: public AndersenWaveDiff {
 private:
     bool vtaPlus;
 public:
