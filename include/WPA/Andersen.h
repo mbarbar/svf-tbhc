@@ -593,11 +593,49 @@ protected:
  */
 class AndersenWaveDiffWithITC : public AndersenWaveDiff {
 private:
+    typedef std::set<const Type *>    Blueprint;
+    typedef std::set<const FIObjPN *> Instance;
+
+    /// Maps types to the Blueprint they are contained in.
+    std::map<const Type *, Blueprint>               typeToBlueprint;
+    /// Maps types to all the instances waiting for such a type.
+    std::map<const Type *, std::vector<Instance *>> instancesNeed;
+    /// Maps an instance to the blueprint it is building.
+    std::map<Instance *, Blueprint>                 instanceToBlueprint;
+
+    /// Maps a pair of types to whether they are compatible or not.
+    std::map<std::pair<const Type *, const Type*>, bool> compatibleTypes;
+
+    CHGraph *chg;
 
 public:
     AndersenWaveDiffWithITC(PTATY type = AndersenWaveDiffWithITC_WPA) :
         AndersenWaveDiff(type) {
     }
+
+    virtual inline void initialize(SVFModule svfModule) {
+        AndersenWaveDiff::initialize(svfModule);
+        chg = getCHGraph();
+
+        initialITC();
+        exit(0);
+    }
+
+private:
+    /// Perform ITC on initial constraint graph.
+    void initialITC(void);
+
+    /// Returns true if t1 and t2 are incompatible.
+    /// TODO: describe.
+    bool incompatibleTypes(const Type *t1, const Type *t2);
+
+    /// Returns true if all types in b1 are incompatible with all
+    /// types in b2.
+    bool incompatibleBlueprints(const Blueprint b1, const Blueprint b2);
+
+    /// Returns true if both sets are disjoint.
+    template <typename T>
+    bool disjoint(const std::set<T> s1, const std::set<T> s2);
 };
 
 #endif /* ANDERSENPASS_H_ */

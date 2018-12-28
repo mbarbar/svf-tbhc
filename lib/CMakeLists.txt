@@ -53,6 +53,7 @@ set(SOURCES
     WPA/AndersenWave.cpp
     WPA/AndersenWaveDiff.cpp
     WPA/IFDS.cpp
+    WPA/AndersenWaveDiffWithITC.cpp
     WPA/AndersenWaveDiffWithType.cpp
     WPA/FlowSensitive.cpp
     WPA/FlowSensitiveStat.cpp
