@@ -119,8 +119,8 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
     if (t1 == t2) return true;
 
     std::pair<const Type *, const Type *> t1t2(t1, t2);
-    if (compatibleTypes.find(t1t2) != compatibleTypes.end()) {
-        return !compatibleTypes[t1t2];
+    if (incompatibleTypesMap.find(t1t2) != incompatibleTypesMap.end()) {
+        return incompatibleTypesMap[t1t2];
     }
 
     std::pair<const Type *, const Type *> t2t1(t2, t1);
@@ -140,16 +140,16 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
 
     if (t1Node == NULL || t2Node == NULL) {
         // TODO: conservative?
-        compatibleTypes[t1t2] = true;
-        compatibleTypes[t2t1] = true;
+        incompatibleTypesMap[t1t2] = false;
+        incompatibleTypesMap[t2t1] = false;
         return false;
     }
 
     if (t1Node->getCCLabel() != t2Node->getCCLabel()) {
         // If they're part of separate connected components, they
         // cannot share the same parent.
-        compatibleTypes[t1t2] = false;
-        compatibleTypes[t2t1] = false;
+        incompatibleTypesMap[t1t2] = true;
+        incompatibleTypesMap[t2t1] = true;
         return true;
     }
 
@@ -159,8 +159,8 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
     t2Parents.insert(t2Node);
 
     bool areDisjoint = disjoint(t1Parents, t2Parents);
-    compatibleTypes[t1t2] = !areDisjoint;
-    compatibleTypes[t2t1] = !areDisjoint;
+    incompatibleTypesMap[t1t2] = areDisjoint;
+    incompatibleTypesMap[t2t1] = areDisjoint;
 
     return areDisjoint;
 }

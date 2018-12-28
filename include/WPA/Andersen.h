@@ -603,8 +603,8 @@ private:
     /// Maps an instance to the blueprint it is building.
     std::map<Instance *, Blueprint>                 instanceToBlueprint;
 
-    /// Maps a pair of types to whether they are compatible or not.
-    std::map<std::pair<const Type *, const Type*>, bool> compatibleTypes;
+    /// Maps a pair of types to whether they are incompatible or not.
+    std::map<std::pair<const Type *, const Type*>, bool> incompatibleTypesMap;
 
     CHGraph *chg;
 
