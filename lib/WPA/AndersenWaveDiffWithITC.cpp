@@ -13,8 +13,9 @@
 #include "WPA/Andersen.h"
 
 void AndersenWaveDiffWithITC::initialITC(void) {
-    std::set<const Type *>      types;
+    std::vector<const Type *>   types;
     std::set<const FIObjPN *>   objects;
+    std::map<const Type *, int> typeCounts;
 
     // Read objects from PAG, and extract relevant types.
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
@@ -27,10 +28,20 @@ void AndersenWaveDiffWithITC::initialITC(void) {
                 continue;
             }
 
-            types.insert(type);
             objects.insert(fiObj);
+            typeCounts[type] += 1;
         }
     }
+
+    for (auto typeCountI = typeCounts.begin(); typeCountI != typeCounts.end(); ++typeCountI) {
+        types.push_back(typeCountI->first);
+    }
+
+    std::sort(types.begin(), types.end(),
+              [&typeCounts](const Type *t1, const Type *t2) { return typeCounts[t1] > typeCounts[t2]; });
+
+    llvm::outs() << "Max type: " << *types[0] << " = " << typeCounts[types[0]] << "\n";
+    llvm::outs() << "Snd type: " << *types[1] << " = " << typeCounts[types[1]] << "\n";
 
     std::vector<Blueprint> blueprints;
 
