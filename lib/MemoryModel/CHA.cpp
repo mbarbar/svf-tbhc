@@ -272,6 +272,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
             if (diCompositeType->getName() == "") continue;
 
             std::string fullTypeName = getFullTypeNameFromDebugInfo(diCompositeType);
+            fullTypeName = cppUtil::getBeforeBrackets(fullTypeName);
             if (getNode(fullTypeName) == NULL) {
                 createNode(fullTypeName);
             }
