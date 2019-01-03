@@ -276,46 +276,65 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
                 createNode(fullTypeName);
             }
         } else if (llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
-            if (diDerivedType->getTag() != llvm::dwarf::DW_TAG_inheritance) continue;
-            // From inheritance relations, add both nodes, and edges.
+            if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef) {
+                llvm::Metadata *base = diDerivedType->getRawBaseType();
 
-            llvm::Metadata *child = diDerivedType->getRawScope();
-            llvm::Metadata *base = diDerivedType->getRawBaseType();
+                std::string baseName = "";
+                if (base != NULL) {
+                    llvm::DIType *diBaseType = SVFUtil::dyn_cast<llvm::DIType>(base);
+                    std::string baseName = diBaseType->getName();
+                }
+                // Keep baseName as "" if base is NULL, it means base was void, so we
+                // still want to add it to the CHG.
 
-            llvm::DICompositeType *diChildType = SVFUtil::dyn_cast<llvm::DICompositeType>(child);
-            if (diChildType == NULL) {
-                assert(false && "Child of inheritance DI not a type");
-            }
+                // Handle the case where an unnamed struct is typedef'd.
+                if (baseName == "") {
+                    std::string typedefName = diDerivedType->getName();
+                    if (getNode(typedefName) == NULL) {
+                        createNode(typedefName);
+                    }
+                }
+            } else if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_inheritance) {
+                // From inheritance relations, add both nodes, and edges.
 
-            llvm::DICompositeType *diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(base);
-            if (diBaseType == NULL) {
-                // Look for the base type through a series of typedefs.
-                llvm::DIType *diTypedef = SVFUtil::dyn_cast<llvm::DIType>(base);
-                if (diTypedef == NULL) {
-                    assert(false && "Base of inheritance DI not a derived or composite type");
+                llvm::Metadata *child = diDerivedType->getRawScope();
+                llvm::Metadata *base = diDerivedType->getRawBaseType();
+
+                llvm::DICompositeType *diChildType = SVFUtil::dyn_cast<llvm::DICompositeType>(child);
+                if (diChildType == NULL) {
+                    assert(false && "Child of inheritance DI not a type");
                 }
 
-                while (diTypedef->getTag() == llvm::dwarf::DW_TAG_typedef) {
-                    llvm::DIDerivedType *diDerivedTypedef = SVFUtil::dyn_cast<llvm::DIDerivedType>(diTypedef);
-                    diTypedef = SVFUtil::dyn_cast<llvm::DIType>(diDerivedTypedef->getRawBaseType());
-                }
-
-                diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(diTypedef);
+                llvm::DICompositeType *diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(base);
                 if (diBaseType == NULL) {
-                    assert(false && "Base of inheritance DI not a composite type");
+                    // Look for the base type through a series of typedefs.
+                    llvm::DIType *diTypedef = SVFUtil::dyn_cast<llvm::DIType>(base);
+                    if (diTypedef == NULL) {
+                        assert(false && "Base of inheritance DI not a derived or composite type");
+                    }
+
+                    while (diTypedef->getTag() == llvm::dwarf::DW_TAG_typedef) {
+                        llvm::DIDerivedType *diDerivedTypedef = SVFUtil::dyn_cast<llvm::DIDerivedType>(diTypedef);
+                        diTypedef = SVFUtil::dyn_cast<llvm::DIType>(diDerivedTypedef->getRawBaseType());
+                    }
+
+                    diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(diTypedef);
+                    if (diBaseType == NULL) {
+                        assert(false && "Base of inheritance DI not a composite type");
+                    }
                 }
+
+                // We operate by ignoring templates - unfortunate but conservative.
+                std::string childName = getFullTypeNameFromDebugInfo(diChildType);
+                childName = cppUtil::getBeforeBrackets(childName);
+
+                std::string baseName = getFullTypeNameFromDebugInfo(diBaseType);
+                baseName = cppUtil::getBeforeBrackets(baseName);
+
+                if (getNode(childName) == NULL) createNode(childName);
+                if (getNode(baseName) == NULL) createNode(baseName);
+                addEdge(childName, baseName, CHEdge::INHERITANCE);
             }
-
-            // We operate by ignoring templates - unfortunate but conservative.
-            std::string childName = getFullTypeNameFromDebugInfo(diChildType);
-            childName = cppUtil::getBeforeBrackets(childName);
-
-            std::string baseName = getFullTypeNameFromDebugInfo(diBaseType);
-            baseName = cppUtil::getBeforeBrackets(baseName);
-
-            if (getNode(childName) == NULL) createNode(childName);
-            if (getNode(baseName) == NULL) createNode(baseName);
-            addEdge(childName, baseName, CHEdge::INHERITANCE);
         }
     }
 
