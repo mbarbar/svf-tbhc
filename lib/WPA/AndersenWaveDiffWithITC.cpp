@@ -13,7 +13,6 @@
 #include "WPA/Andersen.h"
 
 void AndersenWaveDiffWithITC::initialITC(void) {
-    std::vector<const Type *>   types;
     std::set<const FIObjPN *>   objects;
     std::map<const Type *, int> typeCounts;
 
@@ -33,6 +32,7 @@ void AndersenWaveDiffWithITC::initialITC(void) {
         }
     }
 
+    std::vector<const Type *>   types;
     for (auto typeCountI = typeCounts.begin(); typeCountI != typeCounts.end(); ++typeCountI) {
         types.push_back(typeCountI->first);
     }
@@ -140,6 +140,10 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
 
     std::string t1Name = cppUtil::getClassNameFromType(t1);
     std::string t2Name = cppUtil::getClassNameFromType(t2);
+    t1Name = t1Name.substr(0, t1Name.find_first_of("."));
+    t2Name = t2Name.substr(0, t2Name.find_first_of("."));
+    t1Name = cppUtil::getBeforeBrackets(t1Name);
+    t2Name = cppUtil::getBeforeBrackets(t2Name);
 
     if (t1Name == "" || t2Name == "") {
         // TODO: conservative?

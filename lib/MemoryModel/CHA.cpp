@@ -37,6 +37,7 @@
 #include "Util/CPPUtil.h"
 #include <assert.h>
 #include <stack>
+#include <llvm/IR/DebugInfo.h>
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/MemModel.h"
 #include "Util/SVFUtil.h"
@@ -87,6 +88,7 @@ void CHGraph::buildCHG() {
 		DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("construct CHGraph From module "
 										+ M->getName().str() + "...\n"));
 		readInheritanceMetadataFromModule(*M);
+		buildFromDebugInfo(*M);
 		for (Module::const_global_iterator I = M->global_begin(), E = M->global_end(); I != E; ++I)
 			buildCHGNodes(&(*I));
 		for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
@@ -223,6 +225,83 @@ void CHGraph::readInheritanceMetadataFromModule(const Module &M) {
             addEdge(className, baseName, CHEdge::INHERITANCE);
         }
     }
+}
+
+std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DICompositeType *di) const {
+    // Class name.
+    std::string fullTypeName = di->getName();
+
+    // Climb through scopes to get enclosing classes/namespaces.
+    const llvm::DIScope *currScope = di;
+    llvm::Metadata *rawScope = currScope->getScope();
+    while (rawScope != NULL) {
+        llvm::DIScope *currScope = llvm::dyn_cast<llvm::DIScope>(rawScope);
+
+        std::string scopeName = currScope->getName();
+        fullTypeName.insert(0, scopeName + "::");
+
+        rawScope = currScope->getScope();
+    }
+
+    return fullTypeName;
+}
+
+void CHGraph::buildFromDebugInfo(const Module &module) {
+    llvm::DebugInfoFinder finder;
+    finder.processModule(module);
+
+    for (llvm::DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
+        llvm::DIType *diType = *diTypeI;
+        if (llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
+            // Add nodes. Only looking at inheritance relations is not sufficient as not everything inherits.
+            std::string fullTypeName = getFullTypeNameFromDebugInfo(diCompositeType);
+            if (getNode(fullTypeName) == NULL) {
+                createNode(fullTypeName);
+            }
+        } else if (llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
+            if (diDerivedType->getTag() != llvm::dwarf::DW_TAG_inheritance) continue;
+            // From inheritance relations, add both nodes, and edges.
+
+            llvm::Metadata *child = diDerivedType->getRawScope();
+            llvm::Metadata *base = diDerivedType->getRawBaseType();
+
+            llvm::DICompositeType *diChildType = SVFUtil::dyn_cast<llvm::DICompositeType>(child);
+            if (diChildType == NULL) {
+                assert(false && "Child of inheritance DI not a type");
+            }
+
+            llvm::DICompositeType *diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(base);
+            if (diBaseType == NULL) {
+                // Look for the base type through a series of typedefs.
+                llvm::DIType *diTypedef = SVFUtil::dyn_cast<llvm::DIType>(base);
+                if (diTypedef == NULL) {
+                    assert(false && "Base of inheritance DI not a derived or composite type");
+                }
+
+                while (diTypedef->getTag() == llvm::dwarf::DW_TAG_typedef) {
+                    llvm::DIDerivedType *diDerivedTypedef = SVFUtil::dyn_cast<llvm::DIDerivedType>(diTypedef);
+                    diTypedef = SVFUtil::dyn_cast<llvm::DIType>(diDerivedTypedef->getRawBaseType());
+                }
+
+                diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(diTypedef);
+                if (diBaseType == NULL) {
+                    assert(false && "Base of inheritance DI not a composite type");
+                }
+            }
+
+            // We operate by ignoring templates - unfortunate but conservative.
+            std::string childName = getFullTypeNameFromDebugInfo(diChildType);
+            childName = cppUtil::getBeforeBrackets(childName);
+
+            std::string baseName = getFullTypeNameFromDebugInfo(diBaseType);
+            baseName = cppUtil::getBeforeBrackets(baseName);
+
+            if (getNode(childName) == NULL) createNode(childName);
+            if (getNode(baseName) == NULL) createNode(baseName);
+            addEdge(childName, baseName, CHEdge::INHERITANCE);
+        }
+    }
+
 }
 
 void CHGraph::addEdge(const string className, const string baseClassName,

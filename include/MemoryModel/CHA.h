@@ -30,6 +30,8 @@
 #ifndef CHA_H_
 #define CHA_H_
 
+#include <llvm/IR/DebugInfo.h>
+
 #include "MemoryModel/GenericGraph.h"
 #include "Util/SVFModule.h"
 #include "Util/WorkList.h"
@@ -201,6 +203,7 @@ public:
     void buildVirtualFunctionToIDMap();
     void buildCSToCHAVtblsAndVfnsMap();
     void readInheritanceMetadataFromModule(const Module &M);
+    void buildFromDebugInfo(const Module &M);
     void analyzeVTables(const Module &M);
     const CHGraph::CHNodeSetTy& getInstancesAndDescendants(const std::string className);
     const CHNodeSetTy& getCSClasses(CallSite cs);
@@ -278,6 +281,8 @@ private:
     std::map<const Function*, s32_t> virtualFunctionToIDMap;
     CallSiteToVTableSetMap csToCHAVtblsMap;
     CallSiteToVFunSetMap csToCHAVFnsMap;
+
+    std::string getFullTypeNameFromDebugInfo(const llvm::DICompositeType *di) const;
 };
 
 
