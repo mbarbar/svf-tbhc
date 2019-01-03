@@ -227,7 +227,7 @@ void CHGraph::readInheritanceMetadataFromModule(const Module &M) {
     }
 }
 
-std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DICompositeType *di) const {
+std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const {
     // Class name.
     std::string fullTypeName = di->getName();
 
@@ -289,7 +289,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
 
                 // Handle the case where an unnamed struct is typedef'd.
                 if (baseName == "") {
-                    std::string typedefName = diDerivedType->getName();
+                    std::string typedefName = getFullTypeNameFromDebugInfo(diDerivedType);
                     if (getNode(typedefName) == NULL) {
                         createNode(typedefName);
                     }

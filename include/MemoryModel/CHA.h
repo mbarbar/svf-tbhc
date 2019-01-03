@@ -282,7 +282,7 @@ private:
     CallSiteToVTableSetMap csToCHAVtblsMap;
     CallSiteToVFunSetMap csToCHAVFnsMap;
 
-    std::string getFullTypeNameFromDebugInfo(const llvm::DICompositeType *di) const;
+    std::string getFullTypeNameFromDebugInfo(const llvm::DIType *di) const;
 };
 
 
