@@ -234,6 +234,14 @@ std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DICompositeType *d
     // Climb through scopes to get enclosing classes/namespaces.
     const llvm::DIScope *currScope = di;
     llvm::Metadata *rawScope = currScope->getScope();
+
+    // If rawScope is the direct scope of di AND it is a Subprogram then skip adding
+    // the namespace or whatever. It seems like LLVM Types ignore when the Subprogram
+    // is a direct scope, but not otherwise...
+    if (rawScope != NULL && llvm::dyn_cast<llvm::DISubprogram>(rawScope) != NULL) {
+        return fullTypeName;
+    }
+
     while (rawScope != NULL) {
         llvm::DIScope *currScope = llvm::dyn_cast<llvm::DIScope>(rawScope);
 
