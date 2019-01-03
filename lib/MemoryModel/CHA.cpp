@@ -267,6 +267,10 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
         llvm::DIType *diType = *diTypeI;
         if (llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
             // Add nodes. Only looking at inheritance relations is not sufficient as not everything inherits.
+
+            // Ignore anything that doesn't have a name.
+            if (diCompositeType->getName() == "") continue;
+
             std::string fullTypeName = getFullTypeNameFromDebugInfo(diCompositeType);
             if (getNode(fullTypeName) == NULL) {
                 createNode(fullTypeName);
