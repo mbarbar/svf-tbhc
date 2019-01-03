@@ -237,6 +237,11 @@ std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DICompositeType *d
     while (rawScope != NULL) {
         llvm::DIScope *currScope = llvm::dyn_cast<llvm::DIScope>(rawScope);
 
+        if (llvm::dyn_cast<llvm::DIFile>(currScope) != NULL) {
+            // We've gone through the namespaces till the file - so stop.
+            break;
+        }
+
         std::string scopeName = currScope->getName();
         fullTypeName.insert(0, scopeName + "::");
 
