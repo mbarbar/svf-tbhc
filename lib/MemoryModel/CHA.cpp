@@ -53,6 +53,8 @@ const string pureVirtualFunName = "__cxa_pure_virtual";
 
 const string ztiLabel = "_ZTI";
 
+const string anonymousNamespaceName = "(anonymous namespace)";
+
 static bool hasEdge(const CHNode *src, const CHNode *dst,
                     CHEdge::CHEDGETYPE et) {
     for (CHEdge::CHEdgeSetTy::const_iterator it = src->getOutEdges().begin(),
@@ -258,6 +260,7 @@ std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const 
         }
 
         std::string scopeName = currScope->getName();
+        if (scopeName == "") scopeName = anonymousNamespaceName;
         fullTypeName.insert(0, scopeName + "::");
 
         rawScope = currScope->getScope();
