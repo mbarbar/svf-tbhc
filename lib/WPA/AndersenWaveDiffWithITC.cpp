@@ -139,11 +139,12 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
     // add both into the map at the same time.
 
     std::string t1Name = cppUtil::getClassNameFromType(t1);
-    std::string t2Name = cppUtil::getClassNameFromType(t2);
     t1Name = t1Name.substr(0, t1Name.find_first_of("."));
+    t1Name = cppUtil::removeTemplatesFromName(t1Name);
+
+    std::string t2Name = cppUtil::getClassNameFromType(t2);
     t2Name = t2Name.substr(0, t2Name.find_first_of("."));
-    t1Name = cppUtil::getBeforeBrackets(t1Name);
-    t2Name = cppUtil::getBeforeBrackets(t2Name);
+    t2Name = cppUtil::removeTemplatesFromName(t2Name);
 
     if (t1Name == "" || t2Name == "") {
         // TODO: conservative?

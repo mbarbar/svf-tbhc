@@ -282,6 +282,7 @@ private:
     CallSiteToVTableSetMap csToCHAVtblsMap;
     CallSiteToVFunSetMap csToCHAVFnsMap;
 
+    // Returns the qualified type name in di, WITHOUT templates.
     std::string getFullTypeNameFromDebugInfo(const llvm::DIType *di) const;
 };
 

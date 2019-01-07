@@ -272,7 +272,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
             if (diCompositeType->getName() == "") continue;
 
             std::string fullTypeName = getFullTypeNameFromDebugInfo(diCompositeType);
-            fullTypeName = cppUtil::getBeforeBrackets(fullTypeName);
+            fullTypeName = cppUtil::removeTemplatesFromName(fullTypeName);
             if (getNode(fullTypeName) == NULL) {
                 createNode(fullTypeName);
             }
@@ -291,6 +291,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
                 // Handle the case where an unnamed struct is typedef'd.
                 if (baseName == "") {
                     std::string typedefName = getFullTypeNameFromDebugInfo(diDerivedType);
+                    typedefName = removeTemplatesFromName(typedefName);
                     if (getNode(typedefName) == NULL) {
                         createNode(typedefName);
                     }
@@ -327,10 +328,10 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
 
                 // We operate by ignoring templates - unfortunate but conservative.
                 std::string childName = getFullTypeNameFromDebugInfo(diChildType);
-                childName = cppUtil::getBeforeBrackets(childName);
+                childName = cppUtil::removeTemplatesFromName(childName);
 
                 std::string baseName = getFullTypeNameFromDebugInfo(diBaseType);
-                baseName = cppUtil::getBeforeBrackets(baseName);
+                baseName = cppUtil::removeTemplatesFromName(baseName);
 
                 if (getNode(childName) == NULL) createNode(childName);
                 if (getNode(baseName) == NULL) createNode(baseName);
