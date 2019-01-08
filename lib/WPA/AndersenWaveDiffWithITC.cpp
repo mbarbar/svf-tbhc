@@ -21,9 +21,8 @@ void AndersenWaveDiffWithITC::initialITC(void) {
         const PAGNode *pagNode = nodeI->second;
         if (const FIObjPN* fiObj = SVFUtil::dyn_cast<FIObjPN>(pagNode)) {
             const Type *type = fiObj->getMemObj()->getType();
-            // TODO: better checking, and will need to deal with scalar pointers.
-            if (!VTGraph::hasNonScalarTypes(type)
-                || cppUtil::getClassNameFromType(type) == "") {
+            // TODO: better checking, and will need to deal with other types.
+            if (cppUtil::getClassNameFromType(type) == "") {
                 continue;
             }
 
@@ -39,9 +38,6 @@ void AndersenWaveDiffWithITC::initialITC(void) {
 
     std::sort(types.begin(), types.end(),
               [&typeCounts](const Type *t1, const Type *t2) { return typeCounts[t1] > typeCounts[t2]; });
-
-    llvm::outs() << "Max type: " << *types[0] << " = " << typeCounts[types[0]] << "\n";
-    llvm::outs() << "Snd type: " << *types[1] << " = " << typeCounts[types[1]] << "\n";
 
     std::vector<Blueprint> blueprints;
 
@@ -82,9 +78,8 @@ void AndersenWaveDiffWithITC::initialITC(void) {
         }
     }
 
-    std::set<Instance *> instances;
-
     // Do the collapsing.
+    std::set<Instance *> instances;
     for (auto objI = objects.begin(); objI != objects.end(); ++objI) {
         const FIObjPN *obj = *objI;
         const Type *type = obj->getMemObj()->getType();
@@ -118,11 +113,18 @@ void AndersenWaveDiffWithITC::initialITC(void) {
         }
     }
 
-    llvm::outs() << "Types:       " << types.size()               << "\n";
-    llvm::outs() << "Blueprints:  " << blueprints.size()          << "\n";
-    llvm::outs() << "FI objects:  " << objects.size()             << "\n";
-    llvm::outs() << "instances:   " << instances.size()           << "\n";
-    llvm::outs() << "instanceToB: " << instanceToBlueprint.size() << "\n";
+    llvm::outs() << "Max type: " << *types[0] << " = " << typeCounts[types[0]] << "\n";
+    llvm::outs() << "2nd type: " << *types[1] << " = " << typeCounts[types[1]] << "\n";
+    llvm::outs() << "3rd type: " << *types[2] << " = " << typeCounts[types[2]] << "\n";
+    llvm::outs() << "4th type: " << *types[3] << " = " << typeCounts[types[3]] << "\n";
+    llvm::outs() << "5th type: " << *types[4] << " = " << typeCounts[types[4]] << "\n";
+    llvm::outs() << "Types:            " << types.size()               << "\n";
+    llvm::outs() << "Blueprints:       " << blueprints.size()          << "\n";
+    llvm::outs() << "FI objects:       " << on                         << "\n";
+    llvm::outs() << "Class FI objects: " << objects.size()             << "\n";
+    llvm::outs() << "Types:            " << types.size()               << "\n";
+    llvm::outs() << "instances:        " << instances.size()           << "\n";
+    llvm::outs() << "instanceToB:      " << instanceToBlueprint.size() << "\n";
 }
 
 bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) {
