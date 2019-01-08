@@ -596,6 +596,10 @@ public:
         const MemObj* mem = addDummyMemObj(nodeNum, type);
         return addObjNode(NULL, new TypeObjPN(nodeNum, mem, type), nodeNum);
     }
+    inline NodeID addDummyIncompatibleObjNode(void) {
+        const MemObj* mem = addDummyMemObj(nodeNum, NULL);
+        return addObjNode(NULL, new IncompatibleObjPN(nodeNum, mem), nodeNum);
+    }
     inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);
     }

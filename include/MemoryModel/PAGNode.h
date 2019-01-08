@@ -58,7 +58,8 @@ public:
         FIObjNode,
         DummyValNode,
         DummyObjNode,
-        TypeObjNode
+        TypeObjNode,
+        IncompatibleObjNode
     };
 
 
@@ -96,6 +97,7 @@ public:
         return (this->getNodeKind() != DummyValNode &&
                 this->getNodeKind() != DummyObjNode &&
                 this->getNodeKind() != TypeObjNode &&
+                this->getNodeKind() != IncompatibleObjNode &&
                 (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false) &&
                 value != NULL);
     }
@@ -227,7 +229,8 @@ public:
 				|| node.getNodeKind() == GepObjNode
 				|| node.getNodeKind() == FIObjNode
 				|| node.getNodeKind() == DummyObjNode
-				|| node.getNodeKind() == TypeObjNode) {
+				|| node.getNodeKind() == TypeObjNode
+				|| node.getNodeKind() == IncompatibleObjNode) {
             o << "ObjPN\n";
         } else if (node.getNodeKind() == RetNode) {
             o << "RetPN\n";
@@ -308,6 +311,7 @@ public:
                node->getNodeKind() == PAGNode::GepObjNode ||
                node->getNodeKind() == PAGNode::FIObjNode ||
                node->getNodeKind() == PAGNode::TypeObjNode ||
+               node->getNodeKind() == PAGNode::IncompatibleObjNode ||
 			   node->getNodeKind() == PAGNode::DummyObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
@@ -315,6 +319,7 @@ public:
                node->getNodeKind() == PAGNode::GepObjNode ||
                node->getNodeKind() == PAGNode::FIObjNode ||
                node->getNodeKind() == PAGNode::TypeObjNode ||
+               node->getNodeKind() == PAGNode::IncompatibleObjNode ||
                node->getNodeKind() == PAGNode::DummyObjNode;
     }
     //@}
@@ -587,11 +592,13 @@ public:
     }
 	static inline bool classof(const PAGNode *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
-				|| node->getNodeKind() == PAGNode::TypeObjNode;
+				|| node->getNodeKind() == PAGNode::TypeObjNode
+				|| node->getNodeKind() == PAGNode::IncompatibleObjNode;
 	}
 	static inline bool classof(const GenericPAGNodeTy *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
-				|| node->getNodeKind() == PAGNode::TypeObjNode;
+				|| node->getNodeKind() == PAGNode::TypeObjNode
+				|| node->getNodeKind() == PAGNode::IncompatibleObjNode;
 	}
     //@}
 
@@ -637,6 +644,45 @@ public:
         raw_string_ostream rawstr(str);
         type->print(rawstr);
         return "TypeObj:" + rawstr.str();
+    }
+};
+
+/*
+ * Incompatible node for ITC. Holds many real object nodes of incompatible types.
+ */
+class IncompatibleObjPN: public DummyObjPN {
+private:
+    std::set<const ObjPN *> objectNodes;
+
+public:
+    //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
+    static inline bool classof(const IncompatibleObjPN *) {
+        return true;
+    }
+    static inline bool classof(const PAGNode *node) {
+        return node->getNodeKind() == PAGNode::IncompatibleObjNode;
+    }
+    static inline bool classof(const GenericPAGNodeTy *node) {
+        return node->getNodeKind() == PAGNode::IncompatibleObjNode;
+    }
+    //@}
+
+    /// Constructor
+    IncompatibleObjPN(NodeID i, const MemObj* m)
+        : DummyObjPN(i, m, IncompatibleObjNode) {
+    }
+
+    void addObjectNode(const ObjPN *objNode) {
+        objectNodes.insert(objNode);
+    }
+
+    std::set<const ObjPN *> getObjectNodes(void) const {
+        return objectNodes;
+    }
+
+    /// Return name of this node
+    inline const std::string getValueName() const {
+        return "IncompatibleObjPN: representing" + std::to_string(objectNodes.size()) + " nodes\n";
     }
 };
 
