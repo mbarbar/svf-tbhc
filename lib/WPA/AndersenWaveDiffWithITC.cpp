@@ -17,7 +17,7 @@ void AndersenWaveDiffWithITC::initialITC(void) {
     std::map<const Type *, int> typeCounts;
 
     // Read objects from PAG, and extract relevant types.
-    for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
+    for (PAG::const_iterator nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         const PAGNode *pagNode = nodeI->second;
         if (const FIObjPN* fiObj = SVFUtil::dyn_cast<FIObjPN>(pagNode)) {
             const Type *type = fiObj->getMemObj()->getType();
@@ -31,8 +31,8 @@ void AndersenWaveDiffWithITC::initialITC(void) {
         }
     }
 
-    std::vector<const Type *>   types;
-    for (auto typeCountI = typeCounts.begin(); typeCountI != typeCounts.end(); ++typeCountI) {
+    std::vector<const Type *> types;
+    for (std::map<const Type *, int>::const_iterator typeCountI = typeCounts.begin(); typeCountI != typeCounts.end(); ++typeCountI) {
         types.push_back(typeCountI->first);
     }
 
@@ -42,18 +42,18 @@ void AndersenWaveDiffWithITC::initialITC(void) {
     std::vector<Blueprint> blueprints;
 
     // Make single-type blueprints (i.e. not collapsed types).
-    for (auto typeI = types.begin(); typeI != types.end(); ++typeI) {
+    for (std::vector<const Type *>::const_iterator typeI = types.begin(); typeI != types.end(); ++typeI) {
         Blueprint blueprint { *typeI };
         blueprints.push_back(blueprint);
     }
 
     // Collapse types into blueprints.
-    for (auto aBlueprintI = blueprints.begin(); aBlueprintI != blueprints.end(); ++aBlueprintI) {
+    for (std::vector<Blueprint>::iterator aBlueprintI = blueprints.begin(); aBlueprintI != blueprints.end(); ++aBlueprintI) {
         if (aBlueprintI->empty()) continue;
 
         // Start second iteration after aBlueprintI because the previous blueprints were tested
         // against everything already.
-        for (auto bBlueprintI = aBlueprintI + 1; bBlueprintI != blueprints.end(); ++bBlueprintI) {
+        for (std::vector<Blueprint>::iterator bBlueprintI = aBlueprintI + 1; bBlueprintI != blueprints.end(); ++bBlueprintI) {
             if (bBlueprintI->empty()) continue;
 
             bool ics = incompatibleBlueprints(*aBlueprintI, *bBlueprintI);
@@ -72,15 +72,15 @@ void AndersenWaveDiffWithITC::initialITC(void) {
                      blueprints.end());
 
     // Map types to their blueprint.
-    for (auto blueprintI = blueprints.begin(); blueprintI != blueprints.end(); ++blueprintI) {
-        for (auto typeI = blueprintI->begin(); typeI != blueprintI->end(); ++typeI) {
+    for (std::vector<Blueprint>::const_iterator blueprintI = blueprints.begin(); blueprintI != blueprints.end(); ++blueprintI) {
+        for (Blueprint::const_iterator typeI = blueprintI->begin(); typeI != blueprintI->end(); ++typeI) {
             typeToBlueprint[*typeI] = *blueprintI;
         }
     }
 
     // Do the collapsing.
     std::set<Instance *> instances;
-    for (auto objI = objects.begin(); objI != objects.end(); ++objI) {
+    for (std::set<const FIObjPN *>::const_iterator objI = objects.begin(); objI != objects.end(); ++objI) {
         const FIObjPN *obj = *objI;
         const Type *type = obj->getMemObj()->getType();
 
@@ -91,7 +91,7 @@ void AndersenWaveDiffWithITC::initialITC(void) {
             instanceToBlueprint[instance] = typeToBlueprint[type];
 
             Blueprint blueprint = instanceToBlueprint[instance];
-            for (auto bTypeI = blueprint.begin(); bTypeI != blueprint.end(); ++bTypeI) {
+            for (Blueprint::const_iterator bTypeI = blueprint.begin(); bTypeI != blueprint.end(); ++bTypeI) {
                 // "Notify" all the types which can join this blueprint.
                 instancesNeed[*bTypeI].push_back(instance);
             }
@@ -120,7 +120,6 @@ void AndersenWaveDiffWithITC::initialITC(void) {
     llvm::outs() << "5th type: " << *types[4] << " = " << typeCounts[types[4]] << "\n";
     llvm::outs() << "Types:            " << types.size()               << "\n";
     llvm::outs() << "Blueprints:       " << blueprints.size()          << "\n";
-    llvm::outs() << "FI objects:       " << on                         << "\n";
     llvm::outs() << "Class FI objects: " << objects.size()             << "\n";
     llvm::outs() << "Types:            " << types.size()               << "\n";
     llvm::outs() << "instances:        " << instances.size()           << "\n";
@@ -187,8 +186,8 @@ bool AndersenWaveDiffWithITC::incompatibleBlueprints(const Blueprint b1, const B
     if (b1.empty() || b2.empty()) return true;
 
     bool incompatible = true;
-    for (auto b1I = b1.begin(); b1I != b1.end(); ++b1I) {
-        for (auto b2I = b2.begin(); b2I != b2.end(); ++b2I) {
+    for (Blueprint::const_iterator b1I = b1.begin(); b1I != b1.end(); ++b1I) {
+        for (Blueprint::const_iterator b2I = b2.begin(); b2I != b2.end(); ++b2I) {
             const Type *b1Type = (*b1I);
             const Type *b2Type = (*b2I);
 
