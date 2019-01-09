@@ -37,6 +37,7 @@ static llvm::cl::opt<bool> HANDBLACKHOLE("blk", llvm::cl::init(false),
 
 
 u64_t PAGEdge::callEdgeLabelCounter = 0;
+u64_t PAGEdge::storeEdgeLabelCounter = 0;
 PAGEdge::Inst2LabelMap PAGEdge::inst2LabelMap;
 
 PAG* PAG::pag = NULL;
@@ -105,6 +106,7 @@ bool PAG::addLoadEdge(NodeID src, NodeID dst) {
 
 /*!
  * Add Store edge
+ * Note that two store instructions may share the same Store PAGEdge
  */
 bool PAG::addStoreEdge(NodeID src, NodeID dst) {
     PAGNode* srcNode = getPAGNode(src);
@@ -112,7 +114,7 @@ bool PAG::addStoreEdge(NodeID src, NodeID dst) {
     if(hasIntraEdge(srcNode,dstNode, PAGEdge::Store))
         return false;
     else
-        return addEdge(srcNode,dstNode, new StorePE(srcNode, dstNode));
+        return addEdge(srcNode,dstNode, new StorePE(srcNode, dstNode, curVal));
 }
 
 /*!
@@ -337,10 +339,14 @@ NodeID PAG::addGepObjNode(const MemObj* obj, const LocationSet& ls) {
     NodeID base = getObjectNode(obj);
     assert(0==GepObjNodeMap.count(std::make_pair(base, ls))
            && "this node should not be created before");
-    GepObjNodeMap[std::make_pair(base, ls)] = nodeNum;
-	GepObjPN *node = new GepObjPN(obj, nodeNum, ls);
-    memToFieldsMap[base].set(nodeNum);
-    return addObjNode(obj->getRefVal(), node, nodeNum);
+
+    NodeID gepMultiplier = getNodeNumAfterPAGBuild() > SymbolTableInfo::getMaxFieldLimit() ? getNodeNumAfterPAGBuild()
+                                                                                     : SymbolTableInfo::getMaxFieldLimit();
+    NodeID gepId = base * pow(10, (ceil(log10(gepMultiplier)))) + ls.getOffset();
+    GepObjNodeMap[std::make_pair(base, ls)] = gepId;
+	GepObjPN *node = new GepObjPN(obj, gepId, ls);
+    memToFieldsMap[base].set(gepId);
+    return addObjNode(obj->getRefVal(), node, gepId);
 }
 
 /*!

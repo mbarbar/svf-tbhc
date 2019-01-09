@@ -148,15 +148,26 @@ public:
     }
     //@}
 
-    /// Get points-to set
+    /// Operation of points-to set
     virtual inline PointsTo& getPts(NodeID id) {
         return getPTDataTy()->getPts(sccRepNode(id));
+    }
+    virtual inline bool unionPts(NodeID id, const PointsTo& target) {
+        id = sccRepNode(id);
+        return getPTDataTy()->unionPts(id, target);
+    }
+    virtual inline bool unionPts(NodeID id, NodeID ptd) {
+        id = sccRepNode(id);
+        ptd = sccRepNode(ptd);
+        return getPTDataTy()->unionPts(id,ptd);
     }
 
     /// Get constraint graph
     ConstraintGraph* getConstraintGraph() {
         return consCG;
     }
+
+    void dumpTopLevelPtsTo();
 
 protected:
 
@@ -175,11 +186,15 @@ protected:
 
     virtual bool processCopy(NodeID node, const ConstraintEdge* edge);
 
+    virtual bool processGep(NodeID node, const GepCGEdge* edge);
+
+    virtual void handleCopyGep(ConstraintNode* node);
+
+    virtual void handleLoadStore(ConstraintNode* node);
+
     virtual void processAddr(const AddrCGEdge* addr);
 
-    virtual void processGep(NodeID node, const GepCGEdge* edge);
-
-    virtual void processGepPts(PointsTo& pts, const GepCGEdge* edge);
+    virtual bool processGepPts(PointsTo& pts, const GepCGEdge* edge);
     //@}
 
     /// Add copy edge on constraint graph
@@ -203,9 +218,11 @@ protected:
     /// Merge sub node to its rep
     virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId);
 
+    virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId);
+
     /// Merge sub node in a SCC cycle to their rep node
     //@{
-    void mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes, NodeBS & chanegdRepNodes);
+    void mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes);
     void mergeSccCycle();
     //@}
     /// Collapse a field object into its base for field insensitive anlaysis
@@ -217,7 +234,7 @@ protected:
     //@}
 
     /// Updates subnodes of its rep, and rep node of its subs
-    void updateNodeRepAndSubs(NodeID nodeId);
+    void updateNodeRepAndSubs(NodeID nodeId,NodeID newRepId);
 
     /// SCC detection
     virtual NodeStack& SCCDetect();
@@ -352,7 +369,7 @@ public:
 
     virtual void handleCopyGep(ConstraintNode* node);
     virtual bool processCopy(NodeID node, const ConstraintEdge* edge);
-    virtual void processGep(NodeID node, const GepCGEdge* edge);
+    virtual bool processGep(NodeID node, const GepCGEdge* edge);
 
     virtual bool handleLoad(NodeID id, const ConstraintEdge* load);
     virtual bool handleStore(NodeID id, const ConstraintEdge* store);
@@ -458,7 +475,7 @@ protected:
 /*
  * Lazy Cycle Detection Based Andersen Analysis
  */
-class AndersenLCD : public Andersen {
+class AndersenLCD : virtual public Andersen {
 
 private:
     static AndersenLCD* lcdAndersen;
@@ -514,11 +531,11 @@ protected:
     //AndersenLCD worklist processer
     void solveWorklist();
     // Solve constraints of each nodes
-    void processNode(NodeID nodeId);
+    virtual void handleCopyGep(ConstraintNode* node);
     // Collapse nodes and fields based on 'lcdCandidates'
-    void mergeOnlineSCC();
+    virtual void mergeSCC();
     // AndersenLCD specified SCC detector, need to input a nodeStack 'lcdCandidate'
-    NodeStack& SCCDetect(NodeSet& lcdCandidates);
+    NodeStack& SCCDetect();
 };
 
 
@@ -526,7 +543,7 @@ protected:
 /*!
  * Hybrid Cycle Detection Based Andersen Analysis
  */
-class AndersenHCD : public Andersen{
+class AndersenHCD : virtual public Andersen{
 
 public:
     typedef SCCDetection<OfflineConsG*> OSCC;
@@ -558,7 +575,7 @@ public:
     }
 
 protected:
-    void initialize(SVFModule svfModule);
+    virtual void initialize(SVFModule svfModule);
 
     // Get offline rep node from offline constraint graph
     //@{
@@ -582,8 +599,8 @@ protected:
     };
     //@}
 
-    void solveWorklist();
-    void mergeOfflineSCC(NodeID nodeId);
+    virtual void solveWorklist();
+    virtual void mergeSCC(NodeID nodeId);
     void mergeNodeAndPts(NodeID node, NodeID tgt);
 
 };
@@ -637,5 +654,44 @@ private:
     template <typename T>
     bool disjoint(const std::set<T> s1, const std::set<T> s2);
 };
+
+
+/*!
+ * Hybrid Lazy Cycle Detection Based Andersen Analysis
+ */
+class AndersenHLCD : public AndersenHCD, public AndersenLCD{
+
+private:
+    static AndersenHLCD* hlcdAndersen;
+
+public:
+    AndersenHLCD(PTATY type = AndersenHLCD_WPA) :
+            AndersenHCD(type) {
+    }
+
+    /// Create an singleton instance directly instead of invoking llvm pass manager
+    static AndersenHLCD *createAndersenHLCD(SVFModule svfModule) {
+        if (hlcdAndersen == nullptr) {
+            hlcdAndersen = new AndersenHLCD();
+            hlcdAndersen->analyze(svfModule);
+            return hlcdAndersen;
+        }
+        return hlcdAndersen;
+    }
+
+    static void releaseAndersenHLCD() {
+        if (hlcdAndersen)
+            delete hlcdAndersen;
+        hlcdAndersen = nullptr;
+    }
+
+protected:
+    void initialize(SVFModule svfModule) {AndersenHCD::initialize(svfModule);}
+    void solveWorklist() {AndersenHCD::solveWorklist();}
+    void handleCopyGep(ConstraintNode* node) {AndersenLCD::handleCopyGep(node);}
+    void mergeSCC(NodeID nodeId);
+
+};
+
 
 #endif /* ANDERSENPASS_H_ */

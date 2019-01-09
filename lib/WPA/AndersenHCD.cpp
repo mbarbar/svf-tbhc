@@ -42,23 +42,13 @@ AndersenHCD *AndersenHCD::hcdAndersen = nullptr;
  * including initilization of PAG, constraint graph and offline constraint graph
  */
 void AndersenHCD::initialize(SVFModule svfModule) {
-    resetData();
-    // Build PAG
-    PointerAnalysis::initialize(svfModule);
-    // Build constraint graph
-    consCG = new ConstraintGraph(pag);
-    setGraph(consCG);
-
+    Andersen::initialize(svfModule);
     // Build offline constraint graph and solve its constraints
     oCG = new OfflineConsG(pag);
     OSCC* oscc = new OSCC(oCG);
     oscc->find();
     oCG->solveOfflineSCC(oscc);
-	delete oscc;
-
-    // Create statistic class
-    stat = new AndersenStat(this);
-    consCG->dump("consCG_initial");
+    delete oscc;
 }
 
 /*!
@@ -69,8 +59,8 @@ void AndersenHCD::solveWorklist() {
         NodeID nodeId = popFromWorklist();
         collapsePWCNode(nodeId);
 
-        //TODO: Merge detected SCC cycles
-        mergeOfflineSCC(nodeId);
+        //Merge detected offline SCC cycles
+        mergeSCC(nodeId);
 
         // Keep solving until workList is empty.
         processNode(nodeId);
@@ -81,7 +71,7 @@ void AndersenHCD::solveWorklist() {
 /*!
  * Collapse nodes and fields based on the result of offline SCC detection
  */
-void AndersenHCD::mergeOfflineSCC(NodeID nodeId) {
+void AndersenHCD::mergeSCC(NodeID nodeId) {
     if (hasOfflineRep(nodeId)) {
         // get offline rep node
         NodeID oRep = getOfflineRep(nodeId);
@@ -91,7 +81,6 @@ void AndersenHCD::mergeOfflineSCC(NodeID nodeId) {
         for (PointsTo::iterator ptIt = pts.begin(), ptEit = pts.end(); ptIt != ptEit; ++ptIt) {
             NodeID tgt = *ptIt;
             assert(!oCG->isaRef(tgt) && "Point-to target should not be a ref node!");
-            // TODO: need to merge pts & merge node ?
             mergeNodeAndPts(tgt, rep);
         }
     }
@@ -101,13 +90,14 @@ void AndersenHCD::mergeOfflineSCC(NodeID nodeId) {
  * Merge node and its pts to the rep node
  */
 void AndersenHCD::mergeNodeAndPts(NodeID node, NodeID rep) {
+    node = sccRepNode(node);
+    rep = sccRepNode(rep);
     if (!isaMergedNode(node)) {
         if (unionPts(rep, node))
             pushIntoWorklist(rep);
         // Once a 'Node' is merged to its rep, it is collapsed,
-        // only remaining its 'NodeID' exists in the set 'subNodes' of its rep node.
+        // only its 'NodeID' remaining in the set 'subNodes' of its rep node.
         mergeNodeToRep(node, rep);
         setMergedNode(node);
-        updateNodeRepAndSubs(node);
     }
 }
