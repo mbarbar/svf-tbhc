@@ -13,7 +13,7 @@
 #include "WPA/Andersen.h"
 
 void AndersenWaveDiffWithITC::initialITC(void) {
-    std::set<const FIObjPN *>   objects;
+    std::set<const ObjPN *>   objects;
     std::map<const Type *, int> typeCounts;
 
     // Read objects from PAG, and extract relevant types.
@@ -79,37 +79,32 @@ void AndersenWaveDiffWithITC::initialITC(void) {
     }
 
     // Do the collapsing.
-    std::set<Instance *> instances;
-    for (std::set<const FIObjPN *>::const_iterator objI = objects.begin(); objI != objects.end(); ++objI) {
-        const FIObjPN *obj = *objI;
-        const Type *type = obj->getMemObj()->getType();
+    for (std::set<const ObjPN *>::const_iterator objI = objects.begin(); objI != objects.end(); ++objI) {
+        const ObjPN *obj = *objI;
+        findIncompatibleNodeForObj(obj);
+    }
 
-        if (instancesNeed[type].empty()) {
-            // Initialise an instance.
-            Instance *instance = new Instance;
-            instance->insert(obj);
-            instanceToBlueprint[instance] = typeToBlueprint[type];
+    // Remove addr edges from actual objects, and add them to the new incompatible object nodes.
+    for (std::set<IncompatibleObjPN *>::iterator instanceI = instances.begin(); instanceI != instances.end(); ++instanceI) {
+        std::set<const ObjPN *> objs = (*instanceI)->getObjectNodes();
+        std::set<AddrCGEdge *> addrEdgesFromObjs;
 
-            Blueprint blueprint = instanceToBlueprint[instance];
-            for (Blueprint::const_iterator bTypeI = blueprint.begin(); bTypeI != blueprint.end(); ++bTypeI) {
-                // "Notify" all the types which can join this blueprint.
-                instancesNeed[*bTypeI].push_back(instance);
+        // Find the addr edges to remove from the objNodes, and add to the incompatibleObjNode.
+        for (std::set<const ObjPN *>::const_iterator objI = objs.begin(); objI == objs.end(); ++objI) {
+            NodeID objId = (*objI)->getId();
+            ConstraintNode *cNode = consCG->getConstraintNode(objId);
+            for (ConstraintEdge::ConstraintEdgeSetTy::const_iterator addrEdgeI = cNode->getAddrOutEdges().begin(); addrEdgeI != cNode->getAddrOutEdges().end(); ++cNode) {
+                AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*addrEdgeI);
+                if (addrEdge == NULL) assert(false && "Non addr edge in consCG's addr edge set?");
+                addrEdgesFromObjs.insert(addrEdge);
             }
+        }
 
-            // Clear the typeToInstance for type, because we just added it.
-            // .clear() is okay because it had 0, then we added 1, so back to 0.
-            instancesNeed[type].clear();
-        } else {
-            Instance *instance = instancesNeed[type].back();
-            instance->insert(obj);
-            // Object of type type can no longer join so pop it.
-            instancesNeed[type].pop_back();
-
-            if (instance->size() == instanceToBlueprint[instance].size()) {
-                // Instance is full!
-                instances.insert(instance);
-                instanceToBlueprint.erase(instance);
-            }
+        // Remove obj->X, and add IncompatibleObj->X.
+        for (std::set<AddrCGEdge *>::iterator addrEdgeI = addrEdgesFromObjs.begin(); addrEdgeI != addrEdgesFromObjs.end(); ++addrEdgeI) {
+            NodeID dstId = (*addrEdgeI)->getDstID();
+            consCG->removeAddrEdge(*addrEdgeI);
+            consCG->addAddrCGEdge((*instanceI)->getId(), dstId);
         }
     }
 
@@ -220,5 +215,47 @@ bool AndersenWaveDiffWithITC::disjoint(const std::set<T> s1, const std::set<T> s
     }
 
     return true;
+}
+
+IncompatibleObjPN *AndersenWaveDiffWithITC::findIncompatibleNodeForObj(const ObjPN *obj) {
+    IncompatibleObjPN *instance;
+    const Type *type = obj->getMemObj()->getType();
+
+    if (instancesNeed[type].empty()) {
+        // Initialise an instance.
+        NodeID incompatibleObjNodeId = pag->addDummyIncompatibleObjNode();
+        consCG->addConstraintNode(new ConstraintNode(incompatibleObjNodeId), incompatibleObjNodeId);
+        //llvm::outs() << "Added: " << incompatibleObjNodeId << "\n";
+        // 198966
+
+        instance = SVFUtil::dyn_cast<IncompatibleObjPN>(pag->getPAGNode(incompatibleObjNodeId));
+        if (instance == NULL) assert(false && "Could not get created PAG node.");
+        instances.insert(instance);
+
+        instance->addObjectNode(obj);
+        instanceToBlueprint[instance] = typeToBlueprint[type];
+
+        Blueprint blueprint = instanceToBlueprint[instance];
+        for (Blueprint::const_iterator bTypeI = blueprint.begin(); bTypeI != blueprint.end(); ++bTypeI) {
+            // "Notify" all the types which can join this blueprint.
+            instancesNeed[*bTypeI].push_back(instance);
+        }
+
+        // Clear the typeToInstance for type, because we just added it.
+        // .clear() is okay because it had 0, then we added 1, so back to 0.
+        instancesNeed[type].clear();
+    } else {
+        instance = instancesNeed[type].back();
+        instance->addObjectNode(obj);
+        // Object of type type can no longer join so pop it.
+        instancesNeed[type].pop_back();
+
+        if (instance->objectNodeCount() == instanceToBlueprint[instance].size()) {
+            // Instance is full!
+            instanceToBlueprint.erase(instance);
+        }
+    }
+
+    return instance;
 }
 

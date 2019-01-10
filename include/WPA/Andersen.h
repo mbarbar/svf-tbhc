@@ -611,14 +611,15 @@ protected:
 class AndersenWaveDiffWithITC : public AndersenWaveDiff {
 private:
     typedef std::set<const Type *>    Blueprint;
-    typedef std::set<const FIObjPN *> Instance;
 
     /// Maps types to the Blueprint they are contained in.
-    std::map<const Type *, Blueprint>               typeToBlueprint;
+    std::map<const Type *, Blueprint>                        typeToBlueprint;
     /// Maps types to all the instances waiting for such a type.
-    std::map<const Type *, std::vector<Instance *>> instancesNeed;
+    std::map<const Type *, std::vector<IncompatibleObjPN *>> instancesNeed;
     /// Maps an instance to the blueprint it is building.
-    std::map<Instance *, Blueprint>                 instanceToBlueprint;
+    std::map<IncompatibleObjPN *, Blueprint>                 instanceToBlueprint;
+    /// Set of all instances that have been built (even if incomplete).
+    std::set<IncompatibleObjPN *>                            instances;
 
     /// Maps a pair of types to whether they are incompatible or not.
     std::map<std::pair<const Type *, const Type*>, bool> incompatibleTypesMap;
@@ -641,6 +642,10 @@ public:
 private:
     /// Perform ITC on initial constraint graph.
     void initialITC(void);
+
+    /// Inserts obj into an incompatibleObject node (possibly making one).
+    /// Does not change anything about obj.
+    IncompatibleObjPN *findIncompatibleNodeForObj(const ObjPN *obj);
 
     /// Returns true if t1 and t2 are incompatible.
     /// TODO: describe.

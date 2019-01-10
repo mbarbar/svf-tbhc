@@ -680,6 +680,15 @@ public:
         return objectNodes;
     }
 
+    /// Returns the number of object nodes this node holds.
+    size_t objectNodeCount(void) {
+        return objectNodes.size();
+    }
+
+    bool hasObjects(void) const {
+        return !objectNodes.empty();
+    }
+
     /// Return name of this node
     inline const std::string getValueName() const {
         return "IncompatibleObjPN: representing" + std::to_string(objectNodes.size()) + " nodes\n";
