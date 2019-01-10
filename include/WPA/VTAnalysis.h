@@ -38,7 +38,6 @@ public:
     }
 
     virtual inline void analyze(SVFModule svfModule) {
-        initialize(svfModule);
         processAllAddr();
         solve();
         finalize();
