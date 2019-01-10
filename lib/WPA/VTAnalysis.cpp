@@ -57,20 +57,14 @@ VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     VSCC* vscc = new VSCC(vtg);
     vscc->find();
 
-    NodeBS changedRepNodes;
     NodeStack & topoOrder = vscc->topoNodeStack();
     while (!topoOrder.empty()) {
         NodeID repNodeId = topoOrder.top();
         topoOrder.pop();
         // merge sub nodes to rep node
         const NodeBS& subNodes = vscc->subNodes(repNodeId);
-        mergeSccNodes(repNodeId,subNodes,changedRepNodes);
+        mergeSccNodes(repNodeId,subNodes);
     }
-
-    // update rep/sub relation in the constraint graph.
-    // each node will have a rep node
-    for(NodeBS::iterator it = changedRepNodes.begin(), eit = changedRepNodes.end(); it!=eit; ++it)
-        updateNodeRepAndSubs(*it);
 
     return vtg;
 }
