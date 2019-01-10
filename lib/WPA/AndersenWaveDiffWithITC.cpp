@@ -122,17 +122,15 @@ void AndersenWaveDiffWithITC::initialITC(void) {
 }
 
 bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) {
+    //return !compatibleTypes[t1][t2];
     // TODO: handle non-class pointer types
     if (t1 == t2) return true;
 
-    std::pair<const Type *, const Type *> t1t2(t1, t2);
-    if (incompatibleTypesMap.find(t1t2) != incompatibleTypesMap.end()) {
-        return incompatibleTypesMap[t1t2];
+    if (compatibleTypes.find(t1) != compatibleTypes.end()) {
+        if (compatibleTypes[t1].find(t2) != compatibleTypes[t1].end()) {
+            return !compatibleTypes[t1][t2];
+        }
     }
-
-    std::pair<const Type *, const Type *> t2t1(t2, t1);
-    // Don't need to check for t2t1 in the map since we always
-    // add both into the map at the same time.
 
     std::string t1Name = cppUtil::getClassNameFromType(t1);
     t1Name = t1Name.substr(0, t1Name.find_first_of("."));
@@ -152,17 +150,17 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
 
     if (t1Node == NULL || t2Node == NULL) {
         // TODO: conservative?
-        incompatibleTypesMap[t1t2] = false;
-        incompatibleTypesMap[t2t1] = false;
-        return false;
+        if (t1Node == NULL) llvm::outs() << "NOT_IN_CHG: " << t1Name << "\n";
+        if (t2Node == NULL) llvm::outs() << "NOT_IN_CHG: " << t2Name << "\n";
+        compatibleTypes[t1][t2] = compatibleTypes[t2][t1] = true;
+        return !compatibleTypes[t1][t2];
     }
 
     if (t1Node->getCCLabel() != t2Node->getCCLabel()) {
         // If they're part of separate connected components, they
         // cannot share the same parent.
-        incompatibleTypesMap[t1t2] = true;
-        incompatibleTypesMap[t2t1] = true;
-        return true;
+        compatibleTypes[t1][t2] = compatibleTypes[t2][t1] = false;
+        return !compatibleTypes[t1][t2];
     }
 
     CHGraph::CHNodeSetTy t1Parents = chg->getAncestors(t1Name);
@@ -171,10 +169,8 @@ bool AndersenWaveDiffWithITC::incompatibleTypes(const Type *t1, const Type *t2) 
     t2Parents.insert(t2Node);
 
     bool areDisjoint = disjoint(t1Parents, t2Parents);
-    incompatibleTypesMap[t1t2] = areDisjoint;
-    incompatibleTypesMap[t2t1] = areDisjoint;
-
-    return areDisjoint;
+    compatibleTypes[t1][t2] = compatibleTypes[t2][t1] = !areDisjoint;
+    return !compatibleTypes[t1][t2];
 }
 
 bool AndersenWaveDiffWithITC::incompatibleBlueprints(const Blueprint b1, const Blueprint b2) {

@@ -621,8 +621,9 @@ private:
     /// Set of all instances that have been built (even if incomplete).
     std::set<IncompatibleObjPN *>                            instances;
 
-    /// Maps a pair of types to whether they are incompatible or not.
-    std::map<std::pair<const Type *, const Type*>, bool> incompatibleTypesMap;
+    /// Maps a pair of types to whether they are compatible or not.
+    /// compatibleTypes[t1][t2] == true means t1 and t2 are compatible.
+    std::map<const Type *, std::map<const Type*, bool>> compatibleTypes;
 
     CHGraph *chg;
 
