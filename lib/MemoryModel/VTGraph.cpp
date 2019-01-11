@@ -21,7 +21,7 @@ llvm::cl::opt<bool> VTGDotGraph("dump-vtg", llvm::cl::init(false),
 
 const std::string VTGraph::CLASS_NAME_PREFIX = "class.";
 
-void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
+void VTGraph::collapseMemoryObjectsIntoTypeObjects(bool retainScalars) {
     std::set<const FIObjPN*> fiObjNodes;
     for (auto nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         const PAGNode *pagNode = nodeI->second;
@@ -34,7 +34,7 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(void) {
         ConstraintNode *constraintNode = getConstraintNode(fiObj->getId());
         const Type *objType = fiObj->getMemObj()->getType();
 
-        if (!hasNonScalarTypes(objType)) {
+        if (!hasNonScalarTypes(objType) && !retainScalars) {
             // Detach and continue - don't propagate these.
             std::set<AddrCGEdge*> addrs;
             for (auto edgeI = constraintNode->getOutEdges().begin(); edgeI != constraintNode->getOutEdges().end(); ++edgeI) {

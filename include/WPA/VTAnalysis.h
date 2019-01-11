@@ -11,11 +11,14 @@
 class VTAnalysis: public AndersenWaveDiff {
 private:
     bool vtaPlus;
+    /// If false, scalar types will be removed entirely.
+    bool retainScalars;
 public:
     /// Constructor
     VTAnalysis(PTATY type = VariableTypeCPP_WPA) {
         iterationForPrintStat = OnTheFlyIterBudgetForStat;
         this->vtaPlus = false;
+        this->retainScalars = false;
     }
 
     typedef SCCDetection<VTGraph*> VSCC;
@@ -54,6 +57,10 @@ public:
 
     void inline setVtaPlus(bool vtaPlus) {
         this->vtaPlus = vtaPlus;
+    }
+
+    void inline setRetainScalars(bool retainScalars) {
+        this->retainScalars= retainScalars;
     }
 
     void validateTests();

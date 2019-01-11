@@ -42,8 +42,9 @@ public:
         chg = PointerAnalysis::getCHGraph();
     }
 
-    // Replaces memory objects with type objects.
-    void collapseMemoryObjectsIntoTypeObjects(void);
+    // Replaces memory objects with type objects. If retainScalars is false,
+    // scalar typed objects will be removed entirely.
+    void collapseMemoryObjectsIntoTypeObjects(bool retainScalars);
 
     // Collapses all fields to a single node.
     // Nodes referring to field f collapse to node X::f
