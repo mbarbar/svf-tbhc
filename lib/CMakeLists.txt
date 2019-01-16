@@ -31,6 +31,7 @@ set(SOURCES
     MemoryModel/CHA.cpp
     MemoryModel/PointerAnalysis.cpp
     MemoryModel/VTGraph.cpp
+    MemoryModel/ITGraph.cpp
     MSSA/MemPartition.cpp
     MSSA/MemRegion.cpp
     MSSA/MemSSA.cpp
