@@ -15,10 +15,10 @@ private:
     bool retainScalars;
 public:
     /// Constructor
-    VTAnalysis(PTATY type = VariableTypeCPP_WPA) {
+    VTAnalysis(bool retainScalars, bool vtaPlus, PTATY type = VariableTypeCPP_WPA) {
         iterationForPrintStat = OnTheFlyIterBudgetForStat;
-        this->vtaPlus = false;
-        this->retainScalars = false;
+        this->vtaPlus = vtaPlus;
+        this->retainScalars = retainScalars;
     }
 
     typedef SCCDetection<VTGraph*> VSCC;
@@ -31,7 +31,7 @@ public:
 
         /// Build PAG
         PointerAnalysis::initialize(svfModule);
-        createVTGraph(svfModule);
+        consCG = createVTGraph(svfModule);
         setGraph(consCG);
 
         /// Create statistic class
@@ -41,6 +41,7 @@ public:
     }
 
     virtual inline void analyze(SVFModule svfModule) {
+        initialize(svfModule);
         processAllAddr();
         solve();
         finalize();

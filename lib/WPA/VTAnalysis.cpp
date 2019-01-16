@@ -48,11 +48,24 @@ void VTAnalysis::validateTests() {
 
 VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     /// Build Constraint Graph
-    VTGraph *vtg = new VTGraph(pag, svfModule);
+    VTGraph *vtg = new VTGraph(pag, svfModule, retainScalars, !vtaPlus);
     consCG = vtg;
+
+    PAG::CallSiteToFunPtrMap callsites = pag->getIndirectCallsites();
+    for (PAG::CallSiteToFunPtrMap::const_iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
+        const CallSite cs = csI->first;
+        if (chgraph->csHasVFnsBasedonCHA(cs)) {
+            const VFunSet vfns = chgraph->getCSVFsBasedonCHA(cs);
+            for (VFunSet::const_iterator vfnI = vfns.begin(); vfnI != vfns.end(); ++vfnI) {
+                NodePairSet newEdges;
+                vtg->connectCaller2CalleeParams(cs, *vfnI, newEdges);
+            }
+        } else {
+            //llvm::outs() << "NO VFNS??\n"; TODO
+        }
+    }
+
     vtg->dump("vtg_initial");
-    vtg->collapseMemoryObjectsIntoTypeObjects(retainScalars);
-    if (!vtaPlus) vtg->collapseFields();
 
     VSCC* vscc = new VSCC(vtg);
     vscc->find();

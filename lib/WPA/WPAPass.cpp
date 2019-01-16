@@ -139,11 +139,10 @@ void WPAPass::runPointerAnalysis(SVFModule svfModule, u32_t kind)
             _pta = new TypeAnalysis();
             break;
         case PointerAnalysis::VariableTypeCPP_WPA:
-            _pta = new VTAnalysis();
+            _pta = new VTAnalysis(false, false);
             break;
         case PointerAnalysis::VariableTypePlusCPP_WPA:
-            _pta = new VTAnalysis(PointerAnalysis::VariableTypePlusCPP_WPA);
-            SVFUtil::dyn_cast<VTAnalysis>(_pta)->setVtaPlus(true);
+            _pta = new VTAnalysis(false, true, PointerAnalysis::VariableTypePlusCPP_WPA);
             break;
         case PointerAnalysis::RapidTypeCPP_WPA:
             _pta = new RapidTypeAnalysis();

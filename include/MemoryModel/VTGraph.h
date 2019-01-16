@@ -38,8 +38,10 @@ private:
     CHGraph *chg;
 
 public:
-    VTGraph(PAG *p, SVFModule svfModule) : OfflineConsG(p) {
+    VTGraph(PAG *p, SVFModule svfModule, bool retainScalars, bool fieldBased) : OfflineConsG(p) {
         chg = PointerAnalysis::getCHGraph();
+        collapseMemoryObjectsIntoTypeObjects(retainScalars);
+        if (fieldBased) collapseFields();
     }
 
     // Replaces memory objects with type objects. If retainScalars is false,
