@@ -51,6 +51,7 @@ VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
     VTGraph *vtg = new VTGraph(pag, svfModule, retainScalars, !vtaPlus);
     consCG = vtg;
 
+    /*
     PAG::CallSiteToFunPtrMap callsites = pag->getIndirectCallsites();
     for (PAG::CallSiteToFunPtrMap::const_iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
         const CallSite cs = csI->first;
@@ -61,9 +62,10 @@ VTGraph* VTAnalysis::createVTGraph(SVFModule svfModule) {
                 vtg->connectCaller2CalleeParams(cs, *vfnI, newEdges);
             }
         } else {
-            //llvm::outs() << "NO VFNS??\n"; TODO
+            llvm::outs() << "NO VFNS??\n"; //TODO
         }
     }
+    */
 
     vtg->dump("vtg_initial");
 

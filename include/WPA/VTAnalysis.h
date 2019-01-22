@@ -54,6 +54,15 @@ public:
 
         PointerAnalysis::finalize();
         //validateTests();
+        /*
+        for (auto nid = pag->begin(); nid != pag->end(); ++nid) {
+            PointsTo &pts = getPts(nid->first);
+            for (auto it = pts.begin(); it != pts.end(); ++it) {
+                NodeID id = *it;
+                assert(SVFUtil::isa<TypeObjPN>(pag->getPAGNode(id)) || SVFUtil::isa<DummyObjPN>(pag->getPAGNode(id)));
+            }
+        }
+        */
     }
 
     void inline setVtaPlus(bool vtaPlus) {

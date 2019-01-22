@@ -257,7 +257,7 @@ public:
         return (mem->getMaxFieldOffsetLimit() == 1);
     }
     /// Get a field of a memory object
-    inline NodeID getGepObjNode(NodeID id, const LocationSet& ls) {
+    virtual inline NodeID getGepObjNode(NodeID id, const LocationSet& ls) {
         NodeID gep =  pag->getGepObjNode(id,ls);
         /// Create a node when it is (1) not exist on graph and (2) not merged
         if(sccRepNode(gep)==gep && hasConstraintNode(gep)==false)
@@ -265,7 +265,7 @@ public:
         return gep;
     }
     /// Get a field-insensitive node of a memory object
-    inline NodeID getFIObjNode(NodeID id) {
+    virtual inline NodeID getFIObjNode(NodeID id) {
         NodeID fi = pag->getFIObjNode(id);
         /// Create a node when it is (1) not exist on graph and (2) not merged
         if (sccRepNode(fi) == fi && hasConstraintNode(fi)==false)

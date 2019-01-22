@@ -21,7 +21,7 @@
  * In OCG, a 'ref' node is used to represent the point-to set of a constraint node.
  * 'Nor' means a constraint node of its corresponding ref node.
  */
-class VTGraph: public OfflineConsG {
+class VTGraph: public ConstraintGraph {
 private:
     // What prefixes every class (type) name in LLVM.
     static const std::string CLASS_NAME_PREFIX;
@@ -38,7 +38,7 @@ private:
     CHGraph *chg;
 
 public:
-    VTGraph(PAG *p, SVFModule svfModule, bool retainScalars, bool fieldBased) : OfflineConsG(p) {
+    VTGraph(PAG *p, SVFModule svfModule, bool retainScalars, bool fieldBased) : ConstraintGraph(p) {
         chg = PointerAnalysis::getCHGraph();
         collapseMemoryObjectsIntoTypeObjects(retainScalars);
         if (fieldBased) collapseFields();
@@ -53,8 +53,16 @@ public:
     // where X is the class declaring f.
     void collapseFields(void);
 
+    NodeID findTypeObjForType(const Type *type);
+
     /// Dump the VT graph.
     virtual void dump(std::string name) override;
+
+    /// Get a field of a memory object
+    virtual inline NodeID getGepObjNode(NodeID id, const LocationSet& ls);
+
+    /// Get a field-insensitive node of a memory object
+    virtual inline NodeID getFIObjNode(NodeID id);
 
     static std::string getClassNameFromPointerType(const Type *type);
     static std::string getClassNameFromStructType(const StructType *structType);

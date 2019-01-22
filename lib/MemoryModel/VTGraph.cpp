@@ -53,16 +53,7 @@ void VTGraph::collapseMemoryObjectsIntoTypeObjects(bool retainScalars) {
         }
 
 
-        NodeID newSrcID;
-        if (typeToNode.count(objType) != 0) {
-            // A type node was created.
-            newSrcID = typeToNode.at(objType);
-        } else {
-            // No type node for objType, so make one.
-            newSrcID = pag->addDummyTypeObjNode(objType);
-            addConstraintNode(new ConstraintNode(newSrcID), newSrcID);
-            typeToNode[objType] = newSrcID;
-        }
+        NodeID newSrcID = findTypeObjForType(objType);
 
         // Collect the addr edge for removal.
         std::set<AddrCGEdge*> addrs;
@@ -124,6 +115,41 @@ void VTGraph::collapseFields(void) {
             addNormalGepCGEdge(srcId, fieldRepresentationNodeId, (*gepEdgeI)->getLocationSet());
         }
     }
+}
+
+NodeID VTGraph::findTypeObjForType(const Type *type) {
+    NodeID id;
+    if (typeToNode.count(type) != 0) {
+        // A type node was created.
+        id = typeToNode.at(type);
+    } else {
+        // No type node for objType, so make one.
+        id = pag->addDummyTypeObjNode(type);
+        addConstraintNode(new ConstraintNode(id), id);
+        typeToNode[type] = id;
+    }
+
+    return id;
+}
+
+inline NodeID VTGraph::getFIObjNode(NodeID id) {
+    NodeID fi =  pag->getFIObjNode(id);
+    ObjPN *fiObj = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(fi));
+
+    return findTypeObjForType(fiObj->getType());
+}
+
+NodeID VTGraph::getGepObjNode(NodeID id, const LocationSet& ls) {
+    NodeID gep =  pag->getGepObjNode(id,ls);
+    ObjPN *gepObj = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(gep));
+    NodeID gepTypeId = findTypeObjForType(gepObj->getType());
+
+    /// Create node for the sake of merging later.
+    if(sccRepNode(gep)==gep && hasConstraintNode(gep)==false) {
+        addConstraintNode(new ConstraintNode(gep),gep);
+    }
+
+    return gepTypeId;
 }
 
 std::string VTGraph::getClassNameFromType(const Type *type) {

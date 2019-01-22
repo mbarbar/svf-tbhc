@@ -638,6 +638,10 @@ public:
     TypeObjPN(NodeID i, const MemObj* m, const Type* t) : DummyObjPN(i, m, TypeObjNode), type(t) {
     }
 
+    inline virtual const Type* getType() const{
+        return type;
+    }
+
     /// Return name of this node
     inline const std::string getValueName() const {
         std::string str;
