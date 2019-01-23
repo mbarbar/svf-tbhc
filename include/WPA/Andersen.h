@@ -122,6 +122,21 @@ public:
         MaxPointsToSetSize = 0;
         timeOfProcessCopyGep = 0;
         timeOfProcessLoadStore = 0;
+
+        numOfProcessedAddr = 0;
+        numOfProcessedCopy = 0;
+        numOfProcessedGep = 0;
+        numOfProcessedLoad = 0;
+        numOfProcessedStore = 0;
+        numOfSCCDetection = 0;
+        timeOfSCCDetection = 0;
+        timeOfSCCMerges = 0;
+        timeOfCollapse = 0;
+        AveragePointsToSetSize = 0;
+        MaxPointsToSetSize = 0;
+        timeOfProcessCopyGep = 0;
+        timeOfProcessLoadStore = 0;
+        timeOfUpdateCallGraph = 0;
     }
 
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
