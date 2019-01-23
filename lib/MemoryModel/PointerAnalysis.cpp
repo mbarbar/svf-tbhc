@@ -693,8 +693,10 @@ void PointerAnalysis::getVFnsFromPts(CallSite cs, const PointsTo &target, VFunSe
                         vtbls.insert(*vtblI);
                     }
                 }
+            } else if (SVFUtil::isa<DummyObjPN>(ptdnode)) {
+                // Nothing to do.
             } else {
-                assert(false && "Node has neither type nor value.");
+                assert(false && "Node has neither type nor value and is not a dummy object.");
             }
         }
         chgraph->getVFnsFromVtbls(cs, vtbls, vfns);
