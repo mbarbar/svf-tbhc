@@ -11,6 +11,8 @@
 #define ITGRAPH_H
 
 #include "MemoryModel/CHA.h"
+#include "MemoryModel/PAG.h"
+#include "MemoryModel/PAGBuilder.h"
 #include "MemoryModel/ConsG.h"
 #include "MemoryModel/PointerAnalysis.h"
 
@@ -20,11 +22,11 @@ private:
     typedef std::set<const Type *> Blueprint;
 
     /// Maps types to the Blueprint they are contained in.
-    std::map<const Type *, Blueprint>                        typeToBlueprint;
+    std::map<const Type *, Blueprint *>                      typeToBlueprint;
     /// Maps types to all the instances waiting for such a type.
     std::map<const Type *, std::vector<IncompatibleObjPN *>> instancesNeed;
     /// Maps an instance to the blueprint it is building.
-    std::map<IncompatibleObjPN *, Blueprint>                 instanceToBlueprint;
+    std::map<IncompatibleObjPN *, Blueprint *>               instanceToBlueprint;
     /// Set of all instances that have been built (even if incomplete).
     std::set<IncompatibleObjPN *>                            instances;
 
@@ -43,6 +45,30 @@ public:
         chg = PointerAnalysis::getCHGraph();
         buildCompatibleTypesMap(svfModule);
         initialITC();
+        dump("itgraph_initial");
+    }
+
+    /// Get a field of a memory object. Overridden because it created a constraint node.
+    virtual NodeID getGepObjNode(NodeID id, const LocationSet& ls);
+
+    /// Get a field-insensitive node of a memory object. Overridden because it created a constraint node.
+    virtual NodeID getFIObjNode(NodeID id);
+
+    u32_t getNumTypes(void) {
+        return typeToBlueprint.size();
+    }
+
+    u32_t getNumInstances(void) {
+        return instances.size();
+    }
+
+    u32_t getNumBlueprints(void) {
+        std::set<Blueprint *> blueprints;
+        for (std::map<const Type *, Blueprint *>::iterator it = typeToBlueprint.begin(); it != typeToBlueprint.end(); ++it) {
+            blueprints.insert(it->second);
+        }
+
+        return blueprints.size();
     }
 
 private:
@@ -63,7 +89,7 @@ private:
 
     /// Returns true if all types in b1 are incompatible with all
     /// types in b2.
-    bool incompatibleBlueprints(const Blueprint b1, const Blueprint b2);
+    bool incompatibleBlueprints(const Blueprint *b1, const Blueprint *b2);
 };
 
 #endif  // ITGRAPH_H

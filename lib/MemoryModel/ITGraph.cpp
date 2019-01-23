@@ -11,6 +11,37 @@
 
 #include "MemoryModel/ITGraph.h"
 #include "WPA/VTAnalysis.h"
+#include "WPA/Andersen.h"
+#include "Util/CPPUtil.h"
+
+
+inline NodeID ITGraph::getGepObjNode(NodeID id, const LocationSet& ls) {
+    NodeID gepObjNodeId = pag->getGepObjNode(id, ls);
+    ObjPN *gepObjNode = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(gepObjNodeId));
+    assert(gepObjNode && "cannot retrieve gep obj node from pag!");
+
+    /*
+    if (sccRepNode(gepObjNodeId) == gepObjNodeId && !hasConstraintNode(gepObjNodeId)) {
+        addConstraintNode(new ConstraintNode(gepObjNodeId), gepObjNodeId);
+    }
+    */
+
+    NodeID incompatibleObjNodeId = findIncompatibleNodeForObj(gepObjNodeId);
+
+    return incompatibleObjNodeId;
+}
+
+/// Get a field-insensitive node of a memory object. Overridden because it created a constraint node.
+inline NodeID ITGraph::getFIObjNode(NodeID id) {
+    NodeID fiObjNodeId = pag->getFIObjNode(id);
+    ObjPN *fiObjNode = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(fiObjNodeId));
+    assert(fiObjNode && "cannot retrieve fi obj node from pag!");
+
+    // All created at the beginning.
+    NodeID incompatibleObjNodeId = findIncompatibleNodeForObj(fiObjNodeId);
+
+    return incompatibleObjNodeId;
+}
 
 void ITGraph::buildCompatibleTypesMap(SVFModule svfModule) {
     // Perform VTA.
@@ -105,6 +136,8 @@ void ITGraph::buildCompatibleTypesMap(SVFModule svfModule) {
         for (std::set<const Type *>::iterator t1I = ccI->begin(); t1I != ccI->end(); ++t1I) {
             // Start at t1I since we're setting compatibility in both directions.
             for (std::set<const Type *>::iterator t2I = t1I; t2I != ccI->end(); ++t2I) {
+                if (compatibleTypes.find(*t1I) == compatibleTypes.end()) compatibleTypes[*t1I] = { };
+
                 compatibleTypes[*t1I][*t2I] = compatibleTypes[*t2I][*t1I] = true;
             }
         }
@@ -112,18 +145,24 @@ void ITGraph::buildCompatibleTypesMap(SVFModule svfModule) {
 }
 
 void ITGraph::initialITC(void) {
-    std::set<const ObjPN *> objects;
+    std::vector<const ObjPN *> objects;
     std::map<const Type *, int> typeCounts;
 
+    llvm::outs() << "Addr edges:       " << getAddrCGEdges().size()    << "\n";
     // Read FI objects from PAG, and extract relevant types.
     for (PAG::const_iterator nodeI = pag->begin(); nodeI != pag->end(); ++nodeI) {
         if (const FIObjPN* fiObj = SVFUtil::dyn_cast<FIObjPN>(nodeI->second)) {
-            objects.insert(fiObj);
+            objects.push_back(fiObj);
             typeCounts[fiObj->getType()] += 1;
         }
     }
 
+    // Sort objects per node ID to ensure the partitioning is deterministic.
+    std::sort(objects.begin(), objects.end(),
+              [](const ObjPN *o1, const ObjPN *o2) { return o1->getId() < o2->getId(); });
+
     std::vector<const Type *> types;
+    // Populate vector of types.
     for (std::map<const Type *, int>::const_iterator typeCountI = typeCounts.begin(); typeCountI != typeCounts.end(); ++typeCountI) {
         types.push_back(typeCountI->first);
     }
@@ -133,40 +172,43 @@ void ITGraph::initialITC(void) {
               [&typeCounts](const Type *t1, const Type *t2) { return typeCounts[t1] > typeCounts[t2]; });
 
     // Make single-type blueprints (i.e. not collapsed types).
-    std::vector<Blueprint> blueprints;
+    std::vector<Blueprint *> blueprints;
     for (std::vector<const Type *>::const_iterator typeI = types.begin(); typeI != types.end(); ++typeI) {
-        Blueprint bp { *typeI };
+        Blueprint *bp = new Blueprint;
+        bp->insert(*typeI);
         blueprints.push_back(bp);
     }
 
     // Collapse types into blueprints.
-    for (std::vector<Blueprint>::iterator bp1I = blueprints.begin(); bp1I != blueprints.end(); ++bp1I) {
-        if (bp1I->empty()) continue;
+    for (std::vector<Blueprint *>::iterator bp1I = blueprints.begin(); bp1I != blueprints.end(); ++bp1I) {
+        if ((*bp1I)->empty()) continue;
 
         // Start iteration after bp1I because the previous blueprints were tested against everything already.
-        for (std::vector<Blueprint>::iterator bp2I = bp1I + 1; bp2I != blueprints.end(); ++bp2I) {
-            if (bp2I->empty()) continue;
+        for (std::vector<Blueprint *>::iterator bp2I = bp1I + 1; bp2I != blueprints.end(); ++bp2I) {
+            if ((*bp2I)->empty()) continue;
 
             bool ics = incompatibleBlueprints(*bp1I, *bp2I);
             if (ics) {
                 // Blueprints are incompatible and can be collapsed. Move bp2 types to bp1.
-                bp1I->insert(bp2I->begin(), bp2I->end());
-                bp2I->clear();
+                (*bp1I)->insert((*bp2I)->begin(), (*bp2I)->end());
+                (*bp2I)->clear();
             }
         }
     }
 
     // Remove the empty blueprints.
-    blueprints.erase(std::remove_if(blueprints.begin(), blueprints.end(), [](Blueprint bp){ return bp.empty(); }),
+    blueprints.erase(std::remove_if(blueprints.begin(), blueprints.end(), [](Blueprint *bp){ return bp->empty(); }),
                      blueprints.end());
 
     // Map types to their blueprint.
-    for (std::vector<Blueprint>::const_iterator bpI = blueprints.begin(); bpI != blueprints.end(); ++bpI) {
-        for (Blueprint::const_iterator typeI = bpI->begin(); typeI != bpI->end(); ++typeI) typeToBlueprint[*typeI] = *bpI;
+    for (std::vector<Blueprint *>::const_iterator bpI = blueprints.begin(); bpI != blueprints.end(); ++bpI) {
+        for (Blueprint::const_iterator typeI = (*bpI)->begin(); typeI != (*bpI)->end(); ++typeI) {
+            typeToBlueprint[*typeI] = *bpI;
+        }
     }
 
     // Do the collapsing.
-    for (std::set<const ObjPN *>::const_iterator objI = objects.begin(); objI != objects.end(); ++objI) {
+    for (std::vector<const ObjPN *>::const_iterator objI = objects.begin(); objI != objects.end(); ++objI) {
         findIncompatibleNodeForObj((*objI)->getId());
     }
 
@@ -178,7 +220,9 @@ void ITGraph::initialITC(void) {
         for (std::set<const ObjPN *>::const_iterator objI = objs.begin(); objI != objs.end(); ++objI) {
             ConstraintNode *cNode = getConstraintNode((*objI)->getId());
             for (ConstraintEdge::ConstraintEdgeSetTy::iterator edgeI = cNode->getOutEdges().begin(); edgeI != cNode->getOutEdges().end(); ++edgeI) {
-                if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI)) addrEdgesToRemove.insert(addrEdge);
+                if (AddrCGEdge *addrEdge = SVFUtil::dyn_cast<AddrCGEdge>(*edgeI)) {
+                    addrEdgesToRemove.insert(addrEdge);
+                }
             }
         }
 
@@ -193,17 +237,17 @@ void ITGraph::initialITC(void) {
         }
     }
 
-    llvm::outs() << "Max type: " << *types[0] << " = " << typeCounts[types[0]] << " bp: " << typeToBlueprint[types[0]].size() << "\n";
-    llvm::outs() << "2nd type: " << *types[1] << " = " << typeCounts[types[1]] << " bp: " << typeToBlueprint[types[1]].size() <<  "\n";
-    llvm::outs() << "3rd type: " << *types[2] << " = " << typeCounts[types[2]] << " bp: " << typeToBlueprint[types[2]].size() << "\n";
-    llvm::outs() << "4th type: " << *types[3] << " = " << typeCounts[types[3]] << " bp: " << typeToBlueprint[types[3]].size() << "\n";
-    llvm::outs() << "5th type: " << *types[4] << " = " << typeCounts[types[4]] << " bp: " << typeToBlueprint[types[4]].size() << "\n";
+    llvm::outs() << "Max type: " << *types[0] << " = " << typeCounts[types[0]] << " bp: " << typeToBlueprint[types[0]]->size() << "\n";
+    llvm::outs() << "2nd type: " << *types[1] << " = " << typeCounts[types[1]] << " bp: " << typeToBlueprint[types[1]]->size() <<  "\n";
+    llvm::outs() << "3rd type: " << *types[2] << " = " << typeCounts[types[2]] << " bp: " << typeToBlueprint[types[2]]->size() << "\n";
+    llvm::outs() << "4th type: " << *types[3] << " = " << typeCounts[types[3]] << " bp: " << typeToBlueprint[types[3]]->size() << "\n";
+    llvm::outs() << "5th type: " << *types[4] << " = " << typeCounts[types[4]] << " bp: " << typeToBlueprint[types[4]]->size() << "\n";
     llvm::outs() << "Types built:      " << types.size()               << "\n";
     llvm::outs() << "Blueprints:       " << blueprints.size()          << "\n";
     llvm::outs() << "Total FI objects: " << objects.size()             << "\n";
     llvm::outs() << "instances:        " << instances.size()           << "\n";
     llvm::outs() << "instanceToB:      " << instanceToBlueprint.size() << "\n";
-    llvm::outs().flush();
+    llvm::outs() << "Addr edges:       " << getAddrCGEdges().size()    << "\n";
 }
 
 NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
@@ -213,6 +257,10 @@ NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
     assert(obj && "trying to collapse non-object node");
     const Type *type = obj->getType();
 
+    if (SVFUtil::isa<IncompatibleObjPN>(obj)) {
+        return objId;
+    }
+
     if (collapsedObjects.find(objId) != collapsedObjects.end()) {
         return collapsedObjects[objId];
     }
@@ -221,6 +269,7 @@ NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
         // Initialise an instance.
         NodeID incompatibleObjNodeId = pag->addDummyIncompatibleObjNode();
         addConstraintNode(new ConstraintNode(incompatibleObjNodeId), incompatibleObjNodeId);
+        if (SVFUtil::isa<FIObjPN>(obj)) setObjFieldInsensitive(incompatibleObjNodeId);
 
         instance = SVFUtil::dyn_cast<IncompatibleObjPN>(pag->getPAGNode(incompatibleObjNodeId));
         assert(instance && "Could not get created PAG node.");
@@ -229,8 +278,8 @@ NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
         instance->addObjectNode(obj);
         instanceToBlueprint[instance] = typeToBlueprint[type];
 
-        Blueprint blueprint = instanceToBlueprint[instance];
-        for (Blueprint::const_iterator bTypeI = blueprint.begin(); bTypeI != blueprint.end(); ++bTypeI) {
+        Blueprint *blueprint = instanceToBlueprint[instance];
+        for (Blueprint::const_iterator bTypeI = blueprint->begin(); bTypeI != blueprint->end(); ++bTypeI) {
             // "Notify" all the types which can join this blueprint.
             instancesNeed[*bTypeI].push_back(instance);
         }
@@ -243,7 +292,7 @@ NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
         // Object of type type can no longer join so pop it.
         instancesNeed[type].pop_back();
 
-        if (instance->objectNodeCount() == instanceToBlueprint[instance].size()) {
+        if (instance->objectNodeCount() == instanceToBlueprint[instance]->size()) {
             // Instance is full!
             instanceToBlueprint.erase(instance);
         }
@@ -255,13 +304,13 @@ NodeID ITGraph::findIncompatibleNodeForObj(NodeID objId) {
 
 bool ITGraph::incompatibleTypes(const Type *t1, const Type *t2) {
     if (t1 == t2) return false;
-    return !compatibleTypes[t1][t2];
+    else return !compatibleTypes[t1][t2];
 }
 
-bool ITGraph::incompatibleBlueprints(const Blueprint b1, const Blueprint b2) {
-    if (b1.empty() || b2.empty()) return true;
-    for (Blueprint::const_iterator b1I = b1.begin(); b1I != b1.end(); ++b1I) {
-        for (Blueprint::const_iterator b2I = b2.begin(); b2I != b2.end(); ++b2I) {
+bool ITGraph::incompatibleBlueprints(const Blueprint *b1, const Blueprint *b2) {
+    if (b1->empty() || b2->empty()) return true;
+    for (Blueprint::const_iterator b1I = b1->begin(); b1I != b1->end(); ++b1I) {
+        for (Blueprint::const_iterator b2I = b2->begin(); b2I != b2->end(); ++b2I) {
             if (!incompatibleTypes(*b1I, *b2I)) return false;
         }
     }

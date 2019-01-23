@@ -102,10 +102,11 @@ void Andersen::handleCopyGep(ConstraintNode* node) {
     NodeID nodeId = node->getId();
     for (ConstraintNode::const_iterator it = node->directOutEdgeBegin(), eit =
             node->directOutEdgeEnd(); it != eit; ++it)
-        if (GepCGEdge* gepEdge = SVFUtil::dyn_cast<GepCGEdge>(*it))
+        if (GepCGEdge* gepEdge = SVFUtil::dyn_cast<GepCGEdge>(*it)) {
             processGep(nodeId, gepEdge);
-        else
+        } else {
             processCopy(nodeId, *it);
+        }
 
     double propEnd = stat->getClk();
     timeOfProcessCopyGep += (propEnd - propStart) / TIMEINTERVAL;

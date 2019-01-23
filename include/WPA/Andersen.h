@@ -36,6 +36,8 @@
 #include "MemoryModel/PAG.h"
 #include "MemoryModel/ConsG.h"
 #include "MemoryModel/OfflineConsG.h"
+#include "MemoryModel/ITGraph.h"
+#include "MemoryModel/VTGraph.h"
 
 class PTAType;
 class SVFModule;
@@ -623,57 +625,32 @@ protected:
 /*!
  * Andersen's Analysis with Incompatible Type Collapse.
  */
-class AndersenWaveDiffWithITC : public AndersenWaveDiff {
+class AndersenWaveDiffWithITC : public Andersen {
 private:
-    typedef std::set<const Type *>    Blueprint;
-
-    /// Maps types to the Blueprint they are contained in.
-    std::map<const Type *, Blueprint>                        typeToBlueprint;
-    /// Maps types to all the instances waiting for such a type.
-    std::map<const Type *, std::vector<IncompatibleObjPN *>> instancesNeed;
-    /// Maps an instance to the blueprint it is building.
-    std::map<IncompatibleObjPN *, Blueprint>                 instanceToBlueprint;
-    /// Set of all instances that have been built (even if incomplete).
-    std::set<IncompatibleObjPN *>                            instances;
-
-    /// Maps a pair of types to whether they are compatible or not.
-    /// compatibleTypes[t1][t2] == true means t1 and t2 are compatible.
-    std::map<const Type *, std::map<const Type*, bool>> compatibleTypes;
-
-    CHGraph *chg;
-
+    ITGraph *itGraph;
 public:
     AndersenWaveDiffWithITC(PTATY type = AndersenWaveDiffWithITC_WPA) :
-        AndersenWaveDiff(type) {
+        Andersen(type) {
     }
 
     virtual inline void initialize(SVFModule svfModule) {
-        AndersenWaveDiff::initialize(svfModule);
-        chg = getCHGraph();
+        resetData();
+        PointerAnalysis::initialize(svfModule);
+        stat = new ITCStat(this);
 
-        initialITC();
-        exit(0);
+        itGraph = new ITGraph(pag, svfModule);
+        consCG = itGraph;
+        setGraph(consCG);
+
+        consCG->dump("consCG_initial");
+
+        // For the modifications the ITGraph construction made.
+        resetData();
     }
 
-private:
-    /// Perform ITC on initial constraint graph.
-    void initialITC(void);
-
-    /// Inserts obj into an incompatibleObject node (possibly making one).
-    /// Does not change anything about obj.
-    IncompatibleObjPN *findIncompatibleNodeForObj(const ObjPN *obj);
-
-    /// Returns true if t1 and t2 are incompatible.
-    /// TODO: describe.
-    bool incompatibleTypes(const Type *t1, const Type *t2);
-
-    /// Returns true if all types in b1 are incompatible with all
-    /// types in b2.
-    bool incompatibleBlueprints(const Blueprint b1, const Blueprint b2);
-
-    /// Returns true if both sets are disjoint.
-    template <typename T>
-    bool disjoint(const std::set<T> s1, const std::set<T> s2);
+    ITGraph *getITGraph(void) {
+        return itGraph;
+    }
 };
 
 
