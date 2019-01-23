@@ -59,7 +59,8 @@ public:
         DummyValNode,
         DummyObjNode,
         TypeObjNode,
-        IncompatibleObjNode
+        IncompatibleObjNode,
+        VLEObjNode
     };
 
 
@@ -98,6 +99,7 @@ public:
                 this->getNodeKind() != DummyObjNode &&
                 this->getNodeKind() != TypeObjNode &&
                 this->getNodeKind() != IncompatibleObjNode &&
+                this->getNodeKind() != VLEObjNode &&
                 (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false) &&
                 value != NULL);
     }
@@ -230,7 +232,8 @@ public:
 				|| node.getNodeKind() == FIObjNode
 				|| node.getNodeKind() == DummyObjNode
 				|| node.getNodeKind() == TypeObjNode
-				|| node.getNodeKind() == IncompatibleObjNode) {
+				|| node.getNodeKind() == IncompatibleObjNode
+				|| node.getNodeKind() == VLEObjNode) {
             o << "ObjPN\n";
         } else if (node.getNodeKind() == RetNode) {
             o << "RetPN\n";
@@ -312,6 +315,7 @@ public:
                node->getNodeKind() == PAGNode::FIObjNode ||
                node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
+               node->getNodeKind() == PAGNode::VLEObjNode ||
 			   node->getNodeKind() == PAGNode::DummyObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
@@ -320,6 +324,7 @@ public:
                node->getNodeKind() == PAGNode::FIObjNode ||
                node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
+               node->getNodeKind() == PAGNode::VLEObjNode ||
                node->getNodeKind() == PAGNode::DummyObjNode;
     }
     //@}
@@ -593,12 +598,14 @@ public:
 	static inline bool classof(const PAGNode *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
-				|| node->getNodeKind() == PAGNode::IncompatibleObjNode;
+				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
+				|| node->getNodeKind() == PAGNode::VLEObjNode;
 	}
 	static inline bool classof(const GenericPAGNodeTy *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
-				|| node->getNodeKind() == PAGNode::IncompatibleObjNode;
+				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
+				|| node->getNodeKind() == PAGNode::VLEObjNode;
 	}
     //@}
 
@@ -696,6 +703,71 @@ public:
     /// Return name of this node
     inline const std::string getValueName() const {
         return "IncompatibleObjPN: representing" + std::to_string(objectNodes.size()) + " nodes\n";
+    }
+};
+
+/*
+ * Vaguely Location Equivalent nodes for AndersenVLE. Holds many object nodes.
+ */
+class VLEObjPN: public DummyObjPN {
+private:
+    /// VLE object nodes this node represents.
+    std::set<const ObjPN *> objects;
+
+public:
+    //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
+    static inline bool classof(const VLEObjPN *) {
+        return true;
+    }
+    static inline bool classof(const PAGNode *node) {
+        return node->getNodeKind() == PAGNode::VLEObjNode;
+    }
+    static inline bool classof(const GenericPAGNodeTy *node) {
+        return node->getNodeKind() == PAGNode::VLEObjNode;
+    }
+    //@}
+
+    /// Constructor
+    VLEObjPN(NodeID i, const MemObj* m)
+        : DummyObjPN(i, m, VLEObjNode) {
+    }
+
+    void addObjectNode(const ObjPN *objNode) {
+        objects.insert(objNode);
+    }
+
+    std::set<const ObjPN *> getObjects(void) const {
+        return objects;
+    }
+
+    /// Returns the number of object nodes this node holds.
+    size_t holds(void) const {
+        return objects.size();
+    }
+
+    bool hasNodes(void) const {
+        return !objects.empty();
+    }
+
+    /// Fills underlyingObjs with all underlying objects.
+    void getUnderlyingObjects(std::set<const ObjPN *> &underlyingObjs) {
+        for (std::set<const ObjPN *>::iterator objI = objects.begin(); objI != objects.end(); ++objI) {
+            if (SVFUtil::isa<VLEObjPN>(*objI)) getUnderlyingObjects(underlyingObjs);
+            else underlyingObjs.insert(*objI);
+        }
+    }
+
+    /// Returns all underlying objects.
+    std::set<const ObjPN *> getUnderlyingObjects(void) {
+        std::set<const ObjPN *> underlyingObjs;
+        getUnderlyingObjects(underlyingObjs);
+        // TODO: caching is pretty easy and possible optimisation.
+        return underlyingObjs;
+    }
+
+    /// Return name of this node
+    inline const std::string getValueName() const {
+        return "VLEObjPN: representing " + std::to_string(objects.size()) + " nodes\n";
     }
 };
 
