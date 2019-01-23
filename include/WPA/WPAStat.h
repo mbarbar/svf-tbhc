@@ -35,6 +35,7 @@
 #include "WPA/FlowSensitive.h"
 
 class Andersen;
+class AndersenWaveDiffWithITC;
 class PAG;
 class ConstraintGraph;
 class PAGNode;
@@ -150,6 +151,21 @@ private:
 
     u32_t _MaxAddrTakenVarPts;	///< max points-to set size of addr-taken variables.
     u32_t _NumOfAddrTakeVar;	///< number of occurrences of addr-taken variables in load/store.
+};
+
+/*!
+ * Statistics for Andersen+ITC analysis
+ */
+class ITCStat : public AndersenStat {
+private:
+    AndersenWaveDiffWithITC* pta;
+
+public:
+    ITCStat(AndersenWaveDiffWithITC* p)
+        : AndersenStat(reinterpret_cast<Andersen *>(p)), pta(p) { }
+
+    void itGraphStat();
+    virtual void performStat();
 };
 
 #endif /* FLOWSENSITIVESTAT_H_ */
