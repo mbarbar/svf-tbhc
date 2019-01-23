@@ -90,23 +90,23 @@ void CHGraph::buildCHG() {
                 Module *m = svfMod.getModule(i, true);
                 buildFromDebugInfo(*m);
             }
-        } else {
-		for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
-			Module *M = svfMod.getModule(i);
-			assert(M && "module not found?");
-			DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("construct CHGraph From module "
-											+ M->getName().str() + "...\n"));
-			readInheritanceMetadataFromModule(*M);
-			for (Module::const_global_iterator I = M->global_begin(), E = M->global_end(); I != E; ++I)
-				buildCHGNodes(&(*I));
-			for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
-				buildCHGNodes(&(*F));
-			for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
-				buildCHGEdges(&(*F));
-
-			analyzeVTables(*M);
-	}
         }
+
+	for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
+		Module *M = svfMod.getModule(i);
+		assert(M && "module not found?");
+		DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("construct CHGraph From module "
+										+ M->getName().str() + "...\n"));
+		readInheritanceMetadataFromModule(*M);
+		for (Module::const_global_iterator I = M->global_begin(), E = M->global_end(); I != E; ++I)
+			buildCHGNodes(&(*I));
+		for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
+			buildCHGNodes(&(*F));
+		for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
+			buildCHGEdges(&(*F));
+
+		analyzeVTables(*M);
+	}
 
 	DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("build Internal Maps ...\n"));
 	buildInternalMaps();
