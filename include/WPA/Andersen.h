@@ -709,4 +709,21 @@ private:
     void collapsePtsIntoVLENode(PointsTo &pts);
 };
 
+/*!
+ * Andersen's Analysis with load-store optimisation.
+ */
+class AndersenLS : public Andersen {
+public:
+    AndersenLS(PTATY type = AndersenLS_WPA) :
+        Andersen(type) {
+    }
+
+protected:
+    virtual bool processLoad(NodeID node, const ConstraintEdge* load);
+    virtual bool processStore(NodeID node, const ConstraintEdge* load);
+
+private:
+    void prepareLSNodes(void);
+};
+
 #endif /* ANDERSENPASS_H_ */

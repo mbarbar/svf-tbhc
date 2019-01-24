@@ -59,6 +59,7 @@ public:
         AndersenHCD_WPA,    ///< Hybird cycle detection andersen-style WPA
         AndersenHLCD_WPA,   ///< Hybird lazy cycle detection andersen-style WPA
         AndersenVLE_WPA,   ///< Vague location equivalence collapsing andersen-style WPA
+        AndersenLS_WPA,   ///< Load-store (TODO...) andersen-style WPA
         AndersenWave_WPA,	///< Wave propagation andersen-style WPA
         AndersenWaveDiff_WPA,	///< Diff wave propagation andersen-style WPA
         AndersenWaveDiffWithITC_WPA,	///< Diff wave propagation with incompatible type collapse andersen-style WPA

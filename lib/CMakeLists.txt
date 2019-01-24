@@ -51,6 +51,8 @@ set(SOURCES
     WPA/AndersenLCD.cpp
     WPA/AndersenHCD.cpp    
     WPA/AndersenHLCD.cpp    
+    WPA/AndersenVLE.cpp    
+    WPA/AndersenLS.cpp
     WPA/AndersenStat.cpp
     WPA/ITCStat.cpp
     WPA/AndersenWave.cpp
