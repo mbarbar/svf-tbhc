@@ -750,15 +750,15 @@ public:
     }
 
     /// Fills underlyingObjs with all underlying objects.
-    void getUnderlyingObjects(std::set<const ObjPN *> &underlyingObjs) {
+    void getUnderlyingObjects(std::set<const ObjPN *> &underlyingObjs) const {
         for (std::set<const ObjPN *>::iterator objI = objects.begin(); objI != objects.end(); ++objI) {
-            if (SVFUtil::isa<VLEObjPN>(*objI)) getUnderlyingObjects(underlyingObjs);
+            if (const VLEObjPN *vleObj = SVFUtil::dyn_cast<VLEObjPN>(*objI)) vleObj->getUnderlyingObjects(underlyingObjs);
             else underlyingObjs.insert(*objI);
         }
     }
 
     /// Returns all underlying objects.
-    std::set<const ObjPN *> getUnderlyingObjects(void) {
+    std::set<const ObjPN *> getUnderlyingObjects(void) const {
         std::set<const ObjPN *> underlyingObjs;
         getUnderlyingObjects(underlyingObjs);
         // TODO: caching is pretty easy and possible optimisation.

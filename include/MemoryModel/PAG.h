@@ -600,6 +600,10 @@ public:
         const MemObj* mem = addDummyMemObj(nodeNum, NULL);
         return addObjNode(NULL, new IncompatibleObjPN(nodeNum, mem), nodeNum);
     }
+    inline NodeID addDummyVLEObjNode(void) {
+        const MemObj* mem = addDummyMemObj(nodeNum, NULL);
+        return addObjNode(NULL, new VLEObjPN(nodeNum, mem), nodeNum);
+    }
     inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);
     }

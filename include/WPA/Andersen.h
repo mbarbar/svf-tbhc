@@ -691,5 +691,22 @@ protected:
 
 };
 
+/*!
+ * Andersen's Analysis with Vague Location Equivalence node collapsing.
+ */
+class AndersenVLE : public Andersen {
+public:
+    AndersenVLE(PTATY type = AndersenVLE_WPA) :
+        Andersen(type) {
+    }
+
+protected:
+    virtual bool processLoad(NodeID node, const ConstraintEdge* load);
+    virtual bool processStore(NodeID node, const ConstraintEdge* load);
+    virtual bool processCopy(NodeID node, const ConstraintEdge* edge);
+
+private:
+    void collapsePtsIntoVLENode(PointsTo &pts);
+};
 
 #endif /* ANDERSENPASS_H_ */

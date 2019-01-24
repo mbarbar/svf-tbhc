@@ -647,7 +647,7 @@ bool PAGEdge::isPTAEdge() const {
 PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
     GenericPAGNodeTy(i,k), value(val) {
 
-    assert( ValNode <= k && k<= IncompatibleObjNode && "new PAG node kind?");
+    assert( ValNode <= k && k<= VLEObjNode && "new PAG node kind?");
 
     switch (k) {
     case ValNode:
@@ -677,6 +677,7 @@ PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
 	case FIObjNode:
 	case TypeObjNode:
 	case IncompatibleObjNode:
+	case VLEObjNode:
 	case DummyObjNode: {
 		isTLPointer = false;
 		isATPointer = true;
