@@ -60,6 +60,7 @@ public:
         DummyObjNode,
         TypeObjNode,
         IncompatibleObjNode,
+        LSObjNode,
         VLEObjNode
     };
 
@@ -100,6 +101,7 @@ public:
                 this->getNodeKind() != TypeObjNode &&
                 this->getNodeKind() != IncompatibleObjNode &&
                 this->getNodeKind() != VLEObjNode &&
+                this->getNodeKind() != LSObjNode &&
                 (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false) &&
                 value != NULL);
     }
@@ -233,6 +235,7 @@ public:
 				|| node.getNodeKind() == DummyObjNode
 				|| node.getNodeKind() == TypeObjNode
 				|| node.getNodeKind() == IncompatibleObjNode
+				|| node.getNodeKind() == LSObjNode
 				|| node.getNodeKind() == VLEObjNode) {
             o << "ObjPN\n";
         } else if (node.getNodeKind() == RetNode) {
@@ -316,6 +319,7 @@ public:
                node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
                node->getNodeKind() == PAGNode::VLEObjNode ||
+               node->getNodeKind() == PAGNode::LSObjNode ||
 			   node->getNodeKind() == PAGNode::DummyObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
@@ -324,7 +328,7 @@ public:
                node->getNodeKind() == PAGNode::FIObjNode ||
                node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
-               node->getNodeKind() == PAGNode::VLEObjNode ||
+               node->getNodeKind() == PAGNode::LSObjNode ||
                node->getNodeKind() == PAGNode::DummyObjNode;
     }
     //@}
@@ -599,13 +603,13 @@ public:
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
 				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
-				|| node->getNodeKind() == PAGNode::VLEObjNode;
+				|| node->getNodeKind() == PAGNode::LSObjNode;
 	}
 	static inline bool classof(const GenericPAGNodeTy *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
 				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
-				|| node->getNodeKind() == PAGNode::VLEObjNode;
+				|| node->getNodeKind() == PAGNode::LSObjNode;
 	}
     //@}
 
@@ -768,6 +772,51 @@ public:
     /// Return name of this node
     inline const std::string getValueName() const {
         return "VLEObjPN: representing " + std::to_string(objects.size()) + " nodes\n";
+    }
+};
+
+/*
+ * Load Store (TODO...) nodes for AndersenLS. Appears as one object but actually represents its PTS.
+ */
+class LSObjPN: public DummyObjPN {
+private:
+    /// Object nodes this node actually represents.
+    std::set<const ObjPN *> objects;
+
+public:
+    //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
+    static inline bool classof(const LSObjPN *) {
+        return true;
+    }
+    static inline bool classof(const PAGNode *node) {
+        return node->getNodeKind() == PAGNode::LSObjNode;
+    }
+    static inline bool classof(const GenericPAGNodeTy *node) {
+        return node->getNodeKind() == PAGNode::LSObjNode;
+    }
+    //@}
+
+    /// Constructor
+    LSObjPN(NodeID i, const MemObj* m)
+        : DummyObjPN(i, m, LSObjNode) {
+    }
+
+    void addObjectNode(const ObjPN *objNode) {
+        objects.insert(objNode);
+    }
+
+    std::set<const ObjPN *> getObjectNodes(void) const {
+        return objects;
+    }
+
+    /// Returns the number of object nodes this node represents.
+    size_t represents(void) const {
+        return objects.size();
+    }
+
+    /// Return name of this node
+    inline const std::string getValueName() const {
+        return "LSObjPN: representing " + std::to_string(objects.size()) + " nodes\n";
     }
 };
 
