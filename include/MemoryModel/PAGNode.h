@@ -781,7 +781,7 @@ public:
 class LSObjPN: public DummyObjPN {
 private:
     /// Object nodes this node actually represents.
-    std::set<const ObjPN *> objects;
+    std::set<NodeID> objects;
 
 public:
     //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -801,11 +801,11 @@ public:
         : DummyObjPN(i, m, LSObjNode) {
     }
 
-    void addObjectNode(const ObjPN *objNode) {
-        objects.insert(objNode);
+    void addObjectNode(const NodeID nodeId) {
+        objects.insert(nodeId);
     }
 
-    std::set<const ObjPN *> getObjectNodes(void) const {
+    std::set<NodeID> getObjectNodes(void) const {
         return objects;
     }
 
