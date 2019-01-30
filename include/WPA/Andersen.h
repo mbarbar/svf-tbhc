@@ -713,9 +713,40 @@ private:
  * Andersen's Analysis with load-store optimisation.
  */
 class AndersenLS : public Andersen {
+    std::map<NodeID, NodeID> lsToOrig;
+    std::map<NodeID, NodeID> origToLs;
+
 public:
     AndersenLS(PTATY type = AndersenLS_WPA) :
         Andersen(type) {
+    }
+
+    virtual inline void initialize(SVFModule svfModule) {
+        resetData();
+        /// Build PAG
+        PointerAnalysis::initialize(svfModule);
+        /// Build Constraint Graph
+        consCG = new ConstraintGraph(pag);
+        setGraph(consCG);
+        /// Create statistic class
+        stat = new AndersenStat(this);
+        consCG->dump("consCG_initial");
+
+        prepareLSNodes();
+        consCG->dump("consCG_ls_initial");
+    }
+
+    virtual inline void finalize() {
+        /// dump constraint graph if PAGDotGraph flag is enabled
+        consCG->dump("consCG_final");
+        consCG->print();
+        /// sanitize field insensitive obj
+        /// TODO: Fields has been collapsed during Andersen::collapseField().
+        //	sanitizePts();
+
+        flattenLSNodes();
+        removeLSFromAllPts();
+        PointerAnalysis::finalize();
     }
 
 protected:
@@ -723,7 +754,12 @@ protected:
     virtual bool processStore(NodeID node, const ConstraintEdge* load);
 
 private:
+    std::set<NodeID> flattenLSObjSet(std::set<NodeID>);
+    std::set<NodeID> getActualPts(LSObjPN *) const;
     void prepareLSNodes(void);
+    void buildAllActualPts(void);
+    void flattenLSNodes(void);
+    void removeLSFromAllPts(void);
 };
 
 #endif /* ANDERSENPASS_H_ */

@@ -780,8 +780,9 @@ public:
  */
 class LSObjPN: public DummyObjPN {
 private:
-    /// Object nodes this node actually represents.
-    std::set<NodeID> objects;
+    /// Nodes whose points to sets this node actually represents.
+    std::set<NodeID> ptsNodes;
+    std::set<NodeID> actualPts;
 
 public:
     //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -801,22 +802,35 @@ public:
         : DummyObjPN(i, m, LSObjNode) {
     }
 
-    void addObjectNode(const NodeID nodeId) {
-        objects.insert(nodeId);
+    void addPtsNode(NodeID nodeId) {
+        ptsNodes.insert(nodeId);
     }
 
-    std::set<NodeID> getObjectNodes(void) const {
-        return objects;
+    void removePtsNode(NodeID nodeId) {
+        ptsNodes.erase(nodeId);
+    }
+
+    std::set<NodeID> &getPtsNodes(void) {
+        return ptsNodes;
     }
 
     /// Returns the number of object nodes this node represents.
-    size_t represents(void) const {
-        return objects.size();
+    size_t represents(void) {
+        return ptsNodes.size();
+    }
+
+    std::set<NodeID> &getActualPts() {
+        return actualPts;
+    }
+
+    void setActualPts(std::set<NodeID> actualPts) {
+        this->actualPts.clear();
+        this->actualPts.insert(actualPts.begin(), actualPts.end());
     }
 
     /// Return name of this node
     inline const std::string getValueName() const {
-        return "LSObjPN: representing " + std::to_string(objects.size()) + " nodes\n";
+        return "LSObjPN: representing " + std::to_string(ptsNodes.size()) + " points to sets\n";
     }
 };
 
