@@ -216,6 +216,9 @@ protected:
 
     /// Add copy edge on constraint graph
     virtual inline bool addCopyEdge(NodeID src, NodeID dst) {
+        if (src == 50 && dst == 78) {
+                llvm::outs() << "XYZ\n";
+        }
         return consCG->addCopyCGEdge(src, dst);
     }
 
@@ -716,6 +719,8 @@ class AndersenLS : public Andersen {
     std::map<NodeID, NodeID> lsToOrig;
     std::map<NodeID, NodeID> origToLs;
 
+    std::map<NodeID, std::set<NodeID>> reliance;
+
 public:
     AndersenLS(PTATY type = AndersenLS_WPA) :
         Andersen(type) {
@@ -744,7 +749,8 @@ public:
         /// TODO: Fields has been collapsed during Andersen::collapseField().
         //	sanitizePts();
 
-        flattenLSNodes();
+        flattenAllLS();
+        insertUnnaturalContemporariesInObjPts();
         removeLSFromAllPts();
         PointerAnalysis::finalize();
     }
@@ -754,12 +760,34 @@ protected:
     virtual bool processStore(NodeID node, const ConstraintEdge* load);
 
 private:
+    bool isOrigNodeId(NodeID id) const {
+        return origToLs.find(id) != origToLs.end();
+    }
+    bool isLsNodeId(NodeID id) const {
+        return lsToOrig.find(id) != lsToOrig.end();
+    }
+
+    NodeID getOrigNodeId(NodeID id) const {
+        if (isLsNodeId(id)) id = lsToOrig.at(id);
+        return id;
+    }
+    NodeID getLsNodeId(NodeID id) const {
+        if (isOrigNodeId(id)) id = origToLs.at(id);
+        return id;
+    }
+
     std::set<NodeID> flattenLSObjSet(std::set<NodeID>);
     std::set<NodeID> getActualPts(LSObjPN *) const;
     void prepareLSNodes(void);
-    void buildAllActualPts(void);
-    void flattenLSNodes(void);
+
+    void flattenAllLS(void);
+
+    void removeValFromLS(std::set<NodeID> &ptsNodes);
+    void removeLSFromLS(std::set<NodeID> &ptsNodes, NodeID selfId);
+
     void removeLSFromAllPts(void);
+
+    void insertUnnaturalContemporariesInObjPts(void);
 };
 
 #endif /* ANDERSENPASS_H_ */

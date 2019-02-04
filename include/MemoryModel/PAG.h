@@ -604,9 +604,9 @@ public:
         const MemObj* mem = addDummyMemObj(nodeNum, NULL);
         return addObjNode(NULL, new VLEObjPN(nodeNum, mem), nodeNum);
     }
-    inline NodeID addDummyLSObjNode(void) {
+    inline NodeID addDummyLSObjNode(NodeID originalId) {
         const MemObj* mem = addDummyMemObj(nodeNum, NULL);
-        return addObjNode(NULL, new LSObjPN(nodeNum, mem), nodeNum);
+        return addObjNode(NULL, new LSObjPN(nodeNum, mem, originalId), nodeNum);
     }
     inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);

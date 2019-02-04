@@ -780,9 +780,17 @@ public:
  */
 class LSObjPN: public DummyObjPN {
 private:
+    NodeID originalId;
+
     /// Nodes whose points to sets this node actually represents.
     std::set<NodeID> ptsNodes;
     std::set<NodeID> actualPts;
+
+    std::set<NodeID> naturalPtsNodes;
+    std::set<NodeID> unnaturalPtsNodes;
+
+    std::map<NodeID, bool> isNatural;
+    bool allNatural;
 
 public:
     //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -798,20 +806,43 @@ public:
     //@}
 
     /// Constructor
-    LSObjPN(NodeID i, const MemObj* m)
+    LSObjPN(NodeID i, const MemObj* m, NodeID originalId)
         : DummyObjPN(i, m, LSObjNode) {
+        this->originalId = originalId;
     }
 
-    void addPtsNode(NodeID nodeId) {
+    void addPtsNode(NodeID nodeId, bool natural) {
         ptsNodes.insert(nodeId);
+
+        if (natural) naturalPtsNodes.insert(nodeId);
+        else unnaturalPtsNodes.insert(nodeId);
+
+        isNatural[nodeId] = natural;
     }
 
     void removePtsNode(NodeID nodeId) {
         ptsNodes.erase(nodeId);
+        isNatural.erase(nodeId);
     }
 
     std::set<NodeID> &getPtsNodes(void) {
         return ptsNodes;
+    }
+
+    std::set<NodeID> &getNaturalPtsNodes(void) {
+        return naturalPtsNodes;
+    }
+
+    std::set<NodeID> &getUnnaturalPtsNodes(void) {
+        return unnaturalPtsNodes;
+    }
+
+    void setNaturalFlow(const NodeID nodeId, bool natural) {
+        isNatural[nodeId] = natural;
+    }
+
+    bool flowedInNaturally(NodeID nodeId) {
+        return allNatural || isNatural[nodeId];
     }
 
     /// Returns the number of object nodes this node represents.
