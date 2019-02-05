@@ -790,4 +790,16 @@ private:
     void insertUnnaturalContemporariesInObjPts(void);
 };
 
+/*!
+ * Andersen's Analysis with chaining for dereferences.
+ */
+class AndersenChain : public Andersen {
+public:
+    AndersenChain(PTATY type = AndersenChain_WPA) :
+        Andersen(type) {
+    }
+protected:
+private:
+};
+
 #endif /* ANDERSENPASS_H_ */
