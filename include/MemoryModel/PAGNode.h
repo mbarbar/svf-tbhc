@@ -61,7 +61,8 @@ public:
         TypeObjNode,
         IncompatibleObjNode,
         LSObjNode,
-        VLEObjNode
+        VLEObjNode,
+        ChainObjNode
     };
 
 
@@ -862,6 +863,74 @@ public:
     /// Return name of this node
     inline const std::string getValueName() const {
         return "LSObjPN: representing " + std::to_string(ptsNodes.size()) + " points to sets\n";
+    }
+};
+
+/*
+ * Chain object nodes for AndersenChain.
+ */
+class ChainObjPN: public DummyObjPN {
+private:
+    /// How far down the dereference chain this node is:
+    /// p == 0, *p == 1, etc.
+    unsigned derefLevel;
+
+    /// This chain node represents the real PTS of the nodes in ptsNodes.
+    PointsTo ptsNodes;
+
+    /// ptsNodes fully unfolded into real objects.
+    PointsTo actualNodes;
+
+    /// Contains the dereference of this object. NULL if not created by the solver.
+    ChainObjPN *nextChainObj;
+
+public:
+    //@{ Methods for support type inquiry through isa, cast, and dyn_cast:
+    static inline bool classof(const ChainObjPN *) {
+        return true;
+    }
+    static inline bool classof(const PAGNode *node) {
+        return node->getNodeKind() == PAGNode::ChainObjNode;
+    }
+    static inline bool classof(const GenericPAGNodeTy *node) {
+        return node->getNodeKind() == PAGNode::ChainObjNode;
+    }
+    //@}
+
+    /// Constructor
+    ChainObjPN(NodeID i, const MemObj* m, unsigned derefLevel)
+        : DummyObjPN(i, m, ChainObjNode) {
+        this->derefLevel = derefLevel;
+    }
+
+    unsigned getDerefLevel(void) const {
+        return derefLevel;
+    }
+
+    void addPtsNode(const NodeID ptsNode) {
+        ptsNodes.set(ptsNode);
+    }
+
+    PointsTo &getPtsNodes(void) {
+        return ptsNodes;
+    }
+
+    PointsTo &getActualNodes(void) {
+        return actualNodes;
+    }
+
+    ChainObjPN *getNextChainObj(void) const {
+        return nextChainObj;
+    }
+
+    void setNextChainObj(ChainObjPN *chainObj) {
+        nextChainObj = chainObj;
+    }
+
+    /// Return name of this node
+    inline const std::string getValueName() const {
+        return "ChainObjPN: representing " + std::to_string(ptsNodes.count())
+               + " points to sets and dereference level " + std::to_string(derefLevel);
     }
 };
 
