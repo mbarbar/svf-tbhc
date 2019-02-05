@@ -103,6 +103,7 @@ public:
                 this->getNodeKind() != IncompatibleObjNode &&
                 this->getNodeKind() != VLEObjNode &&
                 this->getNodeKind() != LSObjNode &&
+                this->getNodeKind() != ChainObjNode &&
                 (SymbolTableInfo::isBlkObjOrConstantObj(this->getId())==false) &&
                 value != NULL);
     }
@@ -237,6 +238,7 @@ public:
 				|| node.getNodeKind() == TypeObjNode
 				|| node.getNodeKind() == IncompatibleObjNode
 				|| node.getNodeKind() == LSObjNode
+				|| node.getNodeKind() == ChainObjNode
 				|| node.getNodeKind() == VLEObjNode) {
             o << "ObjPN\n";
         } else if (node.getNodeKind() == RetNode) {
@@ -321,6 +323,7 @@ public:
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
                node->getNodeKind() == PAGNode::VLEObjNode ||
                node->getNodeKind() == PAGNode::LSObjNode ||
+               node->getNodeKind() == PAGNode::ChainObjNode ||
 			   node->getNodeKind() == PAGNode::DummyObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
@@ -330,6 +333,7 @@ public:
                node->getNodeKind() == PAGNode::TypeObjNode ||
                node->getNodeKind() == PAGNode::IncompatibleObjNode ||
                node->getNodeKind() == PAGNode::LSObjNode ||
+               node->getNodeKind() == PAGNode::ChainObjNode ||
                node->getNodeKind() == PAGNode::DummyObjNode;
     }
     //@}
@@ -604,12 +608,14 @@ public:
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
 				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
+				|| node->getNodeKind() == PAGNode::ChainObjNode
 				|| node->getNodeKind() == PAGNode::LSObjNode;
 	}
 	static inline bool classof(const GenericPAGNodeTy *node) {
 		return node->getNodeKind() == PAGNode::DummyObjNode
 				|| node->getNodeKind() == PAGNode::TypeObjNode
 				|| node->getNodeKind() == PAGNode::IncompatibleObjNode
+				|| node->getNodeKind() == PAGNode::ChainObjNode
 				|| node->getNodeKind() == PAGNode::LSObjNode;
 	}
     //@}
