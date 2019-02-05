@@ -794,12 +794,21 @@ private:
  * Andersen's Analysis with chaining for dereferences.
  */
 class AndersenChain : public Andersen {
+private:
+    std::map<NodeID, NodeID> chainToOrig;
+
 public:
     AndersenChain(PTATY type = AndersenChain_WPA) :
         Andersen(type) {
     }
 protected:
+    virtual inline void initialize(SVFModule svfModule) {
+        Andersen::initialize(svfModule);
+        convertFIObjectsToChainObjects();
+    }
+
 private:
+    void convertFIObjectsToChainObjects(void);
 };
 
 #endif /* ANDERSENPASS_H_ */
