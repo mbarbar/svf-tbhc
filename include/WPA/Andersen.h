@@ -800,6 +800,8 @@ private:
     std::map<NodeID, NodeID> chainToOrig;
     std::map<NodeID, NodeID> origToChain;
 
+    std::set<NodeID> chainIds;
+
 public:
     AndersenChain(PTATY type = AndersenChain_WPA) :
         Andersen(type) {

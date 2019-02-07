@@ -36,6 +36,8 @@ NodeID AndersenChain::getNextChainId(NodeID chainId) {
         // Doesn't have a next chain, so create one.
         nextChainId = pag->addDummyChainObjNode(chainObj->getDerefLevel() + 1);
         consCG->addConstraintNode(new ConstraintNode(nextChainId), nextChainId);
+        chainIds.insert(nextChainId);
+
         // Needs to be able to propagate itself.
         getPts(nextChainId).set(nextChainId);
 
@@ -98,6 +100,7 @@ void AndersenChain::convertFIObjectsToChainObjects(void) {
 
         // Make a new chain object.
         NodeID chainId = pag->addDummyChainObjNode(0);
+        chainIds.insert(chainId);
         ConstraintNode *chainConstraintNode = new ConstraintNode(chainId);
         consCG->addConstraintNode(chainConstraintNode, chainId);
 
