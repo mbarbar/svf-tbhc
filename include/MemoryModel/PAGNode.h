@@ -907,6 +907,7 @@ public:
     ChainObjPN(NodeID i, const MemObj* m, unsigned derefLevel)
         : DummyObjPN(i, m, ChainObjNode) {
         this->derefLevel = derefLevel;
+        nextChainObj = NULL;
     }
 
     unsigned getDerefLevel(void) const {

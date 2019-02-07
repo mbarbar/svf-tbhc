@@ -795,7 +795,10 @@ private:
  */
 class AndersenChain : public Andersen {
 private:
+    static const unsigned maxDerefValue;
+
     std::map<NodeID, NodeID> chainToOrig;
+    std::map<NodeID, NodeID> origToChain;
 
 public:
     AndersenChain(PTATY type = AndersenChain_WPA) :
@@ -807,7 +810,13 @@ protected:
         convertFIObjectsToChainObjects();
     }
 
+    virtual bool processLoad(NodeID node, const ConstraintEdge* load);
+    virtual bool processStore(NodeID node, const ConstraintEdge* load);
+
 private:
+    NodeID getChainId(NodeID origId);
+    NodeID getNextChainId(NodeID chainId);
+
     void convertFIObjectsToChainObjects(void);
 };
 
