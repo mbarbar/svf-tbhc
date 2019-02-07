@@ -11,6 +11,7 @@
 #include "WPA/Andersen.h"
 
 const unsigned AndersenChain::maxDerefValue = 20;
+double AndersenChain::timeOfPostProcessing = 0;
 
 NodeID AndersenChain::getChainId(NodeID origId) {
     NodeID chainId = origId;

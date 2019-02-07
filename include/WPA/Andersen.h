@@ -794,6 +794,9 @@ private:
  * Andersen's Analysis with chaining for dereferences.
  */
 class AndersenChain : public Andersen {
+public:
+    static double timeOfPostProcessing;
+
 private:
     static const unsigned maxDerefValue;
 
@@ -806,9 +809,12 @@ public:
     AndersenChain(PTATY type = AndersenChain_WPA) :
         Andersen(type) {
     }
+
 protected:
     virtual inline void initialize(SVFModule svfModule) {
         Andersen::initialize(svfModule);
+        stat = new ChainStat(this);
+
         convertFIObjectsToChainObjects();
     }
 

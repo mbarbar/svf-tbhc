@@ -55,6 +55,7 @@ set(SOURCES
     WPA/AndersenLS.cpp
     WPA/AndersenChain.cpp
     WPA/AndersenStat.cpp
+    WPA/ChainStat.cpp
     WPA/ITCStat.cpp
     WPA/AndersenWave.cpp
     WPA/AndersenWaveDiff.cpp

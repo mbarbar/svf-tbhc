@@ -36,6 +36,7 @@
 
 class Andersen;
 class AndersenWaveDiffWithITC;
+class AndersenChain;
 class PAG;
 class ConstraintGraph;
 class PAGNode;
@@ -165,6 +166,21 @@ public:
         : AndersenStat(reinterpret_cast<Andersen *>(p)), pta(p) { }
 
     void itGraphStat();
+    virtual void performStat();
+};
+
+/*!
+ * Statistics for AndersenChain analysis
+ */
+class ChainStat : public AndersenStat {
+private:
+    AndersenChain* pta;
+
+public:
+    ChainStat(AndersenChain* p)
+        : AndersenStat(reinterpret_cast<Andersen *>(p)), pta(p) { }
+
+    void chainStat();
     virtual void performStat();
 };
 
