@@ -30,6 +30,7 @@ set(SOURCES
     MemoryModel/PAG.cpp
     MemoryModel/CHA.cpp
     MemoryModel/PointerAnalysis.cpp
+    MemoryModel/VTGraph.cpp
     MSSA/MemPartition.cpp
     MSSA/MemRegion.cpp
     MSSA/MemSSA.cpp
@@ -53,11 +54,14 @@ set(SOURCES
     WPA/AndersenWave.cpp
     WPA/AndersenWaveDiff.cpp
     WPA/IFDS.cpp
+    WPA/AndersenWaveDiffWithITC.cpp
     WPA/AndersenWaveDiffWithType.cpp
     WPA/FlowSensitive.cpp
     WPA/FlowSensitiveStat.cpp
     WPA/TypeAnalysis.cpp
+    WPA/RapidTypeAnalysis.cpp
     WPA/WPAPass.cpp
+    WPA/VTAnalysis.cpp
     DDA/ContextDDA.cpp
     DDA/DDAClient.cpp
     DDA/DDAPass.cpp

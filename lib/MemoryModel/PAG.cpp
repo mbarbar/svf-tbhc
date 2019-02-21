@@ -302,10 +302,10 @@ NodeID PAG::getGepObjNode(NodeID id, const LocationSet& ls) {
         return getGepObjNode(gepNode->getMemObj(), gepNode->getLocationSet() + ls);
     else if (FIObjPN* baseNode = SVFUtil::dyn_cast<FIObjPN>(node))
         return getGepObjNode(baseNode->getMemObj(), ls);
-    else {
+    else if (DummyObjPN* baseNode = SVFUtil::dyn_cast<DummyObjPN>(node))
+        return getGepObjNode(baseNode->getMemObj(), ls);
+    else
         assert(false && "new gep obj node kind?");
-        return id;
-    }
 }
 
 /*!
@@ -647,7 +647,7 @@ bool PAGEdge::isPTAEdge() const {
 PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
     GenericPAGNodeTy(i,k), value(val) {
 
-    assert( ValNode <= k && k<= DummyObjNode && "new PAG node kind?");
+    assert( ValNode <= k && k<= TypeObjNode && "new PAG node kind?");
 
     switch (k) {
     case ValNode:
@@ -672,15 +672,16 @@ PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
         break;
     }
 
-    case ObjNode:
-    case GepObjNode:
-    case FIObjNode:
-    case DummyObjNode: {
-        isTLPointer = false;
-        isATPointer = true;
-        break;
-    }
-    }
+	case ObjNode:
+	case GepObjNode:
+	case FIObjNode:
+	case TypeObjNode:
+	case DummyObjNode: {
+		isTLPointer = false;
+		isATPointer = true;
+		break;
+	}
+	}
 }
 
 /*!

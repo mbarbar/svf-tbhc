@@ -605,8 +605,6 @@ protected:
 
 };
 
-
-
 /*!
  * Hybrid Lazy Cycle Detection Based Andersen Analysis
  */
@@ -643,6 +641,5 @@ protected:
     void mergeSCC(NodeID nodeId);
 
 };
-
 
 #endif /* ANDERSENPASS_H_ */

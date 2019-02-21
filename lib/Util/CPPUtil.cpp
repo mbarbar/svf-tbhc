@@ -48,6 +48,9 @@ const string mInheritanceVFunLabel = "non-virtual thunk to ";
 
 const string clsName = "class.";
 const string structName = "struct.";
+const string unionName = "union.";
+
+const string nameDelimiter = "::";
 
 static bool isOperOverload(const string name) {
     s32_t leftnum = 0, rightnum = 0;
@@ -87,6 +90,40 @@ static string getBeforeParenthesis(const string name) {
             break;
     }
     return name.substr(0, pos);
+}
+
+std::string cppUtil::removeTemplatesFromName(const std::string name) {
+    // What we'll return.
+    std::string cleanName = "";
+    // What we'll operate on/mess with.
+    std::string nameCopy = name;
+
+    while (!nameCopy.empty()) {
+        // Get before brackets first because delimiters may be contained
+        // between brackets.
+        std::string section = getBeforeBrackets(nameCopy);
+        // section now equals "full_name_w_templates_and_delims::sectionName"
+        // delimPos is --------------------------------------------^
+        size_t delimPos = section.rfind(nameDelimiter);
+
+        // Check if there are any more sections (::).
+        if (delimPos != std::string::npos) {
+            // Extract the "sectionName".
+            section = section.substr(delimPos + nameDelimiter.size(), section.size());
+            // Remove the last section (i.e. "::sectionName<...>")
+            nameCopy.erase(delimPos, nameCopy.size());
+            // Insert "::sectionName"
+            cleanName.insert(0, nameDelimiter + section);
+        } else {
+            // There are no more delimiters, so the section we're dealing
+            // with is actually the rest of nameCopy.
+            nameCopy.erase(0, nameCopy.size());
+            // No delimiter because we're at the start of the name again.
+            cleanName.insert(0, section);
+        }
+    }
+
+    return cleanName;
 }
 
 string cppUtil::getBeforeBrackets(const string name) {
@@ -304,17 +341,21 @@ u64_t cppUtil::getVCallIdx(CallSite cs) {
 string cppUtil::getClassNameFromType(const Type *ty) {
     string className = "";
     if (const PointerType *ptrType = SVFUtil::dyn_cast<PointerType>(ty)) {
-        const Type *elemType = ptrType->getElementType();
-        if (SVFUtil::isa<StructType>(elemType) &&
-                !((SVFUtil::cast<StructType>(elemType))->isLiteral())) {
-            string elemTypeName = elemType->getStructName().str();
-            if (elemTypeName.compare(0, clsName.size(), clsName) == 0) {
-                className = elemTypeName.substr(clsName.size());
-            } else if (elemTypeName.compare(0, structName.size(), structName) == 0) {
-                className = elemTypeName.substr(structName.size());
-            }
+        ty = ptrType->getElementType();
+    }
+
+    const StructType *structType = SVFUtil::dyn_cast<StructType>(ty);
+    if (structType != NULL && !structType->isLiteral()) {
+        string structTypeName = structType->getStructName();
+        if (structTypeName.compare(0, clsName.size(), clsName) == 0) {
+            className = structTypeName.substr(clsName.size());
+        } else if (structTypeName.compare(0, structName.size(), structName) == 0) {
+            className = structTypeName.substr(structName.size());
+        } else if (structTypeName.compare(0, unionName.size(), unionName) == 0) {
+            className = structTypeName.substr(unionName.size());
         }
     }
+
     return className;
 }
 

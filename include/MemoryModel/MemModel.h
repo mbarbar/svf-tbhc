@@ -160,6 +160,11 @@ public:
         return type;
     }
 
+    /// Set LLVM type
+    inline void setType(const Type *type) {
+        this->type = type;
+    }
+
     /// Get max field offset limit
     inline u32_t getMaxFieldOffsetLimit() {
         return maxOffsetLimit;

@@ -52,7 +52,7 @@ public:
 
 private:
     u32_t moduleNum;
-    LLVMContext *cxts;
+    static LLVMContext *cxts;
     std::unique_ptr<Module> *modules;
 
     FunctionSetType FunctionSet;  ///< The Functions in the module
@@ -202,6 +202,7 @@ public:
 
 private:
     static LLVMModuleSet *llvmModuleSet;
+    static LLVMModuleSet *debugModuleSet;
     static std::string pagReadFromTxt;
 
 public:
@@ -209,6 +210,12 @@ public:
     SVFModule(const std::vector<std::string> &moduleNameVec) {
         if (llvmModuleSet == NULL)
             llvmModuleSet = new LLVMModuleSet(moduleNameVec);
+    }
+    SVFModule(const std::vector<std::string> &moduleNameVec, const std::vector<std::string> &debugModuleNameVec) {
+        if (llvmModuleSet == NULL)
+            llvmModuleSet = new LLVMModuleSet(moduleNameVec);
+        if (debugModuleSet == NULL && !debugModuleNameVec.empty())
+            debugModuleSet = new LLVMModuleSet(debugModuleNameVec);
     }
     SVFModule(Module *mod) {
         if (llvmModuleSet == NULL)
@@ -255,21 +262,41 @@ public:
     }
 
     /// Methods from LLVMModuleSet
-    u32_t getModuleNum() const {
-        return llvmModuleSet->getModuleNum();
+    u32_t getModuleNum(bool debug=false) const {
+        if (debug && debugModuleSet == NULL) {
+            assert(false && "Requesting debug modules but none were specified!");
+        }
+
+        LLVMModuleSet *moduleSet = debug ? debugModuleSet : llvmModuleSet;
+        return moduleSet->getModuleNum();
     }
 
-    Module *getModule(u32_t idx) const {
-        return llvmModuleSet->getModule(idx);
+    Module *getModule(u32_t idx, bool debug=false) const {
+        if (debug && debugModuleSet == NULL) {
+            assert(false && "Requesting debug modules but none were specified!");
+        }
+
+        LLVMModuleSet *moduleSet = debug ? debugModuleSet : llvmModuleSet;
+        return moduleSet->getModule(idx);
     }
 
-    Module &getModuleRef(u32_t idx) const {
-        return llvmModuleSet->getModuleRef(idx);
+    Module &getModuleRef(u32_t idx, bool debug=false) const {
+        if (debug && debugModuleSet == NULL) {
+            assert(false && "Requesting debug modules but none were specified!");
+        }
+
+        LLVMModuleSet *moduleSet = debug ? debugModuleSet : llvmModuleSet;
+        return moduleSet->getModuleRef(idx);
     }
 
     // Dump modules to files
     void dumpModulesToFile(const std::string suffix) const {
         llvmModuleSet->dumpModulesToFile(suffix);
+    }
+
+    /// Returns true if debug modules were provided at construction.
+    bool hasDebugModules(void) const {
+        return debugModuleSet != NULL;
     }
 
     /// Fun decl --> def

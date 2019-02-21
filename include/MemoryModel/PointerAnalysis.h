@@ -60,6 +60,7 @@ public:
         AndersenHLCD_WPA,   ///< Hybird lazy cycle detection andersen-style WPA
         AndersenWave_WPA,	///< Wave propagation andersen-style WPA
         AndersenWaveDiff_WPA,	///< Diff wave propagation andersen-style WPA
+        AndersenWaveDiffWithITC_WPA,	///< Diff wave propagation with incompatible type collapse andersen-style WPA
         AndersenWaveDiffWithType_WPA,	///< Diff wave propagation with type info andersen-style WPA
         CSCallString_WPA,	///< Call string based context sensitive WPA
         CSSummary_WPA,		///< Summary based context sensitive WPA
@@ -70,6 +71,9 @@ public:
         ADAPTFSCS_WPA,		///< Adaptive Flow-, context-, sensitive WPA
         ADAPTFSCSPS_WPA,	///< Adaptive Flow-, context-, path- sensitive WPA
         TypeCPP_WPA, ///<  Type-based analysis for C++
+        VariableTypeCPP_WPA, ///<  Variable Type Analysis (VTA) for C++
+        VariableTypePlusCPP_WPA, ///<  Variable Type Analysis Plus (VTAPLUS) for C++
+        RapidTypeCPP_WPA, ///<  Rapid Type Analysis (RTA) for C++
 
         // Demand driven analysis
         FieldS_DDA,		///< Field sensitive DDA
@@ -374,7 +378,7 @@ public:
     //@}
 
     /// get CHGraph
-    CHGraph *getCHGraph() const {
+    static CHGraph *getCHGraph() {
         return chgraph;
     }
 

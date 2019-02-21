@@ -39,6 +39,7 @@
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
+#include "MemoryModel/VTGraph.h"
 #include <fstream>
 #include <sstream>
 
@@ -301,10 +302,13 @@ void PointerAnalysis::dumpAllTypes()
  */
 BVDataPTAImpl::BVDataPTAImpl(PointerAnalysis::PTATY type) :
 		PointerAnalysis(type) {
-	if (type == Andersen_WPA || type == AndersenWave_WPA || type == AndersenHCD_WPA || type == AndersenHLCD_WPA
-			|| type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA) {
+	if (type == Andersen_WPA || type == AndersenWave_WPA || type == AndersenHCD_WPA
+			|| type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA
+			|| type == VariableTypeCPP_WPA || type == RapidTypeCPP_WPA) {
 		ptD = new PTDataTy();
-	} else if (type == AndersenWaveDiff_WPA || type == AndersenWaveDiffWithType_WPA) {
+	} else if (type == AndersenWaveDiff_WPA
+ 		   || type == AndersenWaveDiffWithType_WPA
+ 		   || type == AndersenWaveDiffWithITC_WPA) {
 		ptD = new DiffPTDataTy();
 	} else if (type == FSSPARSE_WPA) {
 		if (INCDFPTData)
@@ -676,12 +680,22 @@ void PointerAnalysis::getVFnsFromPts(CallSite cs, const PointsTo &target, VFunSe
         const VTableSet &chaVtbls = chgraph->getCSVtblsBasedonCHA(cs);
         for (PointsTo::iterator it = target.begin(), eit = target.end(); it != eit; ++it) {
             const PAGNode *ptdnode = pag->getPAGNode(*it);
-			if (ptdnode->hasValue()) {
-				if (const GlobalValue *vtbl = SVFUtil::dyn_cast<GlobalValue>(ptdnode->getValue())) {
-					if (chaVtbls.find(vtbl) != chaVtbls.end())
-						vtbls.insert(vtbl);
-				}
-			}
+            if (ptdnode->hasValue()) {
+                if (const GlobalValue *vtbl = SVFUtil::dyn_cast<GlobalValue>(ptdnode->getValue())) {
+                    if (chaVtbls.find(vtbl) != chaVtbls.end())
+                        vtbls.insert(vtbl);
+                }
+            } else if (const Type *type = ptdnode->getType()) {
+                for (VTableSet::iterator vtblI = chaVtbls.begin(); vtblI != chaVtbls.end(); ++vtblI) {
+                    std::string vtblTypeName = cppUtil::getClassNameFromVtblObj(*vtblI);
+                    std::string typeName = cppUtil::getClassNameFromType(type);
+                    if (typeName == vtblTypeName) {
+                        vtbls.insert(*vtblI);
+                    }
+                }
+            } else {
+                assert(false && "Node has neither type nor value.");
+            }
         }
         chgraph->getVFnsFromVtbls(cs, vtbls, vfns);
     }
