@@ -34,6 +34,11 @@ using namespace std;
 static llvm::cl::opt<std::string> InputFilename(cl::Positional,
         llvm::cl::desc("<input bitcode>"), llvm::cl::init("-"));
 
+static llvm::cl::opt<std::string> DebugFilenames("debug-files",
+                                           llvm::cl::desc("Debug files to build CHG from"),
+                                           llvm::cl::CommaSeparated);
+//static llvm::cl::list<std::string> DebugFilenames("debug-files",
+//        llvm::cl::desc("Debug files to build CHG from"), llvm::cl::CommaSeparated);
 
 int main(int argc, char ** argv) {
 
@@ -44,7 +49,9 @@ int main(int argc, char ** argv) {
     cl::ParseCommandLineOptions(arg_num, arg_value,
                                 "Whole Program Points-to Analysis\n");
 
-    SVFModule svfModule(moduleNameVec);
+    std::vector<std::string> x;
+    if (DebugFilenames != "") x.push_back(DebugFilenames);
+    SVFModule svfModule(moduleNameVec, x);
 
     WPAPass *wpa = new WPAPass();
     wpa->runOnModule(svfModule);

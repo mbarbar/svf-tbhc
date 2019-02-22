@@ -56,6 +56,8 @@ static llvm::cl::opt<std::string> Graphtxt("graphtxt", llvm::cl::value_desc("fil
 static llvm::cl::opt<bool> SVFMain("svfmain", llvm::cl::init(false), llvm::cl::desc("add svf.main()"));
 
 LLVMModuleSet *SVFModule::llvmModuleSet = NULL;
+LLVMModuleSet *SVFModule::debugModuleSet = NULL;
+LLVMContext *LLVMModuleSet::cxts = NULL;
 std::string SVFModule::pagReadFromTxt = "";
 
 LLVMModuleSet::LLVMModuleSet(Module *mod) {
@@ -114,7 +116,7 @@ void LLVMModuleSet::loadModules(const std::vector<std::string> &moduleNameVec) {
     //    assert(t1 != t3);
     // ------------------------------------------------------------------
     //
-    cxts = new LLVMContext[1];
+    if (cxts == NULL) cxts = new LLVMContext[1];
     modules = new unique_ptr<Module>[moduleNum];
 
     u32_t i = 0;

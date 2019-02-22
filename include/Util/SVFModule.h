@@ -52,7 +52,7 @@ public:
 
 private:
     u32_t moduleNum;
-    LLVMContext *cxts;
+    static LLVMContext *cxts;
     std::unique_ptr<Module> *modules;
 
     FunctionSetType FunctionSet;  ///< The Functions in the module
@@ -202,13 +202,17 @@ public:
 
 private:
     static LLVMModuleSet *llvmModuleSet;
+    static LLVMModuleSet *debugModuleSet;
     static std::string pagReadFromTxt;
 
 public:
     /// Constructors
-    SVFModule(const std::vector<std::string> &moduleNameVec) {
+    SVFModule(const std::vector<std::string> &moduleNameVec, const std::vector<std::string> &debugModuleNameVec) {
         if (llvmModuleSet == NULL)
             llvmModuleSet = new LLVMModuleSet(moduleNameVec);
+
+        if (debugModuleSet == NULL && !debugModuleNameVec.empty())
+            debugModuleSet = new LLVMModuleSet(debugModuleNameVec);
     }
     SVFModule(Module *mod) {
         if (llvmModuleSet == NULL)
