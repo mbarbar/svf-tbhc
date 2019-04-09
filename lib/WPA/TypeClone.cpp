@@ -6,6 +6,7 @@
  */
 
 #include "WPA/TypeClone.h"
+#include "WPA/WPAStat.h"
 
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
@@ -33,3 +34,5 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 
     return changed;
 }
+
+
