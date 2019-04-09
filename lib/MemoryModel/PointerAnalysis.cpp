@@ -306,7 +306,7 @@ BVDataPTAImpl::BVDataPTAImpl(PointerAnalysis::PTATY type) :
 		ptD = new PTDataTy();
 	} else if (type == AndersenWaveDiff_WPA || type == AndersenWaveDiffWithType_WPA) {
 		ptD = new DiffPTDataTy();
-	} else if (type == FSSPARSE_WPA) {
+	} else if (type == FSSPARSE_WPA || type == TYPECLONE_WPA) {
 		if (INCDFPTData)
 			ptD = new IncDFPTDataTy();
 		else
