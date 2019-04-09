@@ -11,13 +11,19 @@
 #include "WPA/FlowSensitive.h"
 
 class TypeClone : public FlowSensitive {
+private:
     // undefined type == NULL.
     std::map<const NodeID, const Type *> idToTypeMap;
 
+protected:
     bool processAddr(const AddrSVFGNode* addr) override;
+    bool processCopy(const CopySVFGNode* copy) override;
 
     // The following stay the same:
     //   processPhiNode.
+
+private:
+    bool isCast(const CopySVFGNode *copy, Type **fromType, Type **toType) const;
 };
 
 #endif  // TYPECLONE_H_

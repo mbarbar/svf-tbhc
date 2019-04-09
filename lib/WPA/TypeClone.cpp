@@ -35,4 +35,40 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
+bool TypeClone::processCopy(const CopySVFGNode* copy) {
+    double start = stat->getClk();
+
+    bool changed;
+
+    Type *fromType, *toType;
+    if (isCast(copy, &fromType, &toType)) {
+        llvm::outs() << "fromType: " << *fromType << "\n";
+        llvm::outs() << "toType: " << *toType << "\n";
+    } else {
+        bool changed = unionPts(copy->getPAGDstNodeID(), copy->getPAGSrcNodeID());
+    }
+
+    double end = stat->getClk();
+    copyGepTime += (end - start) / TIMEINTERVAL;
+
+    return changed;
+}
+
+bool TypeClone::isCast(const CopySVFGNode *copy, Type **fromType, Type **toType) const {
+    bool cast = false;
+
+    PAGNode *dstPagNode = pag->getPAGNode(copy->getPAGDstNodeID());
+    if (dstPagNode->hasValue()) {
+        const Value *dstVal = dstPagNode->getValue();
+        const Instruction *dstInst = SVFUtil::dyn_cast<Instruction>(dstVal); // TODO: will it always be an inst?
+        // TODO: why not copy->getInst()?
+        if (const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(dstInst)) {
+            cast = true;
+            *toType = castInst->getDestTy();
+            *fromType = castInst->getSrcTy();
+        }
+    }
+
+    return cast;
+}
 
