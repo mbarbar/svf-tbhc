@@ -9,6 +9,8 @@
 #define TYPECLONE_H_
 
 class TypeClone : public FlowSensitive {
+    // undefined type == NULL.
+    std::map<const NodeID, const Type *> idToTypeMap;
 };
 
 #endif  // TYPECLONE_H_
