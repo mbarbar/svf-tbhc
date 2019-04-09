@@ -21,6 +21,8 @@ protected:
 
     // The following stay the same:
     //   processPhiNode.
+    //   processLoad.
+    //   processStore.
 
 private:
     bool isCast(const CopySVFGNode *copy, Type **fromType, Type **toType) const;
