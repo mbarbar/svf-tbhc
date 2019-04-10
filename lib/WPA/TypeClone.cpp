@@ -81,7 +81,7 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
             // POD-UNDEF-CAST
         } else if (isBase(tilde(toType), oType)) {
             // POD-UPCAST
-            changed = changed || unionPts(dstId, *o);
+            changed = changed || addPts(dstId, *o);
         } else if (isBase(oType, tilde(toType))) {
             // POD-DOWNCAST
             // TODO: needs to be checked if it's okay to just change type/label.
@@ -90,7 +90,7 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
             idToTypeMap[*o] = tilde(toType);
             idToCloneNodeMap[*o] = copy->getId();
 
-            changed = changed || unionPts(dstId, *o);
+            changed = changed || addPts(dstId, *o);
         }
     }
 
@@ -112,7 +112,7 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
 
         //  CAST-UNDEF      CAST-TYPED
         if (oType == NULL || isBase(tilde(toType), oType)) {
-            changed = changed || unionPts(dstId, *o);
+            changed = changed || addPts(dstId, *o);
         } else {
             // DON'T PROPAGATE!
         }
