@@ -25,7 +25,7 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
         // Heap objects are initialised with no types.
         idToTypeMap[srcID] = NULL;
     } else {
-        idToTypeMap[srcID] = pag->getPAGNode(srcID)->getType();
+        idToTypeMap[srcID] = tilde(pag->getPAGNode(srcID)->getType());
         assert(idToTypeMap[srcID] != NULL && "TypeClone: non-heap does not have a type?");
     }
 
@@ -40,10 +40,8 @@ bool TypeClone::processCopy(const CopySVFGNode* copy) {
 
     bool changed;
 
-    Type *fromType, *toType;
-    if (isCast(copy, &fromType, &toType)) {
-        llvm::outs() << "fromType: " << *fromType << "\n";
-        llvm::outs() << "toType: " << *toType << "\n";
+    if (isCast(copy)) {
+        processCast(copy);
     } else {
         bool changed = unionPts(copy->getPAGDstNodeID(), copy->getPAGSrcNodeID());
     }
@@ -54,21 +52,64 @@ bool TypeClone::processCopy(const CopySVFGNode* copy) {
     return changed;
 }
 
-bool TypeClone::isCast(const CopySVFGNode *copy, Type **fromType, Type **toType) const {
-    bool cast = false;
+bool TypeClone::processCast(const CopySVFGNode *copy) {
+    const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
+    const Type *toType = castInst->getDestTy();
 
-    PAGNode *dstPagNode = pag->getPAGNode(copy->getPAGDstNodeID());
-    if (dstPagNode->hasValue()) {
-        const Value *dstVal = dstPagNode->getValue();
-        const Instruction *dstInst = SVFUtil::dyn_cast<Instruction>(dstVal); // TODO: will it always be an inst?
-        // TODO: why not copy->getInst()?
-        if (const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(dstInst)) {
-            cast = true;
-            *toType = castInst->getDestTy();
-            *fromType = castInst->getSrcTy();
+    if (isPod(tilde(toType))) {
+        return processPodCast(copy);
+    } else {
+        return processFancyCast(copy);
+    }
+
+}
+
+bool TypeClone::processPodCast(const CopySVFGNode *copy) {
+        // TODO
+        return false;
+}
+
+bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
+    bool changed = false;
+
+    const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
+    const Type *toType = castInst->getDestTy();
+
+    NodeID dstId = copy->getPAGDstNodeID();
+    PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
+
+    for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
+        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        const Type *oType = idToTypeMap[*o];
+
+        //  CAST-UNDEF      CAST-TYPED
+        if (oType == NULL || isBase(tilde(toType), oType)) {
+            changed = changed || unionPts(dstId, *o);
+        } else {
+            // DON'T PROPAGATE!
         }
     }
 
-    return cast;
+    return changed;
+}
+
+bool TypeClone::isCast(const CopySVFGNode *copy) const {
+    const Instruction *inst = copy->getInst();
+    return inst != NULL && SVFUtil::isa<CastInst>(inst);
+}
+
+bool TypeClone::isPod(const Type *t) const {
+        // TODO
+        return false;
+}
+
+bool TypeClone::isBase(const Type *a, const Type *b) const {
+        // TODO
+        return false;
+}
+
+const Type *TypeClone::tilde(const Type *t) const {
+    // TODO
+    return NULL;
 }
 

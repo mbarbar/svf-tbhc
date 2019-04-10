@@ -25,7 +25,17 @@ protected:
     //   processStore.
 
 private:
-    bool isCast(const CopySVFGNode *copy, Type **fromType, Type **toType) const;
+    bool isCast(const CopySVFGNode *copy) const;
+
+    bool isPod(const Type *t) const;
+    // Returns true if a is a transitive base type of b, or a == b.
+    bool isBase(const Type *a, const Type *b) const;
+    // Returns pointee type of t.
+    const Type *tilde(const Type *t) const;
+
+    bool processCast(const CopySVFGNode *copy);
+    bool processPodCast(const CopySVFGNode *copy);
+    bool processFancyCast(const CopySVFGNode *copy);
 };
 
 #endif  // TYPECLONE_H_
