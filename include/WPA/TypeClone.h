@@ -14,6 +14,8 @@ class TypeClone : public FlowSensitive {
 private:
     // undefined type == NULL.
     std::map<const NodeID, const Type *> idToTypeMap;
+    // Maps an object ID to the location it was "born" from cloning.
+    std::map<const NodeID, NodeID> idToCloneNodeMap;
 
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;

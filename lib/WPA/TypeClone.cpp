@@ -65,8 +65,36 @@ bool TypeClone::processCast(const CopySVFGNode *copy) {
 }
 
 bool TypeClone::processPodCast(const CopySVFGNode *copy) {
-        // TODO
-        return false;
+    bool changed = false;
+
+    const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
+    const Type *toType = castInst->getDestTy();
+
+    NodeID dstId = copy->getPAGDstNodeID();
+    PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
+
+    for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
+        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        const Type *oType = idToTypeMap[*o];
+
+        if (oType == NULL) {
+            // POD-UNDEF-CAST
+        } else if (isBase(tilde(toType), oType)) {
+            // POD-UPCAST
+            changed = changed || unionPts(dstId, *o);
+        } else if (isBase(oType, tilde(toType))) {
+            // POD-DOWNCAST
+            // TODO: needs to be checked if it's okay to just change type/label.
+            //       because our intention is to "back-update" the metadata,
+            //       not create a new object.
+            idToTypeMap[*o] = tilde(toType);
+            idToCloneNodeMap[*o] = copy->getId();
+
+            changed = changed || unionPts(dstId, *o);
+        }
+    }
+
+    return changed;
 }
 
 bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
