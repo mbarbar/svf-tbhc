@@ -7,6 +7,7 @@
 
 #include "WPA/TypeClone.h"
 #include "WPA/WPAStat.h"
+#include "Util/CPPUtil.h"
 
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
@@ -20,13 +21,13 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     bool changed = addPts(addr->getPAGDstNodeID(), srcID);
 
     // Should not have a type, not even undefined.
-    assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
+    //assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
-        idToTypeMap[srcID] = NULL;
+        idToTypeMap[srcID] = "";
     } else {
-        idToTypeMap[srcID] = tilde(pag->getPAGNode(srcID)->getType());
-        assert(idToTypeMap[srcID] != NULL && "TypeClone: non-heap does not have a type?");
+        idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
+        //assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
     }
 
     double end = stat->getClk();
@@ -54,7 +55,11 @@ bool TypeClone::processCopy(const CopySVFGNode* copy) {
 
 bool TypeClone::processCast(const CopySVFGNode *copy) {
     const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
-    const Type *toType = castInst->getDestTy();
+    TypeStr toType = cppUtil::getNameFromType(castInst->getDestTy());
+    TypeStr fromType = cppUtil::getNameFromType(castInst->getSrcTy());
+
+    llvm::outs() << "from: " << fromType << " was " << *(castInst->getSrcTy()) << "\n";
+    llvm::outs() << "to: " << toType << " was " << *(castInst->getDestTy()) << "\n";
 
     if (isPod(tilde(toType))) {
         return processPodCast(copy);
@@ -68,16 +73,16 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
     bool changed = false;
 
     const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
-    const Type *toType = castInst->getDestTy();
+    TypeStr toType = cppUtil::getNameFromType(castInst->getDestTy());
 
     NodeID dstId = copy->getPAGDstNodeID();
     PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
 
     for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
-        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
-        const Type *oType = idToTypeMap[*o];
+        //assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        TypeStr oType = idToTypeMap[*o];
 
-        if (oType == NULL) {
+        if (oType == "") {
             // POD-UNDEF-CAST
         } else if (isBase(tilde(toType), oType)) {
             // POD-UPCAST
@@ -101,17 +106,17 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
     bool changed = false;
 
     const CastInst *castInst = SVFUtil::dyn_cast<CastInst>(copy->getInst());
-    const Type *toType = castInst->getDestTy();
+    TypeStr toType = cppUtil::getNameFromType(castInst->getDestTy());
 
     NodeID dstId = copy->getPAGDstNodeID();
     PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
 
     for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
-        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
-        const Type *oType = idToTypeMap[*o];
+        //assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        TypeStr oType = idToTypeMap[*o];
 
         //  CAST-UNDEF      CAST-TYPED
-        if (oType == NULL || isBase(tilde(toType), oType)) {
+        if (oType == "" || isBase(tilde(toType), oType)) {
             changed = changed || addPts(dstId, *o);
         } else {
             // DON'T PROPAGATE!
@@ -126,18 +131,18 @@ bool TypeClone::isCast(const CopySVFGNode *copy) const {
     return inst != NULL && SVFUtil::isa<CastInst>(inst);
 }
 
-bool TypeClone::isPod(const Type *t) const {
+bool TypeClone::isPod(TypeStr t) const {
         // TODO
         return false;
 }
 
-bool TypeClone::isBase(const Type *a, const Type *b) const {
+bool TypeClone::isBase(TypeStr a, TypeStr b) const {
         // TODO
         return false;
 }
 
-const Type *TypeClone::tilde(const Type *t) const {
+TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
     // TODO
-    return NULL;
+    return "";
 }
 

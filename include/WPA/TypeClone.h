@@ -11,9 +11,10 @@
 #include "WPA/FlowSensitive.h"
 
 class TypeClone : public FlowSensitive {
+typedef std::string TypeStr;
 private:
-    // undefined type == NULL.
-    std::map<const NodeID, const Type *> idToTypeMap;
+    // undefined type == "".
+    std::map<const NodeID, TypeStr> idToTypeMap;
     // Maps an object ID to the location it was "born" from cloning.
     std::map<const NodeID, NodeID> idToCloneNodeMap;
 
@@ -29,11 +30,11 @@ protected:
 private:
     bool isCast(const CopySVFGNode *copy) const;
 
-    bool isPod(const Type *t) const;
+    bool isPod(TypeStr t) const;
     // Returns true if a is a transitive base type of b, or a == b.
-    bool isBase(const Type *a, const Type *b) const;
+    bool isBase(TypeStr a, TypeStr b) const;
     // Returns pointee type of t.
-    const Type *tilde(const Type *t) const;
+    TypeStr tilde(TypeStr t) const;
 
     bool processCast(const CopySVFGNode *copy);
     bool processPodCast(const CopySVFGNode *copy);
