@@ -21,14 +21,14 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     bool changed = addPts(addr->getPAGDstNodeID(), srcID);
 
     // Should not have a type, not even undefined.
-    //assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
+    assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
         idToTypeMap[srcID] = "";
         idToAllocNodeMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
-        //assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
+        assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
     }
 
     double end = stat->getClk();
@@ -80,7 +80,7 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
     PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
 
     for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
-        //assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
         TypeStr oType = idToTypeMap[*o];
 
         if (oType == "") {
@@ -122,7 +122,7 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
     PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
 
     for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
-        //assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
         TypeStr oType = idToTypeMap[*o];
 
         //  CAST-UNDEF      CAST-TYPED
@@ -153,6 +153,6 @@ bool TypeClone::isBase(TypeStr a, TypeStr b) const {
 
 TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
     // TODO
-    return "";
+    return t;
 }
 
