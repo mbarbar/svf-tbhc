@@ -17,6 +17,8 @@ private:
     std::map<const NodeID, TypeStr> idToTypeMap;
     // Maps an object ID to the location it was "born" from cloning.
     std::map<const NodeID, NodeID> idToCloneNodeMap;
+    // Maps an object ID to the location it was *actually* allocated at.
+    std::map<const NodeID, NodeID> idToAllocNodeMap;
 
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;

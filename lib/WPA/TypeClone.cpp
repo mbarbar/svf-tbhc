@@ -25,6 +25,7 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
         idToTypeMap[srcID] = "";
+        idToAllocNodeMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
         //assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
@@ -84,6 +85,15 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
 
         if (oType == "") {
             // POD-UNDEF-CAST
+            NodeID clone = pag->addDummyObjNode();
+            idToTypeMap[clone] = tilde(toType);
+            idToCloneNodeMap[clone] = copy->getId();
+            idToAllocNodeMap[clone] = idToAllocNodeMap[*o];
+
+            // Add the clone, remove the undefined-type object
+            changed = changed || addPts(dstId, clone);
+            // Removing should not affect changed...
+            getPts(dstId).reset(*o);
         } else if (isBase(tilde(toType), oType)) {
             // POD-UPCAST
             changed = changed || addPts(dstId, *o);
