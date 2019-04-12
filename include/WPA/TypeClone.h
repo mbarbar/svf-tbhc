@@ -13,6 +13,7 @@
 class TypeClone : public FlowSensitive {
 typedef std::string TypeStr;
 private:
+    SVFModule svfModule;
     CHGraph *chg = PointerAnalysis::getCHGraph();
 
     // undefined type == "".
@@ -25,6 +26,7 @@ private:
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
     bool processCopy(const CopySVFGNode* copy) override;
+    void initialize(SVFModule svfModule) override;
 
     // The following stay the same:
     //   processPhiNode.

@@ -10,6 +10,11 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+void TypeClone::initialize(SVFModule svfModule) {
+    this->svfModule = svfModule;
+    FlowSensitive::initialize(svfModule);
+}
+
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
 
