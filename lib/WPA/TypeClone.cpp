@@ -5,6 +5,7 @@
  *      Author: Mohamad Barbar
  */
 
+#include "MemoryModel/CHA.h"
 #include "WPA/TypeClone.h"
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
@@ -147,8 +148,12 @@ bool TypeClone::isPod(TypeStr t) const {
 }
 
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {
-        // TODO
-        return false;
+    if (a == b) return true;
+
+    const CHGraph::CHNodeSetTy& aChildren = chg->getInstancesAndDescendants(a);
+    const CHNode *bNode = chg->getNode(b);
+    // If b is in the set of a's children, then a is a base type of b.
+    return aChildren.find(bNode) != aChildren.end();
 }
 
 TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {

@@ -13,6 +13,8 @@
 class TypeClone : public FlowSensitive {
 typedef std::string TypeStr;
 private:
+    CHGraph *chg = PointerAnalysis::getCHGraph();
+
     // undefined type == "".
     std::map<const NodeID, TypeStr> idToTypeMap;
     // Maps an object ID to the location it was "born" from cloning.
