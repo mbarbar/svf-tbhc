@@ -74,9 +74,6 @@ bool TypeClone::processCast(const CopySVFGNode *copy) {
     TypeStr toType = cppUtil::getNameFromType(castInst->getDestTy());
     TypeStr fromType = cppUtil::getNameFromType(castInst->getSrcTy());
 
-    llvm::outs() << "from: " << fromType << " was " << *(castInst->getSrcTy()) << "\n";
-    llvm::outs() << "to: " << toType << " was " << *(castInst->getDestTy()) << "\n";
-
     if (isPod(tilde(toType))) {
         return processPodCast(copy);
     } else {
@@ -99,15 +96,6 @@ bool TypeClone::processGep(const GepSVFGNode* edge) {
         const GetElementPtrInst *gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(inst);
         TypeStr srcType = cppUtil::getNameFromType(gepInst->getSourceElementType());
         TypeStr dstType = cppUtil::getNameFromType(gepInst->getResultElementType());
-    }
-
-
-
-
-    if (inst != NULL) {
-        llvm::outs() << *(edge->getInst()) << "!!\n";
-    } else {
-        llvm::outs() << "NULL!!\n";
     }
 
     PointsTo tmpDstPts;
