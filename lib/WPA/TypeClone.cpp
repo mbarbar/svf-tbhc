@@ -84,6 +84,72 @@ bool TypeClone::processCast(const CopySVFGNode *copy) {
 
 }
 
+bool TypeClone::processGep(const GepSVFGNode* edge) {
+    double start = stat->getClk();
+    bool changed = false;
+    const PointsTo& srcPts = getPts(edge->getPAGSrcNodeID());
+
+    const Instruction *inst = edge->getInst();
+    TypeStr srcType = UNDEF_TYPE;
+    TypeStr dstType = UNDEF_TYPE;
+    if (inst == NULL) {
+        // TODO TODO TODO: what to do?
+    } else {
+        const GetElementPtrInst *gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(inst);
+        TypeStr srcType = cppUtil::getNameFromType(gepInst->getSourceElementType());
+        TypeStr dstType = cppUtil::getNameFromType(gepInst->getResultElementType());
+    }
+
+
+
+
+    if (inst != NULL) {
+        llvm::outs() << *(edge->getInst()) << "!!\n";
+    } else {
+        llvm::outs() << "NULL!!\n";
+    }
+
+    PointsTo tmpDstPts;
+    for (PointsTo::iterator piter = srcPts.begin(); piter != srcPts.end(); ++piter) {
+        NodeID ptd = *piter;
+        if (isBlkObjOrConstantObj(ptd))
+            tmpDstPts.set(ptd);
+        else {
+            if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
+                setObjFieldInsensitive(ptd);
+                tmpDstPts.set(getFIObjNode(ptd));
+            }
+            else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
+                assert(idToTypeMap.find(ptd) != idToTypeMap.end() && "TypeClone: no type, not allocated?");
+                if (!isBase(tilde(srcType), idToTypeMap[ptd])) {
+                    // Incompatibility!
+                    continue;
+                }
+
+                NodeID fieldSrcPtdNode = getGepObjNode(ptd,	normalGep->getLocationSet());
+                // Give the object its attributes in case it was just created.
+                idToTypeMap[fieldSrcPtdNode] = tilde(dstType);
+                // It is not ideal that we might keep changing the alloc and
+                // clone points, but it doesn't matter because it's consistent
+                // for everyone that points to fieldSrcPtdNode.
+                idToAllocNodeMap[fieldSrcPtdNode] = edge->getId();
+                idToCloneNodeMap[fieldSrcPtdNode] = edge->getId();
+
+                tmpDstPts.set(fieldSrcPtdNode);
+            }
+            else
+                assert(false && "new gep edge?");
+        }
+    }
+
+    if (unionPts(edge->getPAGDstNodeID(), tmpDstPts))
+        changed = true;
+
+    double end = stat->getClk();
+    copyGepTime += (end - start) / TIMEINTERVAL;
+    return changed;
+}
+
 bool TypeClone::processPodCast(const CopySVFGNode *copy) {
     bool changed = false;
 

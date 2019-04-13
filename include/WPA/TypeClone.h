@@ -30,6 +30,8 @@ private:
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
     bool processCopy(const CopySVFGNode* copy) override;
+    bool processGep(const GepSVFGNode* edge) override;
+
     void initialize(SVFModule svfModule) override;
 
     // The following stay the same:
