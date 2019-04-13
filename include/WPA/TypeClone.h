@@ -11,7 +11,9 @@
 #include "WPA/FlowSensitive.h"
 
 class TypeClone : public FlowSensitive {
-typedef std::string TypeStr;
+    static const std::string UNDEF_TYPE;
+    typedef std::string TypeStr;
+
 private:
     SVFModule svfModule;
     CHGraph *chg = PointerAnalysis::getCHGraph();

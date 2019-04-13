@@ -10,6 +10,8 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+const std::string TypeClone::UNDEF_TYPE = "";
+
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
     FlowSensitive::initialize(svfModule);
@@ -30,11 +32,11 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
-        idToTypeMap[srcID] = "";
+        idToTypeMap[srcID] = UNDEF_TYPE;
         idToAllocNodeMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
-        assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
+        assert(idToTypeMap[srcID] != UNDEF_TYPE && "TypeClone: non-heap does not have a type?");
     }
 
     double end = stat->getClk();
@@ -89,7 +91,7 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
         assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
         TypeStr oType = idToTypeMap[*o];
 
-        if (oType == "") {
+        if (oType == UNDEF_TYPE) {
             // POD-UNDEF-CAST
             NodeID clone = pag->addDummyObjNode();
             idToTypeMap[clone] = tilde(toType);
@@ -132,7 +134,7 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
         TypeStr oType = idToTypeMap[*o];
 
         //  CAST-UNDEF      CAST-TYPED
-        if (oType == "" || isBase(tilde(toType), oType)) {
+        if (oType == UNDEF_TYPE || isBase(tilde(toType), oType)) {
             changed = changed || addPts(dstId, *o);
         } else {
             // DON'T PROPAGATE!
