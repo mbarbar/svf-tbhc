@@ -12,6 +12,7 @@
 
 class TypeClone : public FlowSensitive {
     static const std::string UNDEF_TYPE;
+    static const std::string VOID_TYPE;
     typedef std::string TypeStr;
 
 private:

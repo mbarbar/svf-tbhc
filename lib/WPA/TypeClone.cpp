@@ -11,6 +11,7 @@
 #include "Util/CPPUtil.h"
 
 const std::string TypeClone::UNDEF_TYPE = "";
+const std::string TypeClone::VOID_TYPE = "i8";
 
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
@@ -175,7 +176,7 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
             changed = changed || addPts(dstId, clone);
             // Removing should not affect changed...
             getPts(dstId).reset(*o);
-        } else if (isBase(tilde(toType), oType)) {
+        } else if (isBase(tilde(toType), oType) || tilde(toType) == VOID_TYPE) {
             // POD-UPCAST
             changed = changed || addPts(dstId, *o);
         } else if (isBase(oType, tilde(toType))) {
@@ -206,8 +207,8 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
         assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
         TypeStr oType = idToTypeMap[*o];
 
-        //  CAST-UNDEF      CAST-TYPED
-        if (oType == UNDEF_TYPE || isBase(tilde(toType), oType)) {
+        //  CAST-UNDEF              CAST-TYPED
+        if (oType == UNDEF_TYPE || (isBase(tilde(toType), oType) || tilde(toType) == VOID_TYPE) {
             changed = changed || addPts(dstId, *o);
         } else {
             // DON'T PROPAGATE!
@@ -227,9 +228,9 @@ bool TypeClone::isPod(TypeStr t) const {
 }
 
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {
-    if (chg->getNode(a) == NULL || chg->getNode(b) == NULL) return false;
-
     if (a == b) return true;
+
+    if (chg->getNode(a) == NULL || chg->getNode(b) == NULL) return false;
 
     const CHGraph::CHNodeSetTy& aChildren = chg->getInstancesAndDescendants(a);
     const CHNode *bNode = chg->getNode(b);
