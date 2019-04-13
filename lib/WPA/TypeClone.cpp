@@ -14,6 +14,8 @@ const std::string TypeClone::UNDEF_TYPE = "";
 
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
+    chg = new CHGraph(svfModule);
+    chg->buildCHG();
     FlowSensitive::initialize(svfModule);
 }
 
@@ -155,6 +157,8 @@ bool TypeClone::isPod(TypeStr t) const {
 }
 
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {
+    if (chg->getNode(a) == NULL || chg->getNode(b) == NULL) return false;
+
     if (a == b) return true;
 
     const CHGraph::CHNodeSetTy& aChildren = chg->getInstancesAndDescendants(a);

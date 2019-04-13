@@ -16,7 +16,7 @@ class TypeClone : public FlowSensitive {
 
 private:
     SVFModule svfModule;
-    CHGraph *chg = PointerAnalysis::getCHGraph();
+    CHGraph *chg;
 
     // undefined type == "".
     std::map<const NodeID, TypeStr> idToTypeMap;
