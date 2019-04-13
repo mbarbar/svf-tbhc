@@ -32,6 +32,7 @@ protected:
     bool processAddr(const AddrSVFGNode* addr) override;
     bool processCopy(const CopySVFGNode* copy) override;
     bool processGep(const GepSVFGNode* edge) override;
+    bool propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) override;
 
     void initialize(SVFModule svfModule) override;
 

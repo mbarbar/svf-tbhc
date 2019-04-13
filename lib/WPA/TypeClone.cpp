@@ -139,6 +139,28 @@ bool TypeClone::processGep(const GepSVFGNode* edge) {
     return changed;
 }
 
+bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) {
+    if (const FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(dst)) {
+        bool changed;
+        const Function *fn = fp->getFun();
+        NodeID pagDst = fp->getParam()->getId();
+        const Argument *actualParam = SVFUtil::dyn_cast<Argument>(pag->getPAGNode(pagDst)->getValue());
+
+        if (cppUtil::isConstructor(fn) && actualParam->getArgNo() == 0) {
+            // CONSTRUCTOR
+        } else {
+            // Normal call.
+            const PointsTo &srcCPts = getPts(ap->getParam()->getId());
+            changed = unionPts(pagDst, srcCPts);
+        }
+
+        return changed;
+    } else {
+        assert(false && "expecting a formal param node");
+        return false;
+    }
+}
+
 bool TypeClone::processPodCast(const CopySVFGNode *copy) {
     bool changed = false;
 
