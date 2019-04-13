@@ -196,7 +196,7 @@ bool TypeClone::processFancyCast(const CopySVFGNode *copy) {
         TypeStr oType = idToTypeMap[*o];
 
         //  CAST-UNDEF              CAST-TYPED
-        if (oType == UNDEF_TYPE || (isBase(tilde(toType), oType) || tilde(toType) == VOID_TYPE) {
+        if (oType == UNDEF_TYPE || (isBase(tilde(toType), oType) || tilde(toType) == VOID_TYPE)) {
             changed = changed || addPts(dstId, *o);
         } else {
             // DON'T PROPAGATE!
