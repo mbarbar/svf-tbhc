@@ -24,6 +24,8 @@ private:
     std::map<const NodeID, NodeID> idToCloneNodeMap;
     // Maps an object ID to the location it was *actually* allocated at.
     std::map<const NodeID, NodeID> idToAllocNodeMap;
+    // Maps types to whether they have a constructor or not.
+    std::set<TypeStr> nonPodTypes;
 
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
@@ -47,6 +49,8 @@ private:
     bool processCast(const CopySVFGNode *copy);
     bool processPodCast(const CopySVFGNode *copy);
     bool processFancyCast(const CopySVFGNode *copy);
+
+    void findNonPodTypes(void);
 };
 
 #endif  // TYPECLONE_H_

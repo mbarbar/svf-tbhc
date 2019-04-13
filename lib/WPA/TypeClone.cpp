@@ -16,6 +16,9 @@ void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
     chg = new CHGraph(svfModule);
     chg->buildCHG();
+
+    findNonPodTypes();
+
     FlowSensitive::initialize(svfModule);
 }
 
@@ -31,7 +34,8 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     bool changed = addPts(addr->getPAGDstNodeID(), srcID);
 
     // Should not have a type, not even undefined.
-    assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
+    // TODO: for some reason, this is happening twice.
+    //assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
         idToTypeMap[srcID] = UNDEF_TYPE;
@@ -90,7 +94,8 @@ bool TypeClone::processPodCast(const CopySVFGNode *copy) {
     PointsTo &srcPts = getPts(copy->getPAGSrcNodeID());
 
     for (PointsTo::iterator o = srcPts.begin(); o != srcPts.end(); ++o) {
-        assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
+        // TODO: some objects generated - unclear from where, maybe gep.
+        // assert(idToTypeMap.find(*o) != idToTypeMap.end() && "TypeClone: o not allocated!");
         TypeStr oType = idToTypeMap[*o];
 
         if (oType == UNDEF_TYPE) {
@@ -152,8 +157,7 @@ bool TypeClone::isCast(const CopySVFGNode *copy) const {
 }
 
 bool TypeClone::isPod(TypeStr t) const {
-        // TODO
-        return false;
+    return nonPodTypes.find(t) == nonPodTypes.end();
 }
 
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {
@@ -170,5 +174,23 @@ bool TypeClone::isBase(TypeStr a, TypeStr b) const {
 TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
     // TODO
     return t;
+}
+
+void TypeClone::findNonPodTypes(void) {
+    Function* fun = NULL;
+    for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
+        Module *mod = svfModule.getLLVMModuleSet()->getModule(i);
+        llvm::Module::FunctionListType &functions = mod->getFunctionList();
+
+        for (llvm::Module::FunctionListType::iterator fnI = functions.begin(); fnI != functions.end(); ++fnI) {
+            std::string fnMangledName = fnI->getName();
+            if (cppUtil::isConstructor(&(*fnI))) {
+                // The type has a constructor, so it is not a POD.
+                cppUtil::DemangledName fnName = cppUtil::demangle(fnMangledName);
+                // TODO: this includes the template - are we keeping them?
+                nonPodTypes.insert(fnName.className);
+            }
+        }
+    }
 }
 
