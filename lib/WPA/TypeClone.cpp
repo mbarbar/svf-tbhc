@@ -63,7 +63,7 @@ bool TypeClone::processDeref(const SVFGNode *deref) {
     // TODO
 }
 
-void TypeClone::backPropagate(NodeID o) {
+void TypeClone::baseBackPropagate(NodeID o) {
     NodeID allocId = idToAllocNodeMap[o];
     assert(allocId != 0 && "Allocation site never set!");
     SVFGNode *allocNode = getSVFGNode(allocId);

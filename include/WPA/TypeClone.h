@@ -31,7 +31,7 @@ protected:
     bool processStore(const StoreSVFGNode* store) override;
     virtual bool processDeref(const SVFGNode *deref);
 
-    virtual void backPropagate(NodeID o);
+    virtual void baseBackPropagate(NodeID o);
 
 
     virtual void initialize(SVFModule svfModule) override;
