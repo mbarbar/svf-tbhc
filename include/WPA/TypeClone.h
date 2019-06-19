@@ -29,7 +29,7 @@ protected:
     bool processGep(const GepSVFGNode* edge) override;
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
-    virtual bool processDeref(const SVFGNode *deref);
+    virtual bool processDeref(const NodeID ptrId);
 
     virtual void baseBackPropagate(NodeID o);
 
