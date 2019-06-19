@@ -1,4 +1,4 @@
-
+/*
  * TypeClone.h
  *
  *  Created on: Apr 09, 2019
@@ -29,7 +29,6 @@ protected:
     bool processGep(const GepSVFGNode* edge) override;
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
-    // TODO: bool return necessary?
     virtual bool processDeref(const SVFGNode *deref);
 
     virtual void backPropagate(NodeID o);
