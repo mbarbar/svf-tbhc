@@ -10,6 +10,8 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+const std::string UNDEF_TYPE = "";
+
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
     FlowSensitive::initialize(svfModule);
@@ -60,7 +62,27 @@ bool TypeClone::processStore(const StoreSVFGNode* store) {
 }
 
 bool TypeClone::processDeref(const NodeID ptrId) {
-    return false;
+    PointsTo &ptrPt = getPts(ptrId);
+    TypeStr t = staticType(ptrId);
+    bool changed = false;
+
+    for (PointTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
+        NodeID o = *oI;
+        TypeStr tp = T(o);
+        if (T(o) == UNDEF_TYPE) {
+            // DEREF-UNTYPED
+        } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
+            // DEREF-DOWN
+
+        } else if (isBase(tilde(t), tp) || tilde(t) == tp || tilde(t) = UNDEF_TYPE) {
+            // DEREF-UP
+
+        } else {
+            assert(false && "FAILURE!");
+        }
+    }
+
+    return changed;
 }
 
 void TypeClone::baseBackPropagate(NodeID o) {
@@ -83,5 +105,14 @@ bool TypeClone::isBase(TypeStr a, TypeStr b) const {
 TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
     // TODO
     return t;
+}
+
+TypeClone::TypeStr TypeClone::T(NodeID n) const {
+    return idToTypeMap[n];
+}
+
+TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
+    // TODO.
+    return UNDEF_TYPE;
 }
 

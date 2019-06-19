@@ -11,7 +11,11 @@
 #include "WPA/FlowSensitive.h"
 
 class TypeClone : public FlowSensitive {
-typedef std::string TypeStr;
+public:
+    typedef std::string TypeStr;
+
+    static const std::string UNDEF_TYPE;
+
 private:
     SVFModule svfModule;
     CHGraph *chg = PointerAnalysis::getCHGraph();
@@ -29,7 +33,11 @@ protected:
     bool processGep(const GepSVFGNode* edge) override;
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
+
     virtual bool processDeref(const NodeID ptrId);
+    virtual bool processDerefUntyped(const NodeID ptrId);
+    virtual bool processDerefUp(const NodeID ptrId);
+    virtual bool processDerefDown(const NodeID ptrId);
 
     virtual void baseBackPropagate(NodeID o);
 
@@ -42,6 +50,11 @@ private:
     bool isBase(TypeStr a, TypeStr b) const;
     // Returns pointee type of t.
     TypeStr tilde(TypeStr t) const;
+
+    TypeStr T(NodeID n) const;
+
+    /// Returns the static type of a pointer.
+    TypeStr staticType(NodeID p) const;
 };
 
 #endif  // TYPECLONE_H_
