@@ -23,9 +23,15 @@ private:
     // undefined type == "".
     std::map<const NodeID, TypeStr> idToTypeMap;
     // Maps an object ID to the location it was "born" from cloning.
-    std::map<const NodeID, NodeID> idToCloneNodeMap;
+    std::map<const NodeID, NodeID> idToCloneLocMap;
     // Maps an object ID to the location it was *actually* allocated at.
-    std::map<const NodeID, NodeID> idToAllocNodeMap;
+    std::map<const NodeID, NodeID> idToAllocLocMap;
+
+    // Maps a standard object to all the clones made from it.
+    // pagObjectId -> (svfgId -> pagObjId)
+    // i.e. untyped object gives you a map which maps initialisation points to
+    // clone made at that initialisation point.
+    std::map<const NodeID, std::map<NodeID, NodeID>> idToClonesMap;
 
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
@@ -34,10 +40,7 @@ protected:
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
 
-    virtual bool processDeref(const NodeID ptrId);
-    virtual bool processDerefUntyped(const NodeID ptrId);
-    virtual bool processDerefUp(const NodeID ptrId);
-    virtual bool processDerefDown(const NodeID ptrId);
+    virtual bool processDeref(const SVFGNode *stmt, const NodeID ptrId);
 
     virtual void baseBackPropagate(NodeID o);
 
@@ -45,6 +48,8 @@ protected:
     virtual void initialize(SVFModule svfModule) override;
 
 private:
+    NodeID clone(const NodeID o, SVFGNode *cloneLoc, TypeStr type);
+    NodeID getCloneObject(const NodeID o, SVFGNode *cloneLoc) const;
 
     // Returns true if a is a transitive base type of b, or a == b.
     bool isBase(TypeStr a, TypeStr b) const;

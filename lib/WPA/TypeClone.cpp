@@ -46,22 +46,22 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 }
 
 bool TypeClone::processGep(const GepSVFGNode* gep) {
-    processDeref(gep->getPAGSrcNodeID());  // TODO: double check.
+    processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
     return FlowSensitive::processGep(gep);
     // TODO: this will probably change more substantially.
 }
 
 bool TypeClone::processLoad(const LoadSVFGNode* load) {
-    processDeref(load->getPAGSrcNodeID());
+    processDeref(load, load->getPAGSrcNodeID());
     return FlowSensitive::processLoad(load);
 }
 
 bool TypeClone::processStore(const StoreSVFGNode* store) {
-    processDeref(store->getPAGDstNodeID());
+    processDeref(store, store->getPAGDstNodeID());
     return FlowSensitive::processStore(store);
 }
 
-bool TypeClone::processDeref(const NodeID ptrId) {
+bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     PointsTo &ptrPt = getPts(ptrId);
     TypeStr t = staticType(ptrId);
     bool changed = false;
@@ -71,6 +71,7 @@ bool TypeClone::processDeref(const NodeID ptrId) {
         TypeStr tp = T(o);
         if (T(o) == UNDEF_TYPE) {
             // DEREF-UNTYPED
+            gT
         } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
             // DEREF-DOWN
 
@@ -114,5 +115,23 @@ TypeClone::TypeStr TypeClone::T(NodeID n) const {
 TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
     // TODO.
     return UNDEF_TYPE;
+}
+
+NodeID TypeClone::getCloneObject(const NodeID o, SVFGNode *cloneLoc) const {
+    return idToClonesMap[o][cloneLoc->getId()];
+}
+
+NodeID TypeClone::cloneObject(const NodeID o, SVFGNode *cloneLoc, TypeStr type) {
+    // Clone created.
+    NodeID cloneId = pag->addDummyObjNode();
+
+    // Attributes of the clone
+    idToTypeMap[cloneId] = type;
+    idToCloneLocMap[cloneId] = cloneLoc->getId();
+
+    // Track the clone
+    idToClonesMap[o][cloneLoc->getId()] = cloneId;
+
+    return cloneId;
 }
 
