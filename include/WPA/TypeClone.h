@@ -33,6 +33,8 @@ private:
     // clone made at that initialisation point.
     std::map<const NodeID, std::map<NodeID, NodeID>> idToClonesMap;
 
+    std::map<NodeID, NodeID> cloneToBaseMap;
+
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
 

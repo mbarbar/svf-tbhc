@@ -66,24 +66,44 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     TypeStr t = staticType(ptrId);
     bool changed = false;
 
+    PointsTo tmp;
     for (PointTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
         NodeID o = *oI;
         TypeStr tp = T(o);
+        NodeID prop = 0;
+
         if (T(o) == UNDEF_TYPE) {
             // DEREF-UNTYPED
-            gT
+            NodeID cloneId = getCloneObject(o, stmt);
+            if (cloneId == 0) {
+                cloneId = cloneObject(o, stmt, tilde(t));
+            }
+
+            prop = cloneId;
         } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
             // DEREF-DOWN
+            // We want the absolute base of o (which is a clone).
+            NodeID base = cloneToBaseMap[o];
+            assert(base && "not looking at a clone?!");
 
+            NodeID downCloneId = getCloneObject(base, stmt);
+            if (cloneId == 0) {
+                downCloneId = cloneObject(base, stmt, tilde(t));
+            }
+
+            prop = cloneId;
         } else if (isBase(tilde(t), tp) || tilde(t) == tp || tilde(t) = UNDEF_TYPE) {
             // DEREF-UP
-
+            prop = o;
         } else {
             assert(false && "FAILURE!");
         }
+
+        assert(prop && "propagating nothing?!");
+        tmp.set(prop);
     }
 
-    return changed;
+    return ptrPt |= tmp;
 }
 
 void TypeClone::baseBackPropagate(NodeID o) {
@@ -131,6 +151,9 @@ NodeID TypeClone::cloneObject(const NodeID o, SVFGNode *cloneLoc, TypeStr type) 
 
     // Track the clone
     idToClonesMap[o][cloneLoc->getId()] = cloneId;
+
+    // Reverse tracking.
+    cloneToBaseMap[cloneId] = o;
 
     return cloneId;
 }
