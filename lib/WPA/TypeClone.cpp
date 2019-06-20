@@ -43,19 +43,19 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 }
 
 bool TypeClone::processGep(const GepSVFGNode* gep) {
-    processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
-    return FlowSensitive::processGep(gep);
+    bool derefChanged = processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
+    return derefChanged || FlowSensitive::processGep(gep);
     // TODO: this will probably change more substantially.
 }
 
 bool TypeClone::processLoad(const LoadSVFGNode* load) {
-    processDeref(load, load->getPAGSrcNodeID());
-    return FlowSensitive::processLoad(load);
+    bool derefChanged = processDeref(load, load->getPAGSrcNodeID());
+    return derefChanged || FlowSensitive::processLoad(load);
 }
 
 bool TypeClone::processStore(const StoreSVFGNode* store) {
-    processDeref(store, store->getPAGDstNodeID());
-    return FlowSensitive::processStore(store);
+    bool derefChanged = processDeref(store, store->getPAGDstNodeID());
+    return derefChanged || FlowSensitive::processStore(store);
 }
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
