@@ -58,6 +58,7 @@ set(SOURCES
     WPA/AndersenWaveDiffWithType.cpp
     WPA/FlowSensitive.cpp
     WPA/FlowSensitiveStat.cpp
+    WPA/TypeClone.cpp
     WPA/TypeAnalysis.cpp
     WPA/WPAPass.cpp
     DDA/ContextDDA.cpp

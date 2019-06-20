@@ -10,6 +10,8 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+// TODO: add back all the timers.
+
 const std::string UNDEF_TYPE = "";
 
 void TypeClone::initialize(SVFModule svfModule) {
@@ -18,8 +20,6 @@ void TypeClone::initialize(SVFModule svfModule) {
 }
 
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
-    double start = stat->getClk();
-
     NodeID srcID = addr->getPAGSrcNodeID();
     /// TODO: see FieldSensitive::processAddr
     if (isFieldInsensitive(srcID)) {
@@ -33,14 +33,11 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
         idToTypeMap[srcID] = "";
-        idToAllocNodeMap[srcID] = addr->getId();
+        idToAllocLocMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
         assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
     }
-
-    double end = stat->getClk();
-    addrTime += (end - start) / TIMEINTERVAL;
 
     return changed;
 }
@@ -67,7 +64,7 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     bool changed = false;
 
     PointsTo tmp;
-    for (PointTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
+    for (PointsTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
         NodeID o = *oI;
         TypeStr tp = T(o);
         NodeID prop = 0;
@@ -87,12 +84,12 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
             assert(base && "not looking at a clone?!");
 
             NodeID downCloneId = getCloneObject(base, stmt);
-            if (cloneId == 0) {
+            if (downCloneId == 0) {
                 downCloneId = cloneObject(base, stmt, tilde(t));
             }
 
-            prop = cloneId;
-        } else if (isBase(tilde(t), tp) || tilde(t) == tp || tilde(t) = UNDEF_TYPE) {
+            prop = downCloneId;
+        } else if (isBase(tilde(t), tp) || tilde(t) == tp || tilde(t) == UNDEF_TYPE) {
             // DEREF-UP
             prop = o;
         } else {
@@ -107,10 +104,12 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
 }
 
 bool TypeClone::baseBackPropagate(NodeID o) {
-    NodeID allocId = idToAllocNodeMap[o];
+    NodeID allocId = idToAllocLocMap[o];
     assert(allocId != 0 && "Allocation site never set!");
-    SVFGNode *allocNode = getSVFGNode(allocId);
-    NodeID allocAssigneeId = allocNode->getPAGDstNodeID();
+    SVFGNode *node = svfg->getSVFGNode(allocId);
+    AddrSVFGNode *allocNode = SVFUtil::dyn_cast<AddrSVFGNode>(node);
+    assert(allocNode && "Allocation site incorrectly set!");
+    NodeID allocAssigneeId = allocNode->getPAGDstNode()->getId();
 
     bool changed = getPts(allocAssigneeId).test_and_set(o);
     return changed;
@@ -131,7 +130,11 @@ TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
 }
 
 TypeClone::TypeStr TypeClone::T(NodeID n) const {
-    return idToTypeMap[n];
+    if (idToTypeMap.find(n) != idToTypeMap.end()) {
+        return idToTypeMap.at(n);
+    } else {
+        return UNDEF_TYPE;
+    }
 }
 
 TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
@@ -139,11 +142,11 @@ TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
     return UNDEF_TYPE;
 }
 
-NodeID TypeClone::getCloneObject(const NodeID o, SVFGNode *cloneLoc) const {
+NodeID TypeClone::getCloneObject(const NodeID o, const SVFGNode *cloneLoc) {
     return idToClonesMap[o][cloneLoc->getId()];
 }
 
-NodeID TypeClone::cloneObject(const NodeID o, SVFGNode *cloneLoc, TypeStr type) {
+NodeID TypeClone::cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr type) {
     // Clone created.
     NodeID cloneId = pag->addDummyObjNode();
 

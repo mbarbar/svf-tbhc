@@ -21,17 +21,17 @@ private:
     CHGraph *chg = PointerAnalysis::getCHGraph();
 
     // undefined type == "".
-    std::map<const NodeID, TypeStr> idToTypeMap;
+    std::map<NodeID, TypeStr> idToTypeMap;
     // Maps an object ID to the location it was "born" from cloning.
-    std::map<const NodeID, NodeID> idToCloneLocMap;
+    std::map<NodeID, NodeID> idToCloneLocMap;
     // Maps an object ID to the location it was *actually* allocated at.
-    std::map<const NodeID, NodeID> idToAllocLocMap;
+    std::map<NodeID, NodeID> idToAllocLocMap;
 
     // Maps a standard object to all the clones made from it.
     // pagObjectId -> (svfgId -> pagObjId)
     // i.e. untyped object gives you a map which maps initialisation points to
     // clone made at that initialisation point.
-    std::map<const NodeID, std::map<NodeID, NodeID>> idToClonesMap;
+    std::map<NodeID, std::map<NodeID, NodeID>> idToClonesMap;
 
     std::map<NodeID, NodeID> cloneToBaseMap;
 
@@ -50,8 +50,9 @@ protected:
     virtual void initialize(SVFModule svfModule) override;
 
 private:
-    NodeID clone(const NodeID o, SVFGNode *cloneLoc, TypeStr type);
-    NodeID getCloneObject(const NodeID o, SVFGNode *cloneLoc) const;
+    NodeID cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr type);
+    // Not const because the map might create objects (and that's fine).
+    NodeID getCloneObject(const NodeID o, const SVFGNode *cloneLoc);
 
     // Returns true if a is a transitive base type of b, or a == b.
     bool isBase(TypeStr a, TypeStr b) const;
