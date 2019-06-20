@@ -106,12 +106,14 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     return ptrPt |= tmp;
 }
 
-void TypeClone::baseBackPropagate(NodeID o) {
+bool TypeClone::baseBackPropagate(NodeID o) {
     NodeID allocId = idToAllocNodeMap[o];
     assert(allocId != 0 && "Allocation site never set!");
     SVFGNode *allocNode = getSVFGNode(allocId);
     NodeID allocAssigneeId = allocNode->getPAGDstNodeID();
-    getPts(allocAssigneeId).set(o);
+
+    bool changed = getPts(allocAssigneeId).test_and_set(o);
+    return changed;
 }
 
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {

@@ -44,7 +44,7 @@ protected:
 
     virtual bool processDeref(const SVFGNode *stmt, const NodeID ptrId);
 
-    virtual void baseBackPropagate(NodeID o);
+    virtual bool baseBackPropagate(NodeID o);
 
 
     virtual void initialize(SVFModule svfModule) override;
