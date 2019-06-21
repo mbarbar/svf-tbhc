@@ -35,6 +35,10 @@ private:
 
     std::map<NodeID, NodeID> cloneToBaseMap;
 
+    /// Maps every allocation to the globals they flow to (path ends at
+    /// the first global).
+    std::map<NodeID, std::set<NodeID>> allocToGlobalsMap;
+
 protected:
     bool processAddr(const AddrSVFGNode* addr) override;
 
@@ -63,6 +67,9 @@ private:
 
     /// Returns the static type of a pointer.
     TypeStr staticType(NodeID p) const;
+
+    /// Fills the allocToGlobalsMap.
+    void findAllocGlobals(void);
 };
 
 #endif  // TYPECLONE_H_

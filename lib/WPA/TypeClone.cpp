@@ -16,6 +16,7 @@ const std::string UNDEF_TYPE = "";
 
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
+    findAllocGlobals();
     FlowSensitive::initialize(svfModule);
 }
 
@@ -161,5 +162,20 @@ NodeID TypeClone::cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr 
     cloneToBaseMap[cloneId] = o;
 
     return cloneId;
+}
+
+void TypeClone::findAllocGlobals(void) {
+    for (SVFG::iterator svfgNodeI = svfg->begin(); svfgNodeI != svfg->end(); ++svfgNodeI) {
+        if (!SVFUtil::isa<AddrSVFGNode>(*svfgNodeI)) {
+            // We are only looking for nodes reachable by allocation sites.
+            continue;
+        }
+
+        AddrSVFGNode *addrSvfgNode = SVFUtil::dyn_cast<AddrSVFGNode>(*svfgNodeI);
+        std::queue<NodeID> bfsQueue;
+        bfsQueue.push(addrSVFGNode->getId());
+        while (!bfsQueue.empty()) {
+        }
+    }
 }
 
