@@ -70,6 +70,8 @@ private:
 
     /// Fills the allocToGlobalsMap.
     void findAllocGlobals(void);
+    /// Returns true if in n, a global or heap object is being defined.
+    bool glob(NodeID svfgNodeId);
 };
 
 #endif  // TYPECLONE_H_

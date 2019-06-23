@@ -10,6 +10,8 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+#include <queue>
+
 // TODO: add back all the timers.
 
 const std::string UNDEF_TYPE = "";
@@ -171,11 +173,36 @@ void TypeClone::findAllocGlobals(void) {
             continue;
         }
 
-        AddrSVFGNode *addrSvfgNode = SVFUtil::dyn_cast<AddrSVFGNode>(*svfgNodeI);
-        std::queue<NodeID> bfsQueue;
-        bfsQueue.push(addrSVFGNode->getId());
-        while (!bfsQueue.empty()) {
-        }
+        AddrSVFGNode *addrSvfgNode = &(SVFUtil::dyn_cast<AddrSVFGNode>(*svfgNodeI));
+        std::set<NodeID> seen;
+        std::queue<NodeID> bfs;
+
+        bfs.push(addrSvfgNode->getId());
+        do {
+            NodeID curr = bfs.front();
+            bfs.pop();
+            seen.insert(curr);
+
+            if (glob(curr)) {
+                // Found a global which alloc flows to.
+                allocToGlobalsMap[addrSvfgNode->getId()].insert(curr);
+            } else {
+                // Keep looking.
+                SVFGNode *currNode = svfg->getSVFGNode(curr);
+                for (SVFGEdge::SVFGEdgeSetTy::iterator edgeI = currNode->getOutEdges().begin(); edgeI != currNode->getOutEdges().end(); ++edgeI) {
+                    NodeID next = (*edgeI)->getDstID();
+                    if (seen.find(next) != seen.end()) {
+                        continue;
+                    }
+
+                    bfs.push(next);
+                }
+            }
+        } while (!bfs.empty());
     }
+}
+
+bool glob(NodeID svfgNodeId) {
+    return false;
 }
 
