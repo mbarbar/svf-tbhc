@@ -59,6 +59,46 @@ bool TypeClone::processStore(const StoreSVFGNode* store) {
     return derefChanged || FlowSensitive::processStore(store);
 }
 
+bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) {
+    const FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(dst);
+    assert(fp && "not a formal param node?!");
+
+    NodeID pagDst = fp->getParam()->getId();
+    PointsTo &srcCPts = getPts(ap->getParam()->getId());
+    PointsTo &dstCPts = getPts(pagDst);
+
+    const Argument *arg = SVFUtil::dyn_cast<Argument>(fp->getParam()->getValue());
+    assert(arg && "Not an argument?!");
+    const Function *f = arg->getParent();
+
+    bool changed = false;
+    if (cppUtil::isConstructor(f) && arg->getArgNo() == 0) {
+        // Passing `this` argument - clone some of the objects.
+        for (PointsTo::iterator oI = srcCPts.begin(); oI != srcCPts.end(); ++oI) {
+            NodeID o = *oI;
+            // Propagate o, UNLESS we need to clone.
+            NodeID prop = o;
+
+            if (T(o) == UNDEF_TYPE) {
+                // CALL-CONS
+                prop = getCloneObject(o, ap);
+                if (prop == 0) {
+                    // The arguments static type is what we are initialising to.
+                    TypeStr t = cppUtil::getNameFromType(arg->getType());
+                    prop = cloneObject(o, ap, t);
+                }
+            }
+
+            changed = changed || dstCPts.test_and_set(prop);
+        }
+    } else {
+        // Standard case, not a constructor's `this`.
+        changed = unionPts(pagDst, srcCPts);
+    }
+
+    return changed;
+}
+
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     PointsTo &ptrPt = getPts(ptrId);
     TypeStr t = staticType(ptrId);
