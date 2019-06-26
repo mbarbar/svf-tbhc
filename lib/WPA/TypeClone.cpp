@@ -5,6 +5,8 @@
  *      Author: Mohamad Barbar
  */
 
+#include <queue>
+
 #include "MemoryModel/CHA.h"
 #include "WPA/TypeClone.h"
 #include "WPA/WPAStat.h"
@@ -206,12 +208,12 @@ NodeID TypeClone::cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr 
 
 void TypeClone::findAllocGlobals(void) {
     for (SVFG::iterator svfgNodeI = svfg->begin(); svfgNodeI != svfg->end(); ++svfgNodeI) {
-        if (!SVFUtil::isa<AddrSVFGNode>(*svfgNodeI)) {
+        if (!SVFUtil::isa<AddrSVFGNode>(svfgNodeI->second)) {
             // We are only looking for nodes reachable by allocation sites.
             continue;
         }
 
-        AddrSVFGNode *addrSvfgNode = SVFUtil::dyn_cast<AddrSVFGNode>(*svfgNodeI);
+        AddrSVFGNode *addrSVFGNode = SVFUtil::dyn_cast<AddrSVFGNode>(svfgNodeI->second);
         std::queue<NodeID> bfsQueue;
         bfsQueue.push(addrSVFGNode->getId());
         while (!bfsQueue.empty()) {
