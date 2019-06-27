@@ -46,7 +46,8 @@ protected:
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
 
-    virtual bool propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst);
+    virtual bool propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) override;
+    virtual bool propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SVFGNode* dst) override;
 
     virtual bool processDeref(const SVFGNode *stmt, const NodeID ptrId);
 

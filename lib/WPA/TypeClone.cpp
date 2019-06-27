@@ -39,6 +39,7 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
         idToAllocLocMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
+        idToAllocLocMap[srcID] = addr->getId();
         assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
     }
 
@@ -99,6 +100,29 @@ bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode
     }
 
     return changed;
+}
+
+bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SVFGNode* dst) {
+    const PointsTo &srcPts = getPts(0);  // TODO: get the points-to set!!
+    NodeID varAllocLoc = idToAllocLocMap[var];
+
+    // TODO: can be easily optimised.
+    for (PointsTo::iterator oI = srcPts.begin(); oI != srcPts.end(); ++oI) {
+        NodeID o = *oI;
+        if (idToAllocLocMap[*oI] == varAllocLoc) {
+            bool changed = false;
+            if (SVFUtil::isa<StoreSVFGNode>(src)) {
+                if (updateInFromOut(src, o, dst, o))
+                    changed = true;
+            }
+            else {
+                if (updateInFromIn(src, o, dst, o))
+                    changed = true;
+            }
+            return changed;
+        }
+    }
+
 }
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
