@@ -94,6 +94,13 @@ bool VCallInCtorOrDtor(CallSite cs);
  *  this and this1 are the same thisPtr in the constructor
  */
 bool isSameThisPtrInConstructor(const Argument* thisPtr1, const Value* thisPtr2);
+
+/// Removes any templates from name.
+std::string removeTemplatesFromName(const std::string name);
+/// Returns string representation of ty.
+std::string getNameFromType(const Type *ty);
 }
+
+
 
 #endif /* CPPUtil_H_ */
