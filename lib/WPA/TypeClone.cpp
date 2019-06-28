@@ -239,7 +239,7 @@ void TypeClone::findAllocGlobals(void) {
             continue;
         }
 
-        AddrSVFGNode *addrSvfgNode = &(SVFUtil::dyn_cast<AddrSVFGNode>(*svfgNodeI));
+        AddrSVFGNode *addrSvfgNode = SVFUtil::dyn_cast<AddrSVFGNode>(svfgNodeI->second);
         std::set<NodeID> seen;
         std::queue<NodeID> bfs;
 
