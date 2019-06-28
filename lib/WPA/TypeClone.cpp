@@ -5,6 +5,8 @@
  *      Author: Mohamad Barbar
  */
 
+#include <queue>
+
 #include "MemoryModel/CHA.h"
 #include "WPA/TypeClone.h"
 #include "WPA/WPAStat.h"
@@ -39,6 +41,7 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
         idToAllocLocMap[srcID] = addr->getId();
     } else {
         idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
+        idToAllocLocMap[srcID] = addr->getId();
         assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
     }
 
@@ -59,6 +62,69 @@ bool TypeClone::processLoad(const LoadSVFGNode* load) {
 bool TypeClone::processStore(const StoreSVFGNode* store) {
     bool derefChanged = processDeref(store, store->getPAGDstNodeID());
     return derefChanged || FlowSensitive::processStore(store);
+}
+
+bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) {
+    const FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(dst);
+    assert(fp && "not a formal param node?!");
+
+    NodeID pagDst = fp->getParam()->getId();
+    PointsTo &srcCPts = getPts(ap->getParam()->getId());
+    PointsTo &dstCPts = getPts(pagDst);
+
+    const Argument *arg = SVFUtil::dyn_cast<Argument>(fp->getParam()->getValue());
+    assert(arg && "Not an argument?!");
+    const Function *f = arg->getParent();
+
+    bool changed = false;
+    if (cppUtil::isConstructor(f) && arg->getArgNo() == 0) {
+        // Passing `this` argument - clone some of the objects.
+        for (PointsTo::iterator oI = srcCPts.begin(); oI != srcCPts.end(); ++oI) {
+            NodeID o = *oI;
+            // Propagate o, UNLESS we need to clone.
+            NodeID prop = o;
+
+            if (T(o) == UNDEF_TYPE) {
+                // CALL-CONS
+                prop = getCloneObject(o, ap);
+                if (prop == 0) {
+                    // The arguments static type is what we are initialising to.
+                    TypeStr t = cppUtil::getNameFromType(arg->getType());
+                    prop = cloneObject(o, ap, t);
+                }
+            }
+
+            changed = changed || dstCPts.test_and_set(prop);
+        }
+    } else {
+        // Standard case, not a constructor's `this`.
+        changed = unionPts(pagDst, srcCPts);
+    }
+
+    return changed;
+}
+
+bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SVFGNode* dst) {
+    const PointsTo &srcPts = getPts(0);  // TODO: get the points-to set!!
+    NodeID varAllocLoc = idToAllocLocMap[var];
+
+    // TODO: can be easily optimised.
+    for (PointsTo::iterator oI = srcPts.begin(); oI != srcPts.end(); ++oI) {
+        NodeID o = *oI;
+        if (idToAllocLocMap[*oI] == varAllocLoc) {
+            bool changed = false;
+            if (SVFUtil::isa<StoreSVFGNode>(src)) {
+                if (updateInFromOut(src, o, dst, o))
+                    changed = true;
+            }
+            else {
+                if (updateInFromIn(src, o, dst, o))
+                    changed = true;
+            }
+            return changed;
+        }
+    }
+
 }
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
@@ -168,7 +234,7 @@ NodeID TypeClone::cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr 
 
 void TypeClone::findAllocGlobals(void) {
     for (SVFG::iterator svfgNodeI = svfg->begin(); svfgNodeI != svfg->end(); ++svfgNodeI) {
-        if (!SVFUtil::isa<AddrSVFGNode>(*svfgNodeI)) {
+        if (!SVFUtil::isa<AddrSVFGNode>(svfgNodeI->second)) {
             // We are only looking for nodes reachable by allocation sites.
             continue;
         }
