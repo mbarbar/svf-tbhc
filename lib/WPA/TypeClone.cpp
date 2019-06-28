@@ -109,10 +109,10 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
     NodeID varAllocLoc = idToAllocLocMap[var];
 
     // TODO: can be easily optimised.
+    bool changed = false;
     for (PointsTo::iterator oI = srcPts.begin(); oI != srcPts.end(); ++oI) {
         NodeID o = *oI;
         if (idToAllocLocMap[*oI] == varAllocLoc) {
-            bool changed = false;
             if (SVFUtil::isa<StoreSVFGNode>(src)) {
                 if (updateInFromOut(src, o, dst, o))
                     changed = true;
@@ -121,10 +121,10 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
                 if (updateInFromIn(src, o, dst, o))
                     changed = true;
             }
-            return changed;
         }
     }
 
+    return changed;
 }
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
