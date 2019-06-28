@@ -469,3 +469,16 @@ bool cppUtil::VCallInCtorOrDtor(CallSite cs)  {
     }
     return false;
 }
+
+std::string cppUtil::getNameFromType(const Type *ty) {
+    std::string name = getClassNameFromType(ty);
+    if (name != "") {
+        return name;
+    } else {
+        std::string nameStr;
+        llvm::raw_string_ostream rso(nameStr);
+        ty->print(rso);
+        return rso.str();
+    }
+}
+
