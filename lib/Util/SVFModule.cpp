@@ -56,7 +56,10 @@ static llvm::cl::opt<std::string> Graphtxt("graphtxt", llvm::cl::value_desc("fil
 static llvm::cl::opt<bool> SVFMain("svfmain", llvm::cl::init(false), llvm::cl::desc("add svf.main()"));
 
 LLVMModuleSet *SVFModule::llvmModuleSet = NULL;
+LLVMModuleSet *SVFModule::debugModuleSet = NULL;
 std::string SVFModule::pagReadFromTxt = "";
+
+LLVMContext *LLVMModuleSet::cxts = NULL;
 
 LLVMModuleSet::LLVMModuleSet(Module *mod) {
     moduleNum = 1;
@@ -87,6 +90,7 @@ LLVMModuleSet::LLVMModuleSet(const vector<string> &moduleNameVec) {
 	// We read PAG from a user-defined txt instead of parsing PAG from LLVM IR
 	else
 		SVFModule::setPagFromTXT(Graphtxt.getValue());
+    cxts = new LLVMContext[1];
     build(moduleNameVec);
 }
 

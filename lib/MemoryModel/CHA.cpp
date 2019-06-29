@@ -85,14 +85,12 @@ void CHGraph::buildCHG() {
 	double timeStart, timeEnd;
 	timeStart = CLOCK_IN_MS();
 
-        /*
         if (svfMod.hasDebugModules()) {
             for (u32_t i = 0; i < svfMod.getModuleNum(true); ++i) {
                 Module *m = svfMod.getModule(i, true);
                 buildFromDebugInfo(*m);
             }
         }
-        */
 
 	for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
 		Module *M = svfMod.getModule(i);
