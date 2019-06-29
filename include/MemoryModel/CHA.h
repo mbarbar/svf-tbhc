@@ -30,6 +30,8 @@
 #ifndef CHA_H_
 #define CHA_H_
 
+#include <llvm/IR/DebugInfo.h>
+
 #include "MemoryModel/GenericGraph.h"
 #include "Util/SVFModule.h"
 #include "Util/WorkList.h"
@@ -73,6 +75,7 @@ public:
 
     CHNode (const std::string name, NodeID i = 0, GNodeK k = 0):
         GenericCHNodeTy(i, k), vtable(NULL), className(name), flags(0) {
+        ccLabel = -1;
     }
     ~CHNode() {
     }
@@ -127,9 +130,24 @@ public:
         vtable = vtbl;
     }
 
+    inline int getCCLabel() const {
+        return ccLabel;
+    }
+
+    inline void setCCLabel(int cc) {
+        ccLabel = cc;
+    }
+
+    inline bool hasCCLabel(void) const {
+        return ccLabel > -1;
+    }
+
 private:
     const GlobalValue* vtable;
     std::string className;
+    /// Connected component label: which connected component does this
+    /// node belong to? Default value of -1.
+    int ccLabel;
     size_t flags;
     /*
      * virtual functions inherited from different classes are separately stored
@@ -178,12 +196,14 @@ public:
     void addEdge(const std::string className,
                  const std::string baseClassName,
                  CHEdge::CHEDGETYPE edgeType);
+    void labelNodesConnectedComponenets(void);
     CHNode *getNode(const std::string name) const;
     CHNode *createNode(const std::string name);
     void buildClassNameToAncestorsDescendantsMap();
     void buildVirtualFunctionToIDMap();
     void buildCSToCHAVtblsAndVfnsMap();
     void readInheritanceMetadataFromModule(const Module &M);
+    void buildFromDebugInfo(const Module &M);
     void analyzeVTables(const Module &M);
     const CHGraph::CHNodeSetTy& getInstancesAndDescendants(const std::string className);
     const CHNodeSetTy& getCSClasses(CallSite cs);
@@ -219,6 +239,9 @@ public:
 	}
 	inline const CHNodeSetTy &getDescendants(const std::string className) {
 		return classNameToDescendantsMap[className];
+	}
+	inline const CHNodeSetTy &getAncestors(const std::string className) {
+		return classNameToAncestorsMap[className];
 	}
 	inline const CHNodeSetTy &getInstances(const std::string className) {
 		return templateNameToInstancesMap[className];
@@ -258,6 +281,9 @@ private:
     std::map<const Function*, s32_t> virtualFunctionToIDMap;
     CallSiteToVTableSetMap csToCHAVtblsMap;
     CallSiteToVFunSetMap csToCHAVFnsMap;
+
+    // Returns the qualified type name in di, WITHOUT templates.
+    std::string getFullTypeNameFromDebugInfo(const llvm::DIType *di) const;
 };
 
 
