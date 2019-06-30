@@ -44,7 +44,8 @@ class CHEdge: public GenericCHEdgeTy {
 public:
     typedef enum {
         INHERITANCE = 0x1, // inheritance relation
-        INSTANTCE = 0x2 // template-instance relation
+        INSTANTCE = 0x2, // template-instance relation
+        FIRST_FIELD = 0x4 // X <-- Y: X is the first field of Y.
     } CHEDGETYPE;
 
     typedef GenericNode<CHNode,CHEdge>::GEdgeSetTy CHEdgeSetTy;
@@ -187,6 +188,7 @@ public:
     ~CHGraph();
 
     void buildCHG();
+    void addFirstFieldRelations(void);
     void buildInternalMaps();
     void buildCHGNodes(const GlobalValue *V);
     void buildCHGNodes(const Function *F);
@@ -277,6 +279,8 @@ private:
     NameToCHNodesMap classNameToInstAndDescsMap;
     NameToCHNodesMap templateNameToInstancesMap;
     CallSiteToCHNodesMap csToClassesMap;
+    // TODO: need to deal with int->i32 etc.
+    std::map<std::string, const llvm::DIType *> typeNameToDIType;
 
     std::map<const Function*, s32_t> virtualFunctionToIDMap;
     CallSiteToVTableSetMap csToCHAVtblsMap;
@@ -284,6 +288,8 @@ private:
 
     // Returns the qualified type name in di, WITHOUT templates.
     std::string getFullTypeNameFromDebugInfo(const llvm::DIType *di) const;
+    // Recursively makes the first field type a parent.
+    void addFirstFieldRelation(CHNode *chNode);
 };
 
 

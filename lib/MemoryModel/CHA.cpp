@@ -120,6 +120,61 @@ void CHGraph::buildCHG() {
 		dump("cha");
 }
 
+void CHGraph::addFirstFieldRelation(CHNode *chNode) {
+    std::string type = chNode->getName();
+
+    const llvm::DIType *diType = typeNameToDIType[type];
+
+    if (const llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
+        if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
+            // TODO: array!
+        } else if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_class_type
+                   || diCompositeType->getTag() == llvm::dwarf::DW_TAG_structure_type) { // TODO
+            llvm::DINodeArray fields = diCompositeType->getElements();
+            if (fields.empty()) {
+                // Has no fields - no first field.
+                return;
+            }
+
+            llvm::DIType *firstField = SVFUtil::dyn_cast<llvm::DIType>(fields[0]);
+            assert(firstField && "elements of DIType returned a non-type");
+
+            // Add relation [first-field] <---- [type]
+            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField);
+            CHNode *firstFieldNode = getNode(firstFieldName);
+            if (firstFieldNode == NULL) {
+                // TODO: when will this be the case?
+                firstFieldNode = createNode(firstFieldName);
+            }
+
+            addEdge(type, firstFieldName, CHEdge::FIRST_FIELD);
+            // The first field might have a first field.
+            addFirstFieldRelation(firstFieldNode);
+        }
+    } else if (const llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
+        // TODO: basicType not handled in buildCHG.
+        // Does not have first field: return.
+        return;
+    } else {
+        assert(false && "unexpected type?!");
+        // ????
+    }
+}
+
+void CHGraph::addFirstFieldRelations(void) {
+    // Only consider the roots of the CHG: if a node has parents, its first field
+    // is one of those parents!
+    for (CHGraph::iterator chNodeI = begin(); chNodeI != end(); ++chNodeI) {
+        CHNode *chNode = chNodeI->second;
+        if (!chNode->getOutEdges().empty()) {
+            // Has a parent; not a root.
+            continue;
+        }
+
+        addFirstFieldRelation(chNode);
+    }
+}
+
 void CHGraph::buildCHGNodes(const GlobalValue *globalvalue) {
 	if (isValVtbl(globalvalue) && globalvalue->getNumOperands() > 0) {
 		const ConstantStruct *vtblStruct = SVFUtil::dyn_cast<ConstantStruct>(globalvalue->getOperand(0));
@@ -285,6 +340,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
             fullTypeName = cppUtil::removeTemplatesFromName(fullTypeName);
             if (getNode(fullTypeName) == NULL) {
                 createNode(fullTypeName);
+                typeNameToDIType[fullTypeName] = diCompositeType;
             }
         } else if (llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
             if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef) {
@@ -294,6 +350,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
                 if (base != NULL) {
                     llvm::DIType *diBaseType = SVFUtil::dyn_cast<llvm::DIType>(base);
                     std::string baseName = diBaseType->getName();
+                    // TODO: is this caught by another case?
                 }
                 // Keep baseName as "" if base is NULL, it means base was void, so we
                 // still want to add it to the CHG.
@@ -304,6 +361,9 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
                     typedefName = removeTemplatesFromName(typedefName);
                     if (getNode(typedefName) == NULL) {
                         createNode(typedefName);
+                        // We use base because that's the struct. diDerivedType refers to the
+                        // typedef, which is just a name.
+                        typeNameToDIType[typedefName] = diDerivedType;
                     }
                 }
             } else if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_inheritance) {
@@ -344,7 +404,9 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
                 baseName = cppUtil::removeTemplatesFromName(baseName);
 
                 if (getNode(childName) == NULL) createNode(childName);
+                typeNameToDIType[childName] = diChildType;
                 if (getNode(baseName) == NULL) createNode(baseName);
+                typeNameToDIType[baseName] = diBaseType;
                 addEdge(childName, baseName, CHEdge::INHERITANCE);
             }
         }
