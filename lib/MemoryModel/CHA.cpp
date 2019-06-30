@@ -291,7 +291,44 @@ void CHGraph::readInheritanceMetadataFromModule(const Module &M) {
     }
 }
 
+std::string CHGraph::getBasicTypeName(const llvm::DIBasicType *basicType) const {
+    std::string name = "";
+    unsigned encoding = basicType->getEncoding();
+    if (encoding == llvm::dwarf::DW_ATE_signed || encoding == llvm::dwarf::DW_ATE_unsigned
+        || encoding == llvm::dwarf::DW_ATE_boolean
+        || encoding == llvm::dwarf::DW_ATE_signed_char || encoding == llvm::dwarf::DW_ATE_unsigned_char) {
+        name = "i" + basicType->getSizeInBits();
+    } else if (encoding == llvm::dwarf::DW_ATE_float) {
+        switch (basicType->getSizeInBits()) {
+        case 16:
+            name = "half";
+            break;
+        case 32:
+            name = "float";
+            break;
+        case 64:
+            name = "double";
+            break;
+        case 128:
+            name = "fp128";
+            break;
+        case 80:
+            name = "x86_fp80";
+            break;
+        }
+    } else {
+        assert(false && "other type encoding for basicType");
+    }
+
+    // name is either set, or the assert triggered.
+    return name;
+}
+
 std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const {
+    if (const llvm::DIBasicType *basicType = SVFUtil::dyn_cast<llvm::DIBasicType>(di)) {
+        return getBasicTypeName(basicType);
+    }
+
     // Class name.
     std::string fullTypeName = di->getName();
 
@@ -341,6 +378,14 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
             if (getNode(fullTypeName) == NULL) {
                 createNode(fullTypeName);
                 typeNameToDIType[fullTypeName] = diCompositeType;
+            }
+        } else if (llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
+            std::string basicTypeName = getFullTypeNameFromDebugInfo(diBasicType);
+            basicTypeName = cppUtil::removeTemplatesFromName(basicTypeName);
+
+            if (getNode(basicTypeName) == NULL) {
+                createNode(basicTypeName);
+                typeNameToDIType[basicTypeName] = diBasicType;
             }
         } else if (llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
             if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef) {
