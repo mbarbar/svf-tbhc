@@ -65,6 +65,7 @@ public:
         CSCallString_WPA,	///< Call string based context sensitive WPA
         CSSummary_WPA,		///< Summary based context sensitive WPA
         FSDATAFLOW_WPA,	///< Traditional Dataflow-based flow sensitive WPA
+        FSTCLONE_WPA,		///< Type-based flow-sensitive heap cloning.
         FSSPARSE_WPA,		///< Sparse flow sensitive WPA
         FSCS_WPA,			///< Flow-, context- sensitive WPA
         FSCSPS_WPA,		///< Flow-, context-, path- sensitive WPA
