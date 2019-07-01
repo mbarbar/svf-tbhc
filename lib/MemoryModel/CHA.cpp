@@ -27,6 +27,7 @@
  *      Author: Xiaokang Fan
  */
 
+#include <queue>
 #include <set>
 #include <vector>
 #include <map>
@@ -36,6 +37,7 @@
 #include "Util/CPPUtil.h"
 #include <assert.h>
 #include <stack>
+#include <llvm/IR/DebugInfo.h>
 #include "MemoryModel/CHA.h"
 #include "MemoryModel/MemModel.h"
 #include "Util/SVFUtil.h"
@@ -50,6 +52,8 @@ static llvm::cl::opt<bool> dumpCHA("dump-cha", llvm::cl::init(false), llvm::cl::
 const string pureVirtualFunName = "__cxa_pure_virtual";
 
 const string ztiLabel = "_ZTI";
+
+const string anonymousNamespaceName = "(anonymous namespace)";
 
 static bool hasEdge(const CHNode *src, const CHNode *dst,
                     CHEdge::CHEDGETYPE et) {
@@ -80,6 +84,14 @@ void CHGraph::buildCHG() {
 
 	double timeStart, timeEnd;
 	timeStart = CLOCK_IN_MS();
+
+        if (svfMod.hasDebugModules()) {
+            for (u32_t i = 0; i < svfMod.getModuleNum(true); ++i) {
+                Module *m = svfMod.getModule(i, true);
+                buildFromDebugInfo(*m);
+            }
+        }
+
 	for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
 		Module *M = svfMod.getModule(i);
 		assert(M && "module not found?");
@@ -99,11 +111,68 @@ void CHGraph::buildCHG() {
 	DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("build Internal Maps ...\n"));
 	buildInternalMaps();
 
+	labelNodesConnectedComponenets();
+
 	timeEnd = CLOCK_IN_MS();
 	buildingCHGTime = (timeEnd - timeStart) / TIMEINTERVAL;
 
 	if (dumpCHA)
 		dump("cha");
+}
+
+void CHGraph::addFirstFieldRelation(CHNode *chNode) {
+    std::string type = chNode->getName();
+
+    const llvm::DIType *diType = typeNameToDIType[type];
+
+    if (const llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
+        if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
+            // TODO: array!
+        } else if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_class_type
+                   || diCompositeType->getTag() == llvm::dwarf::DW_TAG_structure_type) { // TODO
+            llvm::DINodeArray fields = diCompositeType->getElements();
+            if (fields.empty()) {
+                // Has no fields - no first field.
+                return;
+            }
+
+            llvm::DIType *firstField = SVFUtil::dyn_cast<llvm::DIType>(fields[0]);
+            assert(firstField && "elements of DIType returned a non-type");
+
+            // Add relation [first-field] <---- [type]
+            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField);
+            CHNode *firstFieldNode = getNode(firstFieldName);
+            if (firstFieldNode == NULL) {
+                // TODO: when will this be the case?
+                firstFieldNode = createNode(firstFieldName);
+            }
+
+            addEdge(type, firstFieldName, CHEdge::FIRST_FIELD);
+            // The first field might have a first field.
+            addFirstFieldRelation(firstFieldNode);
+        }
+    } else if (const llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
+        // TODO: basicType not handled in buildCHG.
+        // Does not have first field: return.
+        return;
+    } else {
+        assert(false && "unexpected type?!");
+        // ????
+    }
+}
+
+void CHGraph::addFirstFieldRelations(void) {
+    // Only consider the roots of the CHG: if a node has parents, its first field
+    // is one of those parents!
+    for (CHGraph::iterator chNodeI = begin(); chNodeI != end(); ++chNodeI) {
+        CHNode *chNode = chNodeI->second;
+        if (!chNode->getOutEdges().empty()) {
+            // Has a parent; not a root.
+            continue;
+        }
+
+        addFirstFieldRelation(chNode);
+    }
 }
 
 void CHGraph::buildCHGNodes(const GlobalValue *globalvalue) {
@@ -173,7 +242,7 @@ void CHGraph::connectInheritEdgeViaCall(const Function* caller, CallSite cs){
             return;
         const Value *csThisPtr = getVCallThisPtr(cs);
         const Argument *consThisPtr = getConstructorThisPtr(caller);
-        bool samePtr = true; // isSameThisPtrInConstructor(consThisPtr,csThisPtr);
+        bool samePtr = isSameThisPtrInConstructor(consThisPtr,csThisPtr);
         if (csThisPtr != NULL && samePtr) {
             struct DemangledName basename = demangle(callee->getName().str());
             if (!SVFUtil::isa<CallInst>(csThisPtr) && !SVFUtil::isa<InvokeInst>(csThisPtr) &&
@@ -222,6 +291,174 @@ void CHGraph::readInheritanceMetadataFromModule(const Module &M) {
     }
 }
 
+std::string CHGraph::getBasicTypeName(const llvm::DIBasicType *basicType) const {
+    std::string name = "";
+    unsigned encoding = basicType->getEncoding();
+    if (encoding == llvm::dwarf::DW_ATE_signed || encoding == llvm::dwarf::DW_ATE_unsigned
+        || encoding == llvm::dwarf::DW_ATE_boolean
+        || encoding == llvm::dwarf::DW_ATE_signed_char || encoding == llvm::dwarf::DW_ATE_unsigned_char) {
+        name = "i" + basicType->getSizeInBits();
+    } else if (encoding == llvm::dwarf::DW_ATE_float) {
+        switch (basicType->getSizeInBits()) {
+        case 16:
+            name = "half";
+            break;
+        case 32:
+            name = "float";
+            break;
+        case 64:
+            name = "double";
+            break;
+        case 128:
+            name = "fp128";
+            break;
+        case 80:
+            name = "x86_fp80";
+            break;
+        }
+    } else {
+        assert(false && "other type encoding for basicType");
+    }
+
+    // name is either set, or the assert triggered.
+    return name;
+}
+
+std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const {
+    if (const llvm::DIBasicType *basicType = SVFUtil::dyn_cast<llvm::DIBasicType>(di)) {
+        return getBasicTypeName(basicType);
+    }
+
+    // Class name.
+    std::string fullTypeName = di->getName();
+
+    // Climb through scopes to get enclosing classes/namespaces.
+    const llvm::DIScope *currScope = di;
+    llvm::Metadata *rawScope = currScope->getScope();
+
+    // If rawScope is the direct scope of di AND it is a Subprogram then skip adding
+    // the namespace or whatever. It seems like LLVM Types ignore when the Subprogram
+    // is a direct scope, but not otherwise...
+    if (rawScope != NULL && llvm::dyn_cast<llvm::DISubprogram>(rawScope) != NULL) {
+        return fullTypeName;
+    }
+
+    while (rawScope != NULL) {
+        llvm::DIScope *currScope = llvm::dyn_cast<llvm::DIScope>(rawScope);
+
+        if (llvm::dyn_cast<llvm::DIFile>(currScope) != NULL) {
+            // We've gone through the namespaces till the file - so stop.
+            break;
+        }
+
+        std::string scopeName = currScope->getName();
+        if (scopeName == "") scopeName = anonymousNamespaceName;
+        fullTypeName.insert(0, scopeName + "::");
+
+        rawScope = currScope->getScope();
+    }
+
+    return fullTypeName;
+}
+
+void CHGraph::buildFromDebugInfo(const Module &module) {
+    llvm::DebugInfoFinder finder;
+    finder.processModule(module);
+
+    for (llvm::DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
+        llvm::DIType *diType = *diTypeI;
+        if (llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
+            // Add nodes. Only looking at inheritance relations is not sufficient as not everything inherits.
+
+            // Ignore anything that doesn't have a name.
+            if (diCompositeType->getName() == "") continue;
+
+            std::string fullTypeName = getFullTypeNameFromDebugInfo(diCompositeType);
+            fullTypeName = cppUtil::removeTemplatesFromName(fullTypeName);
+            if (getNode(fullTypeName) == NULL) {
+                createNode(fullTypeName);
+                typeNameToDIType[fullTypeName] = diCompositeType;
+            }
+        } else if (llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
+            std::string basicTypeName = getFullTypeNameFromDebugInfo(diBasicType);
+            basicTypeName = cppUtil::removeTemplatesFromName(basicTypeName);
+
+            if (getNode(basicTypeName) == NULL) {
+                createNode(basicTypeName);
+                typeNameToDIType[basicTypeName] = diBasicType;
+            }
+        } else if (llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
+            if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef) {
+                llvm::Metadata *base = diDerivedType->getRawBaseType();
+
+                std::string baseName = "";
+                if (base != NULL) {
+                    llvm::DIType *diBaseType = SVFUtil::dyn_cast<llvm::DIType>(base);
+                    std::string baseName = diBaseType->getName();
+                    // TODO: is this caught by another case?
+                }
+                // Keep baseName as "" if base is NULL, it means base was void, so we
+                // still want to add it to the CHG.
+
+                // Handle the case where an unnamed struct is typedef'd.
+                if (baseName == "") {
+                    std::string typedefName = getFullTypeNameFromDebugInfo(diDerivedType);
+                    typedefName = removeTemplatesFromName(typedefName);
+                    if (getNode(typedefName) == NULL) {
+                        createNode(typedefName);
+                        // We use base because that's the struct. diDerivedType refers to the
+                        // typedef, which is just a name.
+                        typeNameToDIType[typedefName] = diDerivedType;
+                    }
+                }
+            } else if (diDerivedType->getTag() == llvm::dwarf::DW_TAG_inheritance) {
+                // From inheritance relations, add both nodes, and edges.
+
+                llvm::Metadata *child = diDerivedType->getRawScope();
+                llvm::Metadata *base = diDerivedType->getRawBaseType();
+
+                llvm::DICompositeType *diChildType = SVFUtil::dyn_cast<llvm::DICompositeType>(child);
+                if (diChildType == NULL) {
+                    assert(false && "Child of inheritance DI not a type");
+                }
+
+                llvm::DICompositeType *diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(base);
+                if (diBaseType == NULL) {
+                    // Look for the base type through a series of typedefs.
+                    llvm::DIType *diTypedef = SVFUtil::dyn_cast<llvm::DIType>(base);
+                    if (diTypedef == NULL) {
+                        assert(false && "Base of inheritance DI not a derived or composite type");
+                    }
+
+                    while (diTypedef->getTag() == llvm::dwarf::DW_TAG_typedef) {
+                        llvm::DIDerivedType *diDerivedTypedef = SVFUtil::dyn_cast<llvm::DIDerivedType>(diTypedef);
+                        diTypedef = SVFUtil::dyn_cast<llvm::DIType>(diDerivedTypedef->getRawBaseType());
+                    }
+
+                    diBaseType = SVFUtil::dyn_cast<llvm::DICompositeType>(diTypedef);
+                    if (diBaseType == NULL) {
+                        assert(false && "Base of inheritance DI not a composite type");
+                    }
+                }
+
+                // We operate by ignoring templates - unfortunate but conservative.
+                std::string childName = getFullTypeNameFromDebugInfo(diChildType);
+                childName = cppUtil::removeTemplatesFromName(childName);
+
+                std::string baseName = getFullTypeNameFromDebugInfo(diBaseType);
+                baseName = cppUtil::removeTemplatesFromName(baseName);
+
+                if (getNode(childName) == NULL) createNode(childName);
+                typeNameToDIType[childName] = diChildType;
+                if (getNode(baseName) == NULL) createNode(baseName);
+                typeNameToDIType[baseName] = diBaseType;
+                addEdge(childName, baseName, CHEdge::INHERITANCE);
+            }
+        }
+    }
+
+}
+
 void CHGraph::addEdge(const string className, const string baseClassName,
                       CHEdge::CHEDGETYPE edgeType) {
     CHNode *srcNode = getNode(className);
@@ -232,6 +469,40 @@ void CHGraph::addEdge(const string className, const string baseClassName,
         CHEdge *edge = new CHEdge(srcNode, dstNode, edgeType);
         srcNode->addOutgoingEdge(edge);
         dstNode->addIncomingEdge(edge);
+    }
+}
+
+void CHGraph::labelNodesConnectedComponenets(void) {
+    int cc = -1;
+    for (CHGraph::iterator nodeI = begin(); nodeI != end(); ++nodeI) {
+        CHNode *node = nodeI->second;
+        // If it has a label, it's CC has been determined.
+        if (node->hasCCLabel()) continue;
+
+        // Otherwise, it's a new connected component.
+        ++cc;
+
+        std::queue<CHNode *> dfsQueue;
+        dfsQueue.push(node);
+        while (!dfsQueue.empty()) {
+            CHNode *curr = dfsQueue.front();
+            dfsQueue.pop();
+
+            if (curr->hasCCLabel()) continue;
+            curr->setCCLabel(cc);
+
+            // Add the dest. nodes of outg. edges.
+            CHEdge::CHEdgeSetTy outEdges = curr->getOutEdges();
+            for (CHEdge::CHEdgeSetTy::iterator edgeI = outEdges.begin(); edgeI != outEdges.end(); ++edgeI) {
+                dfsQueue.push((*edgeI)->getDstNode());
+            }
+
+            // Add the src nodes of inc. edges. We're trying to categorise into "islands" (CC), not reachability.
+            CHEdge::CHEdgeSetTy inEdges = curr->getInEdges();
+            for (CHEdge::CHEdgeSetTy::iterator edgeI = inEdges.begin(); edgeI != inEdges.end(); ++edgeI) {
+                dfsQueue.push((*edgeI)->getSrcNode());
+            }
+        }
     }
 }
 

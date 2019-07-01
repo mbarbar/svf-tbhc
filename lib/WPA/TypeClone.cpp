@@ -12,6 +12,8 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
+#include <queue>
+
 // TODO: add back all the timers.
 
 const std::string UNDEF_TYPE = "";
@@ -107,10 +109,10 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
     NodeID varAllocLoc = idToAllocLocMap[var];
 
     // TODO: can be easily optimised.
+    bool changed = false;
     for (PointsTo::iterator oI = srcPts.begin(); oI != srcPts.end(); ++oI) {
         NodeID o = *oI;
         if (idToAllocLocMap[*oI] == varAllocLoc) {
-            bool changed = false;
             if (SVFUtil::isa<StoreSVFGNode>(src)) {
                 if (updateInFromOut(src, o, dst, o))
                     changed = true;
@@ -119,10 +121,10 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
                 if (updateInFromIn(src, o, dst, o))
                     changed = true;
             }
-            return changed;
         }
     }
 
+    return changed;
 }
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
@@ -237,11 +239,36 @@ void TypeClone::findAllocGlobals(void) {
             continue;
         }
 
-        AddrSVFGNode *addrSVFGNode = SVFUtil::dyn_cast<AddrSVFGNode>(svfgNodeI->second);
-        std::queue<NodeID> bfsQueue;
-        bfsQueue.push(addrSVFGNode->getId());
-        while (!bfsQueue.empty()) {
-        }
+        AddrSVFGNode *addrSvfgNode = SVFUtil::dyn_cast<AddrSVFGNode>(svfgNodeI->second);
+        std::set<NodeID> seen;
+        std::queue<NodeID> bfs;
+
+        bfs.push(addrSvfgNode->getId());
+        do {
+            NodeID curr = bfs.front();
+            bfs.pop();
+            seen.insert(curr);
+
+            if (glob(curr)) {
+                // Found a global which alloc flows to.
+                allocToGlobalsMap[addrSvfgNode->getId()].insert(curr);
+            } else {
+                // Keep looking.
+                SVFGNode *currNode = svfg->getSVFGNode(curr);
+                for (SVFGEdge::SVFGEdgeSetTy::iterator edgeI = currNode->getOutEdges().begin(); edgeI != currNode->getOutEdges().end(); ++edgeI) {
+                    NodeID next = (*edgeI)->getDstID();
+                    if (seen.find(next) != seen.end()) {
+                        continue;
+                    }
+
+                    bfs.push(next);
+                }
+            }
+        } while (!bfs.empty());
     }
+}
+
+bool glob(NodeID svfgNodeId) {
+    return false;
 }
 

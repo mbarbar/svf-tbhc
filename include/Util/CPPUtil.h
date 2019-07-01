@@ -46,6 +46,8 @@ struct DemangledName {
 
 struct DemangledName demangle(const std::string name);
 
+/// Removes any templates from name.
+std::string removeTemplatesFromName(const std::string name);
 std::string getBeforeBrackets(const std::string name);
 bool isValVtbl(const Value *val);
 bool isLoadVtblInst(const LoadInst *loadInst);
@@ -95,8 +97,6 @@ bool VCallInCtorOrDtor(CallSite cs);
  */
 bool isSameThisPtrInConstructor(const Argument* thisPtr1, const Value* thisPtr2);
 
-/// Removes any templates from name.
-std::string removeTemplatesFromName(const std::string name);
 /// Returns string representation of ty.
 std::string getNameFromType(const Type *ty);
 }

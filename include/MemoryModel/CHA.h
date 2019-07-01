@@ -30,6 +30,8 @@
 #ifndef CHA_H_
 #define CHA_H_
 
+#include <llvm/IR/DebugInfo.h>
+
 #include "MemoryModel/GenericGraph.h"
 #include "Util/SVFModule.h"
 #include "Util/WorkList.h"
@@ -42,7 +44,8 @@ class CHEdge: public GenericCHEdgeTy {
 public:
     typedef enum {
         INHERITANCE = 0x1, // inheritance relation
-        INSTANTCE = 0x2 // template-instance relation
+        INSTANTCE = 0x2, // template-instance relation
+        FIRST_FIELD = 0x4 // X <-- Y: X is the first field of Y.
     } CHEDGETYPE;
 
     typedef GenericNode<CHNode,CHEdge>::GEdgeSetTy CHEdgeSetTy;
@@ -73,6 +76,7 @@ public:
 
     CHNode (const std::string name, NodeID i = 0, GNodeK k = 0):
         GenericCHNodeTy(i, k), vtable(NULL), className(name), flags(0) {
+        ccLabel = -1;
     }
     ~CHNode() {
     }
@@ -127,9 +131,24 @@ public:
         vtable = vtbl;
     }
 
+    inline int getCCLabel() const {
+        return ccLabel;
+    }
+
+    inline void setCCLabel(int cc) {
+        ccLabel = cc;
+    }
+
+    inline bool hasCCLabel(void) const {
+        return ccLabel > -1;
+    }
+
 private:
     const GlobalValue* vtable;
     std::string className;
+    /// Connected component label: which connected component does this
+    /// node belong to? Default value of -1.
+    int ccLabel;
     size_t flags;
     /*
      * virtual functions inherited from different classes are separately stored
@@ -169,6 +188,7 @@ public:
     ~CHGraph();
 
     void buildCHG();
+    void addFirstFieldRelations(void);
     void buildInternalMaps();
     void buildCHGNodes(const GlobalValue *V);
     void buildCHGNodes(const Function *F);
@@ -178,12 +198,14 @@ public:
     void addEdge(const std::string className,
                  const std::string baseClassName,
                  CHEdge::CHEDGETYPE edgeType);
+    void labelNodesConnectedComponenets(void);
     CHNode *getNode(const std::string name) const;
     CHNode *createNode(const std::string name);
     void buildClassNameToAncestorsDescendantsMap();
     void buildVirtualFunctionToIDMap();
     void buildCSToCHAVtblsAndVfnsMap();
     void readInheritanceMetadataFromModule(const Module &M);
+    void buildFromDebugInfo(const Module &M);
     void analyzeVTables(const Module &M);
     const CHGraph::CHNodeSetTy& getInstancesAndDescendants(const std::string className);
     const CHNodeSetTy& getCSClasses(CallSite cs);
@@ -220,6 +242,9 @@ public:
 	inline const CHNodeSetTy &getDescendants(const std::string className) {
 		return classNameToDescendantsMap[className];
 	}
+	inline const CHNodeSetTy &getAncestors(const std::string className) {
+		return classNameToAncestorsMap[className];
+	}
 	inline const CHNodeSetTy &getInstances(const std::string className) {
 		return templateNameToInstancesMap[className];
 	}
@@ -254,10 +279,19 @@ private:
     NameToCHNodesMap classNameToInstAndDescsMap;
     NameToCHNodesMap templateNameToInstancesMap;
     CallSiteToCHNodesMap csToClassesMap;
+    // TODO: need to deal with int->i32 etc.
+    std::map<std::string, const llvm::DIType *> typeNameToDIType;
 
     std::map<const Function*, s32_t> virtualFunctionToIDMap;
     CallSiteToVTableSetMap csToCHAVtblsMap;
     CallSiteToVFunSetMap csToCHAVFnsMap;
+
+    // Returns the qualified type name in di, WITHOUT templates.
+    std::string getFullTypeNameFromDebugInfo(const llvm::DIType *di) const;
+    // For types like int, float, etc. (all DIBasicTypes).
+    std::string getBasicTypeName(const llvm::DIBasicType *basicType) const;
+    // Recursively makes the first field type a parent.
+    void addFirstFieldRelation(CHNode *chNode);
 };
 
 
