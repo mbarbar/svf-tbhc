@@ -90,6 +90,8 @@ void CHGraph::buildCHG() {
                 Module *m = svfMod.getModule(i, true);
                 buildFromDebugInfo(*m);
             }
+
+            return;
         }
 
 	for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {

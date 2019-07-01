@@ -12,14 +12,16 @@
 #include "WPA/WPAStat.h"
 #include "Util/CPPUtil.h"
 
-#include <queue>
-
 // TODO: add back all the timers.
 
-const std::string UNDEF_TYPE = "";
+const std::string TypeClone::UNDEF_TYPE = "";
 
 void TypeClone::initialize(SVFModule svfModule) {
     this->svfModule = svfModule;
+    chg->dump("chg.dot");
+    chg->addFirstFieldRelations();
+    chg->buildClassNameToAncestorsDescendantsMap();
+    chg->dump("chg_ff.dot");
     findAllocGlobals();
     FlowSensitive::initialize(svfModule);
 }
@@ -268,7 +270,7 @@ void TypeClone::findAllocGlobals(void) {
     }
 }
 
-bool glob(NodeID svfgNodeId) {
+bool TypeClone::glob(NodeID svfgNodeId) {
     return false;
 }
 
