@@ -17,13 +17,15 @@
 const std::string TypeClone::UNDEF_TYPE = "";
 
 void TypeClone::initialize(SVFModule svfModule) {
+    FlowSensitive::initialize(svfModule);
+
     this->svfModule = svfModule;
+    chg = PointerAnalysis::getCHGraph();
     chg->dump("chg.dot");
     chg->addFirstFieldRelations();
     chg->buildClassNameToAncestorsDescendantsMap();
     chg->dump("chg_ff.dot");
     findAllocGlobals();
-    FlowSensitive::initialize(svfModule);
 }
 
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
