@@ -291,7 +291,7 @@ private:
     // For types like int, float, etc. (all DIBasicTypes).
     std::string getBasicTypeName(const llvm::DIBasicType *basicType) const;
     // Recursively makes the first field type a parent.
-    void addFirstFieldRelation(CHNode *chNode);
+    void addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType);
 };
 
 

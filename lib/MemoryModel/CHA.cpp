@@ -122,11 +122,7 @@ void CHGraph::buildCHG() {
 		dump("cha");
 }
 
-void CHGraph::addFirstFieldRelation(CHNode *chNode) {
-    std::string type = chNode->getName();
-
-    const llvm::DIType *diType = typeNameToDIType[type];
-
+void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) {
     if (const llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
         if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
             // TODO: array!
@@ -138,24 +134,27 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode) {
                 return;
             }
 
-            llvm::DIType *firstField = SVFUtil::dyn_cast<llvm::DIType>(fields[0]);
+            const llvm::DIDerivedType *firstField = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
             assert(firstField && "elements of DIType returned a non-type");
 
             // Add relation [first-field] <---- [type]
-            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField);
+            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField->getBaseType().resolve());
             CHNode *firstFieldNode = getNode(firstFieldName);
             if (firstFieldNode == NULL) {
                 // TODO: when will this be the case?
                 firstFieldNode = createNode(firstFieldName);
             }
 
-            addEdge(type, firstFieldName, CHEdge::FIRST_FIELD);
+            addEdge(chNode->getName(), firstFieldName, CHEdge::FIRST_FIELD);
             // The first field might have a first field.
-            addFirstFieldRelation(firstFieldNode);
+            addFirstFieldRelation(firstFieldNode, firstField);
         }
     } else if (const llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
         // TODO: basicType not handled in buildCHG.
         // Does not have first field: return.
+        return;
+    } else if (const llvm::DISubroutineType *diSubroutineType = SVFUtil::dyn_cast<llvm::DISubroutineType>(diType)) {
+        // TODO
         return;
     } else {
         assert(false && "unexpected type?!");
@@ -173,7 +172,8 @@ void CHGraph::addFirstFieldRelations(void) {
             continue;
         }
 
-        addFirstFieldRelation(chNode);
+        const llvm::DIType *diType = typeNameToDIType[chNode->getName()];
+        addFirstFieldRelation(chNode, diType);
     }
 }
 
@@ -299,7 +299,7 @@ std::string CHGraph::getBasicTypeName(const llvm::DIBasicType *basicType) const 
     if (encoding == llvm::dwarf::DW_ATE_signed || encoding == llvm::dwarf::DW_ATE_unsigned
         || encoding == llvm::dwarf::DW_ATE_boolean
         || encoding == llvm::dwarf::DW_ATE_signed_char || encoding == llvm::dwarf::DW_ATE_unsigned_char) {
-        name = "i" + basicType->getSizeInBits();
+        name = "i" + std::to_string(basicType->getSizeInBits());
     } else if (encoding == llvm::dwarf::DW_ATE_float) {
         switch (basicType->getSizeInBits()) {
         case 16:
@@ -384,6 +384,7 @@ void CHGraph::buildFromDebugInfo(const Module &module) {
         } else if (llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
             std::string basicTypeName = getFullTypeNameFromDebugInfo(diBasicType);
             basicTypeName = cppUtil::removeTemplatesFromName(basicTypeName);
+            llvm::outs() << "GOT " << basicTypeName << "\n";
 
             if (getNode(basicTypeName) == NULL) {
                 createNode(basicTypeName);
