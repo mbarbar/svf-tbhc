@@ -330,9 +330,31 @@ std::string CHGraph::getBasicTypeName(const llvm::DIBasicType *basicType) const 
     return name;
 }
 
+std::string CHGraph::getPointerTypeName(const llvm::DIDerivedType *pointerType) const {
+    llvm::DIType *base = NULL;
+    unsigned int starCount = 0;
+    do {
+        ++starCount;
+        base = pointerType->getBaseType().resolve();
+        if (base->getTag() == llvm::dwarf::DW_TAG_pointer_type) {
+            pointerType = SVFUtil::dyn_cast<llvm::DIDerivedType>(base);
+            assert(pointerType && "pointer type not a derived type?");
+        }
+    } while (base->getTag() == llvm::dwarf:: DW_TAG_pointer_type);
+
+    // Base now has the pointee type.
+    return std::string(starCount, '*') + getFullTypeNameFromDebugInfo(base);
+}
+
 std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const {
     if (const llvm::DIBasicType *basicType = SVFUtil::dyn_cast<llvm::DIBasicType>(di)) {
         return getBasicTypeName(basicType);
+    }
+
+    if (const llvm::DIDerivedType *pointerType = SVFUtil::dyn_cast<llvm::DIDerivedType>(di)) {
+        if (pointerType->getTag() == llvm::dwarf::DW_TAG_pointer_type) {
+            return getPointerTypeName(pointerType);
+        }
     }
 
     // Class name.
