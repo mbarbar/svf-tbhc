@@ -124,8 +124,9 @@ void CHGraph::buildCHG() {
 
 void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) {
     if (const llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
+        llvm::DIType *firstFieldType = NULL;
         if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
-            // TODO: array!
+            // TODO: nested arrays.
         } else if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_class_type
                    || diCompositeType->getTag() == llvm::dwarf::DW_TAG_structure_type) { // TODO
             llvm::DINodeArray fields = diCompositeType->getElements();
@@ -134,11 +135,13 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) 
                 return;
             }
 
-            const llvm::DIDerivedType *firstField = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
-            assert(firstField && "elements of DIType returned a non-type");
+            const llvm::DIDerivedType *firstFieldVar = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
+            assert(firstFieldVar && "elements of DIType returned a non-type");
+            llvm::DIType *firstFieldType = firstFieldVar->getBaseType().resolve();
+            assert(firstFieldType && "First field type not specified.");
 
             // Add relation [first-field] <---- [type]
-            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField->getBaseType().resolve());
+            std::string firstFieldName = getFullTypeNameFromDebugInfo(firstFieldType);
             firstFieldName = removeTemplatesFromName(firstFieldName);
             CHNode *firstFieldNode = getNode(firstFieldName);
             if (firstFieldNode == NULL) {
@@ -148,21 +151,17 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) 
 
             addEdge(chNode->getName(), firstFieldName, CHEdge::FIRST_FIELD);
             // The first field might have a first field.
-            addFirstFieldRelation(firstFieldNode, firstField->getBaseType().resolve());
+            addFirstFieldRelation(firstFieldNode, firstFieldType);
         }
     } else if (const llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
         // TODO.
         return;
-    } else if (const llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
-        // TODO: basicType not handled in buildCHG.
+    } else if (SVFUtil::isa<llvm::DIBasicType>(diType) || SVFUtil::isa<llvm::DISubroutineType>(diType)) {
         // Does not have first field: return.
         return;
-    } else if (const llvm::DISubroutineType *diSubroutineType = SVFUtil::dyn_cast<llvm::DISubroutineType>(diType)) {
-        // TODO
-        return;
     } else {
-        assert(false && "unexpected type?!");
         // ????
+        assert(false && "unexpected type?!");
     }
 }
 
