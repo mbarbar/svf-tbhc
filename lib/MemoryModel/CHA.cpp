@@ -139,6 +139,7 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) 
 
             // Add relation [first-field] <---- [type]
             std::string firstFieldName = getFullTypeNameFromDebugInfo(firstField->getBaseType().resolve());
+            firstFieldName = removeTemplatesFromName(firstFieldName);
             CHNode *firstFieldNode = getNode(firstFieldName);
             if (firstFieldNode == NULL) {
                 // TODO: when will this be the case?
@@ -147,8 +148,11 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) 
 
             addEdge(chNode->getName(), firstFieldName, CHEdge::FIRST_FIELD);
             // The first field might have a first field.
-            addFirstFieldRelation(firstFieldNode, firstField);
+            addFirstFieldRelation(firstFieldNode, firstField->getBaseType().resolve());
         }
+    } else if (const llvm::DIDerivedType *diDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(diType)) {
+        // TODO.
+        return;
     } else if (const llvm::DIBasicType *diBasicType = SVFUtil::dyn_cast<llvm::DIBasicType>(diType)) {
         // TODO: basicType not handled in buildCHG.
         // Does not have first field: return.
