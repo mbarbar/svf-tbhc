@@ -43,6 +43,8 @@ protected:
     bool processAddr(const AddrSVFGNode* addr) override;
 
     bool processGep(const GepSVFGNode* edge) override;
+    // Alternative to FlowSensitive::processGep;
+    bool processGepProper(const GepSVFGNode* edge);
     bool processLoad(const LoadSVFGNode* load) override;
     bool processStore(const StoreSVFGNode* store) override;
 

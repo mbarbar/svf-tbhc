@@ -54,9 +54,47 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 
 bool TypeClone::processGep(const GepSVFGNode* gep) {
     bool derefChanged = processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
-    bool gepChanged = FlowSensitive::processGep(gep);
+    bool gepChanged = processGepProper(gep);
     // TODO: this will probably change more substantially.
     return derefChanged || gepChanged;
+}
+
+bool TypeClone::processGepProper(const GepSVFGNode* edge) {
+    bool changed = false;
+    const PointsTo& srcPts = getPts(edge->getPAGSrcNodeID());
+
+    PointsTo tmpDstPts;
+    for (PointsTo::iterator piter = srcPts.begin(); piter != srcPts.end(); ++piter) {
+        NodeID ptd = *piter;
+        if (isBlkObjOrConstantObj(ptd))
+            tmpDstPts.set(ptd);
+        else {
+            if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
+                setObjFieldInsensitive(ptd);
+                tmpDstPts.set(getFIObjNode(ptd));
+            }
+            else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
+                NodeID fieldSrcPtdNode;
+                if (normalGep->getLocationSet().getByteOffset() == 0) {
+                    // First field is the same as the object.
+                    fieldSrcPtdNode = ptd;
+                } else {
+                    fieldSrcPtdNode = getGepObjNode(ptd, normalGep->getLocationSet());
+                    GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(fieldSrcPtdNode));
+                    idToTypeMap[fieldSrcPtdNode] = cppUtil::getNameFromType(gepObj->getType());
+                }
+
+                tmpDstPts.set(fieldSrcPtdNode);
+            }
+            else
+                assert(false && "new gep edge?");
+        }
+    }
+
+    if (unionPts(edge->getPAGDstNodeID(), tmpDstPts))
+        changed = true;
+
+    return changed;
 }
 
 bool TypeClone::processLoad(const LoadSVFGNode* load) {
