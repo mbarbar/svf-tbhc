@@ -41,12 +41,12 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
     assert(idToTypeMap.find(srcID) == idToTypeMap.end() && "TypeClone: already has type!");
     if (isHeapMemObj(srcID)) {
         // Heap objects are initialised with no types.
-        idToTypeMap[srcID] = "";
+        idToTypeMap[srcID] = UNDEF_TYPE;
         idToAllocLocMap[srcID] = addr->getId();
     } else {
-        idToTypeMap[srcID] = tilde(cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType()));
+        idToTypeMap[srcID] = cppUtil::getNameFromType(pag->getPAGNode(srcID)->getType());
         idToAllocLocMap[srcID] = addr->getId();
-        assert(idToTypeMap[srcID] != "" && "TypeClone: non-heap does not have a type?");
+        assert(idToTypeMap[srcID] != UNDEF_TYPE && "TypeClone: non-heap does not have a type?");
     }
 
     return changed;
@@ -54,18 +54,21 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 
 bool TypeClone::processGep(const GepSVFGNode* gep) {
     bool derefChanged = processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
-    return derefChanged || FlowSensitive::processGep(gep);
+    bool gepChanged = FlowSensitive::processGep(gep);
     // TODO: this will probably change more substantially.
+    return derefChanged || gepChanged;
 }
 
 bool TypeClone::processLoad(const LoadSVFGNode* load) {
     bool derefChanged = processDeref(load, load->getPAGSrcNodeID());
-    return derefChanged || FlowSensitive::processLoad(load);
+    bool loadChanged = FlowSensitive::processLoad(load);
+    return derefChanged || loadChanged;
 }
 
 bool TypeClone::processStore(const StoreSVFGNode* store) {
     bool derefChanged = processDeref(store, store->getPAGDstNodeID());
-    return derefChanged || FlowSensitive::processStore(store);
+    bool storeChanged = FlowSensitive::processStore(store);
+    return derefChanged || storeChanged;
 }
 
 bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) {
@@ -133,10 +136,11 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     PointsTo &ptrPt = getPts(ptrId);
+    unsigned preFilterCount = ptrPt.count();
     TypeStr t = staticType(ptrId);
     bool changed = false;
 
-    PointsTo tmp;
+    PointsTo filterPt;
     for (PointsTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
         NodeID o = *oI;
         TypeStr tp = T(o);
@@ -170,10 +174,12 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
         }
 
         assert(prop && "propagating nothing?!");
-        tmp.set(prop);
+        filterPt.set(prop);
     }
 
-    return ptrPt |= tmp;
+    ptrPt.clear();
+    ptrPt |= filterPt;
+    return ptrPt.count() != preFilterCount;
 }
 
 bool TypeClone::baseBackPropagate(NodeID o) {
@@ -191,6 +197,8 @@ bool TypeClone::baseBackPropagate(NodeID o) {
 bool TypeClone::isBase(TypeStr a, TypeStr b) const {
     if (a == b) return true;
 
+    if (chg->getNode(a) == NULL || chg->getNode(b) == NULL) return false;
+
     const CHGraph::CHNodeSetTy& aChildren = chg->getInstancesAndDescendants(a);
     const CHNode *bNode = chg->getNode(b);
     // If b is in the set of a's children, then a is a base type of b.
@@ -198,8 +206,9 @@ bool TypeClone::isBase(TypeStr a, TypeStr b) const {
 }
 
 TypeClone::TypeStr TypeClone::tilde(TypeStr t) const {
-    // TODO
-    return t;
+    // Strip one '*' from the end.
+    assert(t[t.size() - 1] == '*' && "Not a pointer?");
+    return t.substr(0, t.size() - 1);
 }
 
 TypeClone::TypeStr TypeClone::T(NodeID n) const {
@@ -211,8 +220,8 @@ TypeClone::TypeStr TypeClone::T(NodeID n) const {
 }
 
 TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
-    // TODO.
-    return UNDEF_TYPE;
+    const PAGNode *pagNode = pag->getPAGNode(p);
+    return cppUtil::getNameFromType(pagNode->getType());
 }
 
 NodeID TypeClone::getCloneObject(const NodeID o, const SVFGNode *cloneLoc) {

@@ -50,6 +50,10 @@ const string clsName = "class.";
 const string structName = "struct.";
 const string unionName = "union.";
 
+const string pclsName = "%class.";
+const string pstructName = "%struct.";
+const string punionName = "%union.";
+
 const string nameDelimiter = "::";
 
 static bool isOperOverload(const string name) {
@@ -356,6 +360,7 @@ string cppUtil::getClassNameFromType(const Type *ty) {
         }
     }
 
+    llvm::outs() << "end: " << className << "\n";
     return className;
 }
 
@@ -473,12 +478,27 @@ bool cppUtil::VCallInCtorOrDtor(CallSite cs)  {
 std::string cppUtil::getNameFromType(const Type *ty) {
     std::string name = getClassNameFromType(ty);
     if (name != "") {
-        return name;
+        name = name;
     } else {
         std::string nameStr;
         llvm::raw_string_ostream rso(nameStr);
         ty->print(rso);
-        return rso.str();
+        name = rso.str();
     }
+
+    if (ty->isPointerTy()) {
+        if (name.compare(0, pclsName.size(), pclsName) == 0) {
+            name = name.substr(pclsName.size());
+        } else if (name.compare(0, pstructName.size(), pstructName) == 0) {
+            name = name.substr(pstructName.size());
+        } else if (name.compare(0, punionName.size(), punionName) == 0) {
+            name = name.substr(punionName.size());
+        }
+
+        // Shave the last '*'.
+        name = name.substr(0, name.size() - 1);
+    }
+
+    return name;
 }
 
