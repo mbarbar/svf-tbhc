@@ -294,6 +294,11 @@ private:
     std::string getPointerTypeName(const llvm::DIDerivedType *pointerType) const;
     // For arrays.
     std::string getArrayTypeName(const llvm::DICompositeType *arrayType) const;
+    // Like getArrayTypeName but returns the pointer version.
+    // E.g. i32** instead of [ X x [ Y x i32]]
+    std::string getArrayTypeNameAsPointer(const llvm::DICompositeType *arrayType) const;
+    // Turns an array to a pointer to its one-level-down type.
+    std::string stripArrayLayer(std::string arrayName) const;
     // Recursively makes the first field type a parent.
     void addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType);
 };

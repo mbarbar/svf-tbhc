@@ -122,11 +122,62 @@ void CHGraph::buildCHG() {
 		dump("cha");
 }
 
+std::string CHGraph::stripArrayLayer(std::string arrayName) const {
+    std::string strippedArrayName = "";
+
+    size_t layers = std::count(arrayName.begin(), arrayName.end(), '[');
+    if (layers == 1) {
+        // We have something like [4 x i32]**, we want i32***
+        // Cut off what came before the first space.
+        strippedArrayName = arrayName.substr(arrayName.find(' '));
+        // TODO: hacks to get rid of that first space for the next strip.
+        strippedArrayName.erase(0, 1);
+        // Cut off what came before the (now first) second space.
+        strippedArrayName = strippedArrayName.substr(strippedArrayName.find(' '));
+        strippedArrayName.erase(0, 1);
+        // Replace the final ']' with a * to represent a pointer to the base type.
+        size_t lastBracket = strippedArrayName.find_last_of(']');
+        strippedArrayName[lastBracket] = '*';
+    } else if (layers > 1) {
+        // We have something like [5 x [4 x i32]]*, we want [4 x i32]**
+        // Hide the first '[' so we can search for the second one more easily.
+        arrayName[0] = '0';
+        // Substring from (now first) second '[' onwards.
+        strippedArrayName = arrayName.substr(arrayName.find('['));
+        // Replace the final ']' with a * to represent a pointer to the inner array.
+        size_t lastBracket = strippedArrayName.find_last_of(']');
+        strippedArrayName[lastBracket] = '*';
+    } else {
+        // No layers, what is there to strip?
+        strippedArrayName == "";
+    }
+
+    return strippedArrayName;
+}
+
 void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) {
     if (const llvm::DICompositeType *diCompositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
         llvm::DIType *firstFieldType = NULL;
         if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
-            // TODO: nested arrays.
+            std::string arrayTypeName = getArrayTypeName(diCompositeType);
+
+            // Create a chain for the array.
+            // [4 x [5 x [6 x i32]]] -> [5 x [6 x i32]]* -> [6 x i32]** -> i32***
+            std::string strippedArrayTypeName = arrayTypeName;
+            do {
+                std::string prevName = strippedArrayTypeName;
+                strippedArrayTypeName = stripArrayLayer(strippedArrayTypeName);
+                if (strippedArrayTypeName == "") {
+                    break;
+                }
+
+                CHNode *strippedArrayNode = getNode(strippedArrayTypeName);
+                if (strippedArrayNode == NULL) {
+                    strippedArrayNode = createNode(strippedArrayTypeName);
+                }
+
+                addEdge(prevName, strippedArrayTypeName, CHEdge::FIRST_FIELD);
+            } while (strippedArrayTypeName != "");
         } else if (diCompositeType->getTag() == llvm::dwarf::DW_TAG_class_type
                    || diCompositeType->getTag() == llvm::dwarf::DW_TAG_structure_type) { // TODO
             llvm::DINodeArray fields = diCompositeType->getElements();
@@ -189,13 +240,17 @@ void CHGraph::addFirstFieldRelation(CHNode *chNode, const llvm::DIType *diType) 
 void CHGraph::addFirstFieldRelations(void) {
     // Only consider the roots of the CHG: if a node has parents, its first field
     // is one of those parents!
+    std::set<CHNode *> roots;
     for (CHGraph::iterator chNodeI = begin(); chNodeI != end(); ++chNodeI) {
         CHNode *chNode = chNodeI->second;
-        if (!chNode->getOutEdges().empty()) {
-            // Has a parent; not a root.
-            continue;
+        if (chNode->getOutEdges().empty()) {
+            // Has no parents; is a root.
+            roots.insert(chNodeI->second);
         }
+    }
 
+    for (std::set<CHNode *>::iterator chNodeI = roots.begin(); chNodeI != roots.end(); ++chNodeI) {
+        CHNode *chNode = *chNodeI;
         const llvm::DIType *diType = typeNameToDIType[chNode->getName()];
 
         if (const llvm::DICompositeType *compositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(diType)) {
@@ -396,6 +451,20 @@ std::string CHGraph::getArrayTypeName(const llvm::DICompositeType *arrayType) co
     return name;
 }
 
+std::string CHGraph::getArrayTypeNameAsPointer(const llvm::DICompositeType *arrayType) const {
+    llvm::DIType *baseType = arrayType->getBaseType().resolve();
+    std::string baseTypeName = getFullTypeNameFromDebugInfo(baseType);
+    baseTypeName = removeTemplatesFromName(baseTypeName);
+
+    unsigned int nesting = 0;
+    llvm::DINodeArray counts = arrayType->getElements();
+    for (llvm::DINodeArray::iterator countI = counts.begin(); countI != counts.end(); ++countI) {
+        ++nesting;
+    }
+
+    return baseTypeName + std::string(nesting, '*');
+}
+
 std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const {
     if (const llvm::DIBasicType *basicType = SVFUtil::dyn_cast<llvm::DIBasicType>(di)) {
         return getBasicTypeName(basicType);
@@ -403,9 +472,7 @@ std::string CHGraph::getFullTypeNameFromDebugInfo(const llvm::DIType *di) const 
 
     if (const llvm::DICompositeType *compositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(di)) {
         if (compositeType->getTag() == llvm::dwarf::DW_TAG_array_type) {
-            llvm::outs() << "ARRAY\n";
             std::string name = getArrayTypeName(compositeType);
-            llvm::outs() << name;
             return name;
         }
     }
