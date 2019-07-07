@@ -57,6 +57,7 @@ protected:
 
 
     virtual void initialize(SVFModule svfModule) override;
+    virtual void finalize() override;
 
 private:
     NodeID cloneObject(const NodeID o, const SVFGNode *cloneLoc, TypeStr type);

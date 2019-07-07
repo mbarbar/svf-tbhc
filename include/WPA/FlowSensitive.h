@@ -267,6 +267,7 @@ private:
     double storeTime;	///< time of store edges
     double updateCallGraphTime; ///< time of updating call graph
 
+    protected:
     NodeBS svfgHasSU;
     //@}
 

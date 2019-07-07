@@ -7,6 +7,8 @@
 
 #include <queue>
 
+#include <sstream>
+
 #include "MemoryModel/CHA.h"
 #include "WPA/TypeClone.h"
 #include "WPA/WPAStat.h"
@@ -26,6 +28,10 @@ void TypeClone::initialize(SVFModule svfModule) {
     chg->buildClassNameToAncestorsDescendantsMap();
     chg->dump("chg_ff.dot");
     findAllocGlobals();
+}
+
+void TypeClone::finalize() {
+
 }
 
 bool TypeClone::processAddr(const AddrSVFGNode* addr) {
@@ -53,6 +59,7 @@ bool TypeClone::processAddr(const AddrSVFGNode* addr) {
 }
 
 bool TypeClone::processGep(const GepSVFGNode* gep) {
+    //return FlowSensitive::processGep(gep);
     bool derefChanged = processDeref(gep, gep->getPAGSrcNodeID());  // TODO: double check.
     bool gepChanged = processGepProper(gep);
     // TODO: this will probably change more substantially.
@@ -98,15 +105,97 @@ bool TypeClone::processGepProper(const GepSVFGNode* edge) {
 }
 
 bool TypeClone::processLoad(const LoadSVFGNode* load) {
+    bool changed = false;
+    NodeID dstVar = load->getPAGDstNodeID();
+
+    const PointsTo& srcPts = getPts(load->getPAGSrcNodeID());
+    NodeID srcNodeId = load->getPAGSrcNodeID();
+    for (PointsTo::iterator ptdIt = srcPts.begin(); ptdIt != srcPts.end(); ++ptdIt) {
+        NodeID ptd = *ptdIt;
+
+        std::string staticString = staticType(srcNodeId);
+        llvm::outs() << "size: " << getPts(ptd).count() << "tilde(src) = " << ((staticString == UNDEF_TYPE) ? "undef" : tilde(staticType(srcNodeId))) << " T(ptd) = " << T(ptd) << "\n";
+
+        if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
+            continue;
+
+        if (unionPtsFromIn(load, ptd, dstVar))
+            changed = true;
+
+        if (isFIObjNode(ptd)) {
+            /// If the ptd is a field-insensitive node, we should also get all field nodes'
+            /// points-to sets and pass them to pagDst.
+            const NodeBS& allFields = getAllFieldsObjNode(ptd);
+            for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
+                    fieldIt != fieldEit; ++fieldIt) {
+                if (unionPtsFromIn(load, *fieldIt, dstVar))
+                    changed = true;
+            }
+        }
+    }
+
+    return changed;
+
+    /*
     bool derefChanged = processDeref(load, load->getPAGSrcNodeID());
     bool loadChanged = FlowSensitive::processLoad(load);
+    llvm::outs() << "load: " << derefChanged << ":" << loadChanged << "\n";;
     return derefChanged || loadChanged;
+    */
 }
 
 bool TypeClone::processStore(const StoreSVFGNode* store) {
+    /*
     bool derefChanged = processDeref(store, store->getPAGDstNodeID());
     bool storeChanged = FlowSensitive::processStore(store);
+    llvm::outs() << "store: " << derefChanged << ":" << storeChanged << "\n";;
     return derefChanged || storeChanged;
+    */
+
+    bool changed;
+    const PointsTo & dstPts = getPts(store->getPAGDstNodeID());
+
+    /// STORE statement can only be processed if the pointer on the LHS
+    /// points to something. If we handle STORE with an empty points-to
+    /// set, the OUT set will be updated from IN set. Then if LHS pointer
+    /// points-to one target and it has been identified as a strong
+    /// update, we can't remove those points-to information computed
+    /// before this strong update from the OUT set.
+    if (dstPts.empty())
+        return false;
+
+
+    if(getPts(store->getPAGSrcNodeID()).empty() == false) {
+        for (PointsTo::iterator it = dstPts.begin(), eit = dstPts.end(); it != eit; ++it) {
+            NodeID ptd = *it;
+
+            std::string staticString = staticType(store->getPAGSrcNodeID());
+            llvm::outs() << "store size: " << getPts(ptd).count() << "tilde(dst) = " << ((staticString == UNDEF_TYPE) ? "undef" : tilde(staticType(store->getPAGDstNodeID()))) << " T(ptd) = " << T(ptd) << "\n";
+
+            if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
+                continue;
+
+            if (unionPtsFromTop(store, store->getPAGSrcNodeID(), ptd))
+                changed = true;
+        }
+    }
+
+    // also merge the DFInSet to DFOutSet.
+    /// check if this is a strong updates store
+    NodeID singleton;
+    bool isSU = isStrongUpdate(store, singleton);
+    if (isSU) {
+        svfgHasSU.set(store->getId());
+        if (strongUpdateOutFromIn(store, singleton))
+            changed = true;
+    }
+    else {
+        svfgHasSU.reset(store->getId());
+        if (weakUpdateOutFromIn(store))
+            changed = true;
+    }
+
+    return changed;
 }
 
 bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode* dst) {
@@ -136,6 +225,7 @@ bool TypeClone::propagateFromAPToFP(const ActualParmSVFGNode* ap, const SVFGNode
                     // The arguments static type is what we are initialising to.
                     TypeStr t = cppUtil::getNameFromType(arg->getType());
                     prop = cloneObject(o, ap, t);
+                    // TODO: back-prop
                 }
             }
 
@@ -174,9 +264,9 @@ bool TypeClone::propVarPtsFromSrcToDst(NodeID var, const SVFGNode* src, const SV
 
 bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
     PointsTo &ptrPt = getPts(ptrId);
-    unsigned preFilterCount = ptrPt.count();
     TypeStr t = staticType(ptrId);
     bool changed = false;
+    std::set<NodeID> toBackPropagate;
 
     PointsTo filterPt;
     for (PointsTo::iterator oI = ptrPt.begin(); oI != ptrPt.end(); ++oI) {
@@ -184,14 +274,20 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
         TypeStr tp = T(o);
         NodeID prop = 0;
 
+        llvm::outs() << "o: " << o << "T(o): " << T(o) << ", tilde(t)" << tilde(t) << "\n";
+
         if (T(o) == UNDEF_TYPE) {
             // DEREF-UNTYPED
             NodeID cloneId = getCloneObject(o, stmt);
             if (cloneId == 0) {
                 cloneId = cloneObject(o, stmt, tilde(t));
+                if (baseBackPropagate(cloneId)) {
+                    toBackPropagate.insert(cloneId);
+                }
             }
 
             prop = cloneId;
+            llvm::outs() << "to = undef\n";
         } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
             // DEREF-DOWN
             // We want the absolute base of o (which is a clone).
@@ -201,12 +297,17 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
             NodeID downCloneId = getCloneObject(base, stmt);
             if (downCloneId == 0) {
                 downCloneId = cloneObject(base, stmt, tilde(t));
+                if (baseBackPropagate(downCloneId)) {
+                    toBackPropagate.insert(downCloneId);
+                }
             }
 
             prop = downCloneId;
+            llvm::outs() << "to = down\n";
         } else if (isBase(tilde(t), tp) || tilde(t) == tp || tilde(t) == UNDEF_TYPE) {
             // DEREF-UP
             prop = o;
+            llvm::outs() << "to = up\n";
         } else {
             assert(false && "FAILURE!");
         }
@@ -215,9 +316,16 @@ bool TypeClone::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
         filterPt.set(prop);
     }
 
+    changed = ptrPt != filterPt;
     ptrPt.clear();
     ptrPt |= filterPt;
-    return ptrPt.count() != preFilterCount;
+
+    for (std::set<NodeID>::iterator nodeI = toBackPropagate.begin(); nodeI != toBackPropagate.end(); ++nodeI) {
+        SVFGNode *fromNode = svfg->getSVFGNode(idToAllocLocMap[*nodeI]);
+        propagate(&fromNode);
+    }
+
+    return changed;
 }
 
 bool TypeClone::baseBackPropagate(NodeID o) {
@@ -229,6 +337,7 @@ bool TypeClone::baseBackPropagate(NodeID o) {
     NodeID allocAssigneeId = allocNode->getPAGDstNode()->getId();
 
     bool changed = getPts(allocAssigneeId).test_and_set(o);
+
     return changed;
 }
 
@@ -259,7 +368,9 @@ TypeClone::TypeStr TypeClone::T(NodeID n) const {
 
 TypeClone::TypeStr TypeClone::staticType(NodeID p) const {
     const PAGNode *pagNode = pag->getPAGNode(p);
-    return cppUtil::getNameFromType(pagNode->getType());
+    std::string typeName = cppUtil::getNameFromType(pagNode->getType());
+    if (typeName == "i8*" || typeName == "i8") typeName = UNDEF_TYPE;
+    return typeName;
 }
 
 NodeID TypeClone::getCloneObject(const NodeID o, const SVFGNode *cloneLoc) {
@@ -320,6 +431,7 @@ void TypeClone::findAllocGlobals(void) {
 }
 
 bool TypeClone::glob(NodeID svfgNodeId) {
+    // TODO.
     return false;
 }
 

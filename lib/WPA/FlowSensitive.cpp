@@ -27,6 +27,8 @@
  *      Author: Yulei Sui
  */
 
+#include <sstream>
+
 #include "Util/SVFModule.h"
 #include "WPA/WPAStat.h"
 #include "WPA/FlowSensitive.h"

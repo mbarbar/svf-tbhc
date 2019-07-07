@@ -419,6 +419,10 @@ std::string CHGraph::getPointerTypeName(const llvm::DIDerivedType *pointerType) 
     do {
         ++starCount;
         base = pointerType->getBaseType().resolve();
+
+        // void *
+        if (base == NULL) break;
+
         if (base->getTag() == llvm::dwarf::DW_TAG_pointer_type) {
             pointerType = SVFUtil::dyn_cast<llvm::DIDerivedType>(base);
             assert(pointerType && "pointer type not a derived type?");
@@ -426,7 +430,8 @@ std::string CHGraph::getPointerTypeName(const llvm::DIDerivedType *pointerType) 
     } while (base->getTag() == llvm::dwarf:: DW_TAG_pointer_type);
 
     // Base now has the pointee type.
-    return getFullTypeNameFromDebugInfo(base) + std::string(starCount, '*');
+    std::string baseName = base == NULL ? "i8" : getFullTypeNameFromDebugInfo(base);
+    return baseName + std::string(starCount, '*');
 }
 
 std::string CHGraph::getArrayTypeName(const llvm::DICompositeType *arrayType) const {

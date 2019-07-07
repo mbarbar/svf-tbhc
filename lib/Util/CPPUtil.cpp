@@ -360,7 +360,6 @@ string cppUtil::getClassNameFromType(const Type *ty) {
         }
     }
 
-    llvm::outs() << "end: " << className << "\n";
     return className;
 }
 
