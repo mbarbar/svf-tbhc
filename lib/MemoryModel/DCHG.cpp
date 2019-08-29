@@ -35,7 +35,7 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
 void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
     switch (derivedType->getTag()) {
     case llvm::dwarf::DW_TAG_inheritance:
-        // TODO: add inheritance edge.
+        addEdge(derivedType->getBaseType(), derivedType->getScope(), CHEdge::INHERITANCE);
         break;
     case llvm::dwarf::DW_TAG_member:
         // TODO: don't care it seems.
@@ -87,7 +87,41 @@ DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
     diTypeToNodeMap[type] = node;
     // TODO: name map, necessary?
 
+    // TODO: handle typedef.
+
+    // TODO: handle templates.
+
     return node;
+}
+
+DCHEdge *DCHGraph::addEdge(llvm::DIType *t1, llvm::DIType *t2, CHEdge::CHEDGETYPE et) {
+    DCHNode *n1 = getOrCreateNode(t1);
+    DCHNode *n2 = getOrCreateNode(t2);
+
+    DCHEdge *edge = hasEdge(t1, t2);
+    if (edge == NULL) {
+        // Create a new edge.
+        edge = new DCHEdge(src, dst, et);
+        src->addOutgoingEdge(edge);
+        dst->addIncomingEdge(edge)
+    }
+
+    return edge;
+}
+
+DCHEdge *DCHGraph::hasEdge(llvm::DIType *t1, llvm::DIType *t2, CHEdge::CHEDGETYPE et) {
+    DCHNode *src = getOrCreateNode(t1);
+    DCHNode *dst = getOrCreateNode(t2);
+
+    for (CHEdge::CHEdgeSetTy::const_iterator edgeI = src->getOutEdges().begin(); edgeI != src->getOutEdges().end(); ++edgeI) {
+        CHNode *node = (*edgeI)->getDstNode();
+        CHEdge::CHEDGETYPE edgeType = (*edgeI)->getEdgeType();
+        if (node == dst && edgeType == et) {
+            return *edgeI;
+        }
+    }
+
+    return NULL;
 }
 
 void DCHGraph::buildCHG(void) {
