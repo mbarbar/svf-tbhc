@@ -9,8 +9,8 @@
 
 #include "MemoryModel/DCHG.h"
 
-void DCHGraph::handleDIBasicType(const DIBasicType *compositeType) {
-
+void DCHGraph::handleDIBasicType(const DIBasicType *basicType) {
+    getOrCreateNode(basicType, basicType->getName());
 }
 
 void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
@@ -20,6 +20,7 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
         break;
     case llvm::dwarf::DW_TAG_class_type:
     case llvm::dwarf::DW_TAG_structure_type:
+        getOrCreateNode(compositeType, compositeType->getName());
         break;
     case llvm::dwarf::DW_TAG_union_type:
         // TODO: unsure.
@@ -72,6 +73,21 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
 }
 
 void DCHGraph::handleDISubroutineType(const DISubroutineType *subroutineType) {
+}
+
+DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
+    assert(type != NULL && "DCHGraph::getOrCreateNode: type is null.");
+
+    // Check, does the node for type exist?
+    if (diTypeToNodeMap[type] != NULL) {
+        return diTypeToNodeMap[type];
+    }
+
+    DCHNode *node = new DCHNode(type, name);
+    diTypeToNodeMap[type] = node;
+    // TODO: name map, necessary?
+
+    return node;
 }
 
 void DCHGraph::buildCHG(void) {
