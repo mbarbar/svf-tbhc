@@ -41,7 +41,7 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
         // TODO: don't care it seems.
         break;
     case llvm::dwarf::DW_TAG_typedef:
-        // TODO: perhaps attach it to the appropriate node.
+        handleTypedef(derivedType);
         break;
     case llvm::dwarf::DW_TAG_pointer_type:
         // TODO: add node likely.
@@ -75,7 +75,30 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
 void DCHGraph::handleDISubroutineType(const DISubroutineType *subroutineType) {
 }
 
+void handleTypedef(const DIDerivedType *typedefType) {
+    assert(typedefType && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef);
+
+    std::vector<llvm::DIDerivedType *> typedefs;
+    // Check for NULL because you can typedef void.
+    while (typedefType != NULL && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef) {
+        typedefs.push_back(typedefType);
+        typedefType = typedefType->getBaseType();
+    }
+
+    llvm::DIType *baseType = typedefType;
+    DCHNode *baseTypeNode = getOrCreateNode(baseType);
+
+    // Book keeping.
+    // Base type needs to hold its typedefs.
+    baseTypeNode->addTypedefs(typedefs);
+    // Want to quickly get the base type from the typedef.
+    for (std::set<llvm::DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
+        typedefToNodeMap[*typedefI] = baseTypeNode;
+    }
+}
+
 DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
+    // TODO: this fails for `void`.
     assert(type != NULL && "DCHGraph::getOrCreateNode: type is null.");
 
     // Check, does the node for type exist?
@@ -83,11 +106,13 @@ DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
         return diTypeToNodeMap[type];
     }
 
+    if (typedefToNodeMap[type] != NULL) {
+        return typedefToNodeMap[type];
+    }
+
     DCHNode *node = new DCHNode(type, name);
     diTypeToNodeMap[type] = node;
     // TODO: name map, necessary?
-
-    // TODO: handle typedef.
 
     // TODO: handle templates.
 

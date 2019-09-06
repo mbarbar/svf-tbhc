@@ -33,8 +33,14 @@ public:
         return diType;
     }
 
+    void addTypedefs(std::set<llvm::DIDerivedType *> typedefs) {
+        this->typedefs.insert(typedefs);
+    }
+
 private:
     llvm::DIType *diType;
+    /// Names of typedefs which map to this type.
+    std::set<llvm::DIDerivedType *> typedefs;
 };
 
 /// Dwarf based CHG.
@@ -60,6 +66,8 @@ private:
 
     // ----
     std::map<llvm::DIType *, DCHNode *> diTypeToNodeMap;
+    /// Maps typedefs to their (potentially transitive) base type.
+    std::map<llvm::DIDerivedType *, DCHNode *> typedefToNodeMap;
 
 private:
     /// Construction helper to process DIBasicTypes.
@@ -70,6 +78,9 @@ private:
     void handleDIDerivedType(const DIDerivedType *derivedType);
     /// Construction helper to process DISubroutineTypes.
     void handleDISubroutineType(const DISubroutineType *subroutineType);
+
+    /// Attaches the typedef(s) to the base node.
+    void handleTypedef(const DIDerivedType *typedefType);
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
