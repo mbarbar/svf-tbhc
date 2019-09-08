@@ -21,6 +21,17 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
     case llvm::dwarf::DW_TAG_class_type:
     case llvm::dwarf::DW_TAG_structure_type:
         getOrCreateNode(compositeType, compositeType->getName());
+        // If we're extending, we need to add the first-field relation.
+        if (extended) {
+            llvm::DINodeArray fields = compositeType->getElements();
+            if (!fields.empty()) {
+                // fields[0] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
+                llvm::DIDerivedType firstMember = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
+                assert(firstMember && "DCHGraph::handleDICompositeType: first field is not a DIDerivedType?");
+                addEdge(compositeType, firstMember->getBaseType(), CHEdge::FIRST_FIELD);
+            }
+        }
+
         break;
     case llvm::dwarf::DW_TAG_union_type:
         // TODO: unsure.

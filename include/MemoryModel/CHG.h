@@ -19,6 +19,7 @@ public:
     typedef enum {
         INHERITANCE = 0x1, // inheritance relation
         INSTANTCE = 0x2 // template-instance relation
+        FIRST_FIELD = 0x4 // dst is the first-field of struct src.
     } CHEDGETYPE;
 
     typedef GenericNode<CHNode,CHEdge>::GEdgeSetTy CHEdgeSetTy;
