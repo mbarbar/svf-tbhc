@@ -48,6 +48,10 @@ class DCHGraph : public CHGraph {
 public:
     virtual void buildCHG(void);
 
+    void setExtended(void) {
+        extended = true;
+    }
+
 private:
     SVFModule svfMod;
     u32_t classNum;
@@ -65,6 +69,9 @@ private:
     CallSiteToVFunSetMap csToCHAVFnsMap;
 
     // ----
+    /// Whether to build the extended CHG with edges for the first field.
+    bool extended;
+
     std::map<llvm::DIType *, DCHNode *> diTypeToNodeMap;
     /// Maps typedefs to their (potentially transitive) base type.
     std::map<llvm::DIDerivedType *, DCHNode *> typedefToNodeMap;

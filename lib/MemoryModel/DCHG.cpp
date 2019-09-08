@@ -16,7 +16,7 @@ void DCHGraph::handleDIBasicType(const DIBasicType *basicType) {
 void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
     switch (compositeType->getTag()) {
     case llvm::dwarf::DW_TAG_array_type:
-        // TODO: add node likely 
+        if (extended) getOrCreateNode(compositeType);
         break;
     case llvm::dwarf::DW_TAG_class_type:
     case llvm::dwarf::DW_TAG_structure_type:
@@ -26,6 +26,7 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
         // TODO: unsure.
         break;
     case llvm::dwarf::DW_TAG_enumeration_type:
+        // TODO: unsure.
         break;
     default:
         assert(false && "DCHGraph::buildCHG: unexpected CompositeType tag.");
@@ -44,25 +45,25 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
         handleTypedef(derivedType);
         break;
     case llvm::dwarf::DW_TAG_pointer_type:
-        // TODO: add node likely.
+        if (extended) getOrCreateNode(compositeType);
         break;
     case llvm::dwarf::DW_TAG_ptr_to_member_type:
-        // TODO: add node likely 
+        if (extended) getOrCreateNode(compositeType);
         break;
     case llvm::dwarf::DW_TAG_reference_type:
-        // TODO: unsure.
+        // TODO: are these just pointers?
         break;
     case llvm::dwarf::DW_TAG_const_type:
-        // TODO: unsure
+        // TODO: need flags for qualifiers.
         break;
     case llvm::dwarf::DW_TAG_atomic_type:
-        // TODO: unsure
+        // TODO: need flags for qualifiers.
         break;
     case llvm::dwarf::DW_TAG_volatile_type:
-        // TODO: unsure
+        // TODO: need flags for qualifiers.
         break;
     case llvm::dwarf::DW_TAG_restrict_type:
-        // TODO: unsure
+        // TODO: need flags for qualifiers.
         break;
     case llvm::dwarf::DW_TAG_friend:
         // TODO: unsure.
