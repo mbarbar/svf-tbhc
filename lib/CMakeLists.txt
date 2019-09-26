@@ -29,6 +29,7 @@ set(SOURCES
     MemoryModel/PAGBuilderFromFile.cpp
     MemoryModel/PAG.cpp
     MemoryModel/CHA.cpp
+    MemoryModel/DCHG.cpp
     MemoryModel/PointerAnalysis.cpp
     MSSA/MemPartition.cpp
     MSSA/MemRegion.cpp

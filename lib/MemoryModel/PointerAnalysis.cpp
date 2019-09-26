@@ -37,6 +37,7 @@
 #include "Util/SVFModule.h"
 #include "Util/ICFG.h"
 #include "MemoryModel/CHA.h"
+#include "MemoryModel/DCHG.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
 #include <fstream>
@@ -149,6 +150,9 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
             chgraph = new CHGraph(svfModule);
             chgraph->buildCHG();
 
+            DCHGraph *dchg = new DCHGraph(svfModule);
+            dchg->buildCHG(true);
+            dchg->dump("test.dot");
             //typeSystem = new TypeSystem(pag);
         }
 

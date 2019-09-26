@@ -8,27 +8,28 @@
  */
 
 #include "MemoryModel/DCHG.h"
+#include "llvm/IR/DebugInfo.h"
 
-void DCHGraph::handleDIBasicType(const DIBasicType *basicType) {
-    getOrCreateNode(basicType, basicType->getName());
+void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
+    getOrCreateNode(basicType);
 }
 
-void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
+void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType) {
     switch (compositeType->getTag()) {
     case llvm::dwarf::DW_TAG_array_type:
         if (extended) getOrCreateNode(compositeType);
         break;
     case llvm::dwarf::DW_TAG_class_type:
     case llvm::dwarf::DW_TAG_structure_type:
-        getOrCreateNode(compositeType, compositeType->getName());
+        getOrCreateNode(compositeType);
         // If we're extending, we need to add the first-field relation.
         if (extended) {
             llvm::DINodeArray fields = compositeType->getElements();
             if (!fields.empty()) {
                 // fields[0] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
-                llvm::DIDerivedType firstMember = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
-                assert(firstMember && "DCHGraph::handleDICompositeType: first field is not a DIDerivedType?");
-                addEdge(compositeType, firstMember->getBaseType(), CHEdge::FIRST_FIELD);
+                llvm::DIDerivedType *firstMember = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
+                assert(firstMember != NULL && "DCHGraph::handleDICompositeType: first field is not a DIDerivedType?");
+                addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
             }
         }
 
@@ -44,10 +45,11 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
     }
 }
 
-void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
+void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
     switch (derivedType->getTag()) {
     case llvm::dwarf::DW_TAG_inheritance:
-        addEdge(derivedType->getBaseType(), derivedType->getScope(), CHEdge::INHERITANCE);
+        assert(SVFUtil::isa<llvm::DIType>(derivedType->getScope()) && "inheriting from non-type?");
+        addEdge(derivedType->getBaseType(), SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()), DCHEdge::INHERITANCE);
         break;
     case llvm::dwarf::DW_TAG_member:
         // TODO: don't care it seems.
@@ -56,10 +58,10 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
         handleTypedef(derivedType);
         break;
     case llvm::dwarf::DW_TAG_pointer_type:
-        if (extended) getOrCreateNode(compositeType);
+        if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_ptr_to_member_type:
-        if (extended) getOrCreateNode(compositeType);
+        if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_reference_type:
         // TODO: are these just pointers?
@@ -84,32 +86,37 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
     }
 }
 
-void DCHGraph::handleDISubroutineType(const DISubroutineType *subroutineType) {
+void DCHGraph::handleDISubroutineType(const llvm::DISubroutineType *subroutineType) {
 }
 
-void handleTypedef(const DIDerivedType *typedefType) {
+void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     assert(typedefType && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef);
 
-    std::vector<llvm::DIDerivedType *> typedefs;
+    // Need to gather them in a set first because we don't know the base type till
+    // we get to the bottom of the (potentially many) typedefs.
+    std::vector<const llvm::DIDerivedType *> typedefs;
     // Check for NULL because you can typedef void.
     while (typedefType != NULL && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef) {
         typedefs.push_back(typedefType);
-        typedefType = typedefType->getBaseType();
+        if (!SVFUtil::isa<llvm::DIDerivedType>(typedefType->getBaseType())) {
+            break;
+        }
+
+        typedefType = SVFUtil::dyn_cast<llvm::DIDerivedType>(typedefType->getBaseType());
     }
 
-    llvm::DIType *baseType = typedefType;
+    const llvm::DIType *baseType = typedefType;
     DCHNode *baseTypeNode = getOrCreateNode(baseType);
 
-    // Book keeping.
-    // Base type needs to hold its typedefs.
-    baseTypeNode->addTypedefs(typedefs);
-    // Want to quickly get the base type from the typedef.
-    for (std::set<llvm::DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
+    for (std::vector<const llvm::DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
+        // Base type needs to hold its typedefs.
+        baseTypeNode->addTypedef(*typedefI);
+        // Want to quickly get the base type from the typedef.
         typedefToNodeMap[*typedefI] = baseTypeNode;
     }
 }
 
-DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
+DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
     // TODO: this fails for `void`.
     assert(type != NULL && "DCHGraph::getOrCreateNode: type is null.");
 
@@ -122,7 +129,9 @@ DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
         return typedefToNodeMap[type];
     }
 
-    DCHNode *node = new DCHNode(type, name);
+    DCHNode *node = new DCHNode(type);
+    addGNode(node->getId(), node);
+    llvm::outs() << type << " : " << type->getName() << "\n";
     diTypeToNodeMap[type] = node;
     // TODO: name map, necessary?
 
@@ -131,29 +140,30 @@ DCHNode *DCHGraph::getOrCreateNode(llvm::DIType *type, std::string name) {
     return node;
 }
 
-DCHEdge *DCHGraph::addEdge(llvm::DIType *t1, llvm::DIType *t2, CHEdge::CHEDGETYPE et) {
-    DCHNode *n1 = getOrCreateNode(t1);
-    DCHNode *n2 = getOrCreateNode(t2);
+DCHEdge *DCHGraph::addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et) {
+    DCHNode *src = getOrCreateNode(t1);
+    DCHNode *dst = getOrCreateNode(t2);
 
-    DCHEdge *edge = hasEdge(t1, t2);
+    DCHEdge *edge = hasEdge(t1, t2, et);
     if (edge == NULL) {
         // Create a new edge.
         edge = new DCHEdge(src, dst, et);
         src->addOutgoingEdge(edge);
-        dst->addIncomingEdge(edge)
+        dst->addIncomingEdge(edge);
     }
 
     return edge;
 }
 
-DCHEdge *DCHGraph::hasEdge(llvm::DIType *t1, llvm::DIType *t2, CHEdge::CHEDGETYPE et) {
+DCHEdge *DCHGraph::hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et) {
     DCHNode *src = getOrCreateNode(t1);
     DCHNode *dst = getOrCreateNode(t2);
 
-    for (CHEdge::CHEdgeSetTy::const_iterator edgeI = src->getOutEdges().begin(); edgeI != src->getOutEdges().end(); ++edgeI) {
-        CHNode *node = (*edgeI)->getDstNode();
-        CHEdge::CHEDGETYPE edgeType = (*edgeI)->getEdgeType();
+    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = src->getOutEdges().begin(); edgeI != src->getOutEdges().end(); ++edgeI) {
+        DCHNode *node = (*edgeI)->getDstNode();
+        DCHEdge::DCHEDGETYPE edgeType = (*edgeI)->getEdgeType();
         if (node == dst && edgeType == et) {
+            assert(SVFUtil::isa<DCHEdge>(*edgeI) && "Non-DCHEdge in DCHNode edge set.");
             return *edgeI;
         }
     }
@@ -161,9 +171,12 @@ DCHEdge *DCHGraph::hasEdge(llvm::DIType *t1, llvm::DIType *t2, CHEdge::CHEDGETYP
     return NULL;
 }
 
-void DCHGraph::buildCHG(void) {
+void DCHGraph::buildCHG(bool extend) {
+    extended = extend;
     llvm::DebugInfoFinder finder;
-    finder.processModule(module);
+    for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
+      finder.processModule(*(svfModule.getModule(i)));
+    }
 
     for (llvm::DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
         llvm::DIType *type = *diTypeI;
@@ -175,7 +188,7 @@ void DCHGraph::buildCHG(void) {
         } else if (llvm::DIDerivedType *derivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(type)) {
             handleDIDerivedType(derivedType);
         } else if (llvm::DISubroutineType *subroutineType = SVFUtil::dyn_cast<llvm::DISubroutineType>(type)) {
-            handleDIDerivedType(subroutineType);
+            handleDISubroutineType(subroutineType);
         } else {
             assert(false && "DCHGraph::buildCHG: unexpected DIType.");
         }

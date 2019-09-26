@@ -218,7 +218,7 @@ public:
     }
     */
 
-private:
+protected:
     SVFModule svfMod;
     u32_t classNum;
     s32_t vfID;
