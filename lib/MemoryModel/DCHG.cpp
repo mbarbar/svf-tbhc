@@ -116,6 +116,10 @@ void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     }
 }
 
+void DCHGraph::gatherVirtualFunctions(void) {
+
+}
+
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
     // TODO: this fails for `void`.
     assert(type != NULL && "DCHGraph::getOrCreateNode: type is null.");

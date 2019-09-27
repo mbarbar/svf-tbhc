@@ -124,6 +124,10 @@ public:
         typedefs.insert(diTypedef);
     }
 
+    void addVirtualFunction(const Function *func) {
+        virtualFunctions.insert(func);
+    }
+
 private:
     /// Type of this node.
     const llvm::DIType *diType;
@@ -132,6 +136,8 @@ private:
     const GlobalValue* vtable;
     std::string typeName;
     size_t flags;
+    /// The virtual functions which this class actually defines/overrides.
+    std::set<const Function *> definedVirtualFunctions;
     /*
      * virtual functions inherited from different classes are separately stored
      * to model different vtables inherited from different fathers.
@@ -183,6 +189,9 @@ private:
     void handleDIDerivedType(const llvm::DIDerivedType *derivedType);
     /// Construction helper to process DISubroutineTypes.
     void handleDISubroutineType(const llvm::DISubroutineType *subroutineType);
+
+    /// Finds all defined virtual functions and attaches them to nodes.
+    void gatherVirtualFunctions(void);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIDerivedType *typedefType);
