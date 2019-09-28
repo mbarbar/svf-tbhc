@@ -47,10 +47,13 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
 
 void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
     switch (derivedType->getTag()) {
-    case llvm::dwarf::DW_TAG_inheritance:
+    case llvm::dwarf::DW_TAG_inheritance: {
         assert(SVFUtil::isa<llvm::DIType>(derivedType->getScope()) && "inheriting from non-type?");
-        addEdge(derivedType->getBaseType(), SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()), DCHEdge::INHERITANCE);
+        DCHEdge *edge = addEdge(derivedType->getBaseType(), SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()), DCHEdge::INHERITANCE);
+        // If the offset does not exist (for primary base), getOffset should return 0.
+        edge->setOffset(derivedType->getOffset());
         break;
+    }
     case llvm::dwarf::DW_TAG_member:
         // TODO: don't care it seems.
         break;

@@ -29,7 +29,7 @@ public:
     typedef GenericNode<DCHNode, DCHEdge>::GEdgeSetTy DCHEdgeSetTy;
 
     DCHEdge(DCHNode *src, DCHNode *dst, DCHEDGETYPE et, GEdgeFlag k = 0)
-        : GenericEdge<DCHNode>(src, dst, k) {
+        : GenericEdge<DCHNode>(src, dst, k), offset(0) {
         edgeType = et;
     }
 
@@ -37,8 +37,17 @@ public:
         return edgeType;
     }
 
+    unsigned int getOffset(void) const {
+        return offset;
+    }
+
+    void setOffset(unsigned int offset) {
+        this->offset = offset;
+    }
+
 private:
     DCHEDGETYPE edgeType;
+    unsigned int offset;
 };
 
 class DCHNode : public GenericNode<DCHNode, DCHEdge> {
