@@ -124,8 +124,14 @@ public:
         typedefs.insert(diTypedef);
     }
 
-    void addVirtualFunction(const Function *func) {
-        virtualFunctions.insert(func);
+    void addVirtualFunction(const Function *func, unsigned int virtualIndex) {
+        primaryVTable.reserve(virtualIndex);
+        primaryVTable[virtualIndex] = func;
+    }
+
+    const Function *getVirtualFunctionFromPrimaryVTable(unsigned int virtualIndex) {
+        primaryVTable.reserve(virtualIndex);
+        return primaryVTable[virtualIndex];
     }
 
 private:
@@ -137,7 +143,7 @@ private:
     std::string typeName;
     size_t flags;
     /// The virtual functions which this class actually defines/overrides.
-    std::set<const Function *> definedVirtualFunctions;
+    std::vector<const Function *> primaryVTable;
     /*
      * virtual functions inherited from different classes are separately stored
      * to model different vtables inherited from different fathers.
@@ -191,7 +197,7 @@ private:
     void handleDISubroutineType(const llvm::DISubroutineType *subroutineType);
 
     /// Finds all defined virtual functions and attaches them to nodes.
-    void gatherVirtualFunctions(void);
+    void buildVTables(void);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIDerivedType *typedefType);

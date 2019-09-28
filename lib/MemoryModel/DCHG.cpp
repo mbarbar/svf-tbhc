@@ -116,8 +116,26 @@ void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     }
 }
 
-void DCHGraph::gatherVirtualFunctions(void) {
+void DCHGraph::buildVTables(void) {
+    llvm::DebugInfoFinder finder;
+    for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
+        finder.processModule(*(svfModule.getModule(i)));
+    }
 
+    for (llvm::DebugInfoFinder::iterator diSubProgI = finder.subprogram_begin(); diSubProgI != finder.subprogram_end(); ++diSubProgI) {
+        llvm::DISubrogram *diSubProg = *diSubProgI;
+        if (!(diSubProg->getSPFlags() & llvm::DISubrogram::SPFlagVirtuality)) {
+            // Don't care about non-virtuals.
+            continue;
+        }
+
+        llvm::DIType *type = diSubProg->getContainingType();
+        const llvm::Function *vFun = svfModule.getFunction(diSubProg->getLinkageName());
+        getOrCreateNode(type)->addVirtualFunction(vFun, diSubProg->getVirtualIndex());
+    }
+
+    // We now have the primary vtables in place (with gaps for inherited functions).
+    // We need to handle inheritance, particularly multiple inheritance.
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
@@ -198,6 +216,6 @@ void DCHGraph::buildCHG(bool extend) {
         }
     }
 
-    // TODO: first field edges.
+    buildVTables();
 }
 
