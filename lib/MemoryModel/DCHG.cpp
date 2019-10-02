@@ -51,7 +51,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
         assert(SVFUtil::isa<llvm::DIType>(derivedType->getScope()) && "inheriting from non-type?");
         DCHEdge *edge = addEdge(derivedType->getBaseType(), SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()), DCHEdge::INHERITANCE);
         // If the offset does not exist (for primary base), getOffset should return 0.
-        edge->setOffset(derivedType->getOffset());
+        edge->setOffset(derivedType->getOffsetInBits());
         break;
     }
     case llvm::dwarf::DW_TAG_member:
