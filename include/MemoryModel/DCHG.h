@@ -20,21 +20,16 @@ class DCHNode;
 
 class DCHEdge : public GenericEdge<DCHNode> {
 public:
-    typedef enum {
-        INHERITANCE = 0x1, // inheritance relation
-        INSTANCE    = 0x2, // template-instance relation
-        FIRST_FIELD = 0x4  // src -ff-> dst => dst is first field of src
-    } DCHEDGETYPE;
+    enum {
+        INHERITANCE, // inheritance relation
+        INSTANCE,    // template-instance relation
+        FIRST_FIELD  // src -ff-> dst => dst is first field of src
+    };
 
     typedef GenericNode<DCHNode, DCHEdge>::GEdgeSetTy DCHEdgeSetTy;
 
-    DCHEdge(DCHNode *src, DCHNode *dst, DCHEDGETYPE et, GEdgeFlag k = 0)
+    DCHEdge(DCHNode *src, DCHNode *dst, GEdgeFlag k = 0)
         : GenericEdge<DCHNode>(src, dst, k), offset(0) {
-        edgeType = et;
-    }
-
-    DCHEDGETYPE getEdgeType() const {
-        return edgeType;
     }
 
     unsigned int getOffset(void) const {
@@ -46,7 +41,6 @@ public:
     }
 
 private:
-    DCHEDGETYPE edgeType;
     unsigned int offset;
 };
 
@@ -128,6 +122,11 @@ public:
         return vtable;
     }
 
+    /// Returns the vector of virtual function vectors.
+    const std::vector<std::vector<const Function *>> &getVfnVectors(void) const {
+        return vfnVectors;
+    }
+
     /// Return the nth virtual function vector in the vtable.
     std::vector<const Function *> &getVfnVector(unsigned n) {
         if (vfnVectors.size() < n + 1) {
@@ -157,7 +156,7 @@ private:
 class DCHGraph : public GenericGraph<DCHNode, DCHEdge> {
 public:
     DCHGraph(const SVFModule svfMod)
-        : svfModule(svfMod) { //, classNum(0), vfID(0), buildingCHGTime(0) {
+        : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
     }
 
     //~DCHGraph();
@@ -169,6 +168,8 @@ public:
     void dump(const std::string& filename) {
         GraphPrinter::WriteGraphToFile(llvm::outs(), filename, this);
     }
+
+    void print(void) const;
 
 protected:
     /// SVF Module this CHG is built from.
@@ -201,9 +202,12 @@ private:
     DCHNode *getOrCreateNode(const llvm::DIType *type);
 
     /// Creates an edge between from t1 to t2.
-    DCHEdge *addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et);
+    DCHEdge *addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);
     /// Returns the edge between t1 and t2 if it exists, returns NULL otherwise.
-    DCHEdge *hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et);
+    DCHEdge *hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);
+
+    /// Number of types (nodes) in the graph.
+    NodeID numTypes;
 };
 
 

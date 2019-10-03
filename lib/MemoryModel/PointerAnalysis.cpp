@@ -152,7 +152,7 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
 
             DCHGraph *dchg = new DCHGraph(svfModule);
             dchg->buildCHG(true);
-            dchg->dump("test.dot");
+            dchg->print();
             //typeSystem = new TypeSystem(pag);
         }
 

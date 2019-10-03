@@ -8,6 +8,8 @@
  */
 
 #include "MemoryModel/DCHG.h"
+#include "Util/CPPUtil.h"
+
 #include "llvm/IR/DebugInfo.h"
 
 void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
@@ -49,7 +51,8 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
     switch (derivedType->getTag()) {
     case llvm::dwarf::DW_TAG_inheritance: {
         assert(SVFUtil::isa<llvm::DIType>(derivedType->getScope()) && "inheriting from non-type?");
-        DCHEdge *edge = addEdge(derivedType->getBaseType(), SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()), DCHEdge::INHERITANCE);
+        DCHEdge *edge = addEdge(SVFUtil::dyn_cast<llvm::DIType>(derivedType->getScope()),
+                                derivedType->getBaseType(), DCHEdge::INHERITANCE);
         // If the offset does not exist (for primary base), getOffset should return 0.
         edge->setOffset(derivedType->getOffsetInBits());
         break;
@@ -181,7 +184,7 @@ DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
         return typedefToNodeMap[type];
     }
 
-    DCHNode *node = new DCHNode(type);
+    DCHNode *node = new DCHNode(type, numTypes++);
     addGNode(node->getId(), node);
     llvm::outs() << type << " : " << type->getName() << "\n";
     diTypeToNodeMap[type] = node;
@@ -192,7 +195,7 @@ DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
     return node;
 }
 
-DCHEdge *DCHGraph::addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et) {
+DCHEdge *DCHGraph::addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et) {
     DCHNode *src = getOrCreateNode(t1);
     DCHNode *dst = getOrCreateNode(t2);
 
@@ -207,13 +210,13 @@ DCHEdge *DCHGraph::addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEd
     return edge;
 }
 
-DCHEdge *DCHGraph::hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::DCHEDGETYPE et) {
+DCHEdge *DCHGraph::hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et) {
     DCHNode *src = getOrCreateNode(t1);
     DCHNode *dst = getOrCreateNode(t2);
 
     for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = src->getOutEdges().begin(); edgeI != src->getOutEdges().end(); ++edgeI) {
         DCHNode *node = (*edgeI)->getDstNode();
-        DCHEdge::DCHEDGETYPE edgeType = (*edgeI)->getEdgeType();
+        DCHEdge::GEdgeKind edgeType = (*edgeI)->getEdgeKind();
         if (node == dst && edgeType == et) {
             assert(SVFUtil::isa<DCHEdge>(*edgeI) && "Non-DCHEdge in DCHNode edge set.");
             return *edgeI;
@@ -248,6 +251,75 @@ void DCHGraph::buildCHG(bool extend) {
 
     for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
       buildVTables(*(svfModule.getModule(i)));
+    }
+}
+
+static std::string indent(size_t n) {
+    return std::string(n, ' ');
+}
+
+void DCHGraph::print(void) const {
+    static const std::string line = "-------------------------------------\n";
+    static const size_t singleIndent = 2;
+
+    size_t currIndent = 0;
+    for (DCHGraph::const_iterator it = begin(); it != end(); ++it) {
+        const NodeID id = it->first;
+        const DCHNode *node = it->second;
+
+        llvm::outs() << line;
+
+        // TODO: need to properly name non-class nodes.
+        llvm::outs() << indent(currIndent) << id << ": " << node->getName() << "\n";
+
+        currIndent += singleIndent;
+        llvm::outs() << indent(currIndent) << "Virtual functions\n";
+        currIndent += singleIndent;
+        const std::vector<std::vector<const Function *>> &vfnVectors = node->getVfnVectors();
+        for (unsigned i = 0; i < vfnVectors.size(); ++i) {
+            llvm::outs() << indent(currIndent) << "[ vtable #" << i << " ]\n";
+            currIndent += singleIndent;
+            for (unsigned j = 0; j < vfnVectors[i].size(); ++j) {
+                struct cppUtil::DemangledName dname = cppUtil::demangle(vfnVectors[i][j]->getName().str());
+                llvm::outs() << indent(currIndent) << "[" << j << "] "
+                             << dname.className << "::" << dname.funcName << "\n";
+            }
+
+            currIndent -= singleIndent;
+        }
+
+        // Nothing was printed.
+        if (vfnVectors.size() == 0) {
+            llvm::outs() << indent(currIndent) << "(none)\n";
+        }
+
+        currIndent -= singleIndent;
+
+        llvm::outs() << indent(currIndent) << "Bases\n";
+        currIndent += singleIndent;
+        for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->OutEdgeBegin(); edgeI != node->OutEdgeEnd(); ++edgeI) {
+            const DCHEdge *edge = *edgeI;
+            std::string arrow;
+            if (edge->getEdgeKind() == DCHEdge::INHERITANCE) {
+                arrow = "--inheritance-->";
+            } else if (edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
+                arrow = "--first-field-->";
+            } else if (edge->getEdgeKind() == DCHEdge::INSTANCE) {
+                arrow = "---instance---->";
+            } else {
+                arrow = "----unknown---->";
+            }
+
+            llvm::outs() << indent(currIndent) << "[ " << node->getName() << " ] "
+                         << arrow << " [ " << edge->getDstNode()->getName() << " ]\n";
+        }
+
+        if (node->getOutEdges().size() == 0) {
+            llvm::outs() << indent(currIndent) << "(none)\n";
+        }
+
+        currIndent -= singleIndent;
+        currIndent -= singleIndent;
     }
 }
 
