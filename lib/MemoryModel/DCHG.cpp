@@ -72,6 +72,9 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
     case llvm::dwarf::DW_TAG_reference_type:
         // TODO: are these just pointers?
         break;
+    case llvm::dwarf::DW_TAG_rvalue_reference_type:
+        // TODO: are these just pointers?
+        break;
     case llvm::dwarf::DW_TAG_const_type:
         // TODO: need flags for qualifiers.
         break;
