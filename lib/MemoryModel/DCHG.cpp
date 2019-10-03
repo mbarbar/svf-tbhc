@@ -103,12 +103,17 @@ void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     std::vector<const llvm::DIDerivedType *> typedefs;
     // Check for NULL because you can typedef void.
     while (typedefType != NULL && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef) {
+        // The typedef itself.
         typedefs.push_back(typedefType);
-        if (!SVFUtil::isa<llvm::DIDerivedType>(typedefType->getBaseType())) {
-            break;
-        }
 
-        typedefType = SVFUtil::dyn_cast<llvm::DIDerivedType>(typedefType->getBaseType());
+        // Next in the typedef line.
+        if (typedefType->getBaseType() == NULL) {
+            // We use this because dyn_cast won't accept a NULL. The while condition
+            // will catch it; no need to break.
+            typedefType = NULL;
+        } else {
+            typedefType = SVFUtil::dyn_cast<llvm::DIDerivedType>(typedefType->getBaseType());
+        }
     }
 
     const llvm::DIType *baseType = typedefType;
@@ -172,9 +177,6 @@ void DCHGraph::buildVTables(const Module &module) {
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
-    // TODO: this fails for `void`.
-    assert(type != NULL && "DCHGraph::getOrCreateNode: type is null.");
-
     // Check, does the node for type exist?
     if (diTypeToNodeMap[type] != NULL) {
         return diTypeToNodeMap[type];
@@ -186,7 +188,6 @@ DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
 
     DCHNode *node = new DCHNode(type, numTypes++);
     addGNode(node->getId(), node);
-    llvm::outs() << type << " : " << type->getName() << "\n";
     diTypeToNodeMap[type] = node;
     // TODO: name map, necessary?
 

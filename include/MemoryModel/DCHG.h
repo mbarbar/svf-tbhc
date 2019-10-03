@@ -58,7 +58,10 @@ public:
     DCHNode(const llvm::DIType *diType, NodeID i = 0, GNodeK k = 0)
         : GenericNode<DCHNode, DCHEdge>(i, k), vtable(NULL), flags(0) {
         this->diType = diType;
-        if (diType->getRawName() != NULL) {
+        if (diType == NULL) {
+            // TODO: this should not clash - needs some testing.
+            typeName = "void";
+        } else if (diType->getRawName() != NULL) {
             typeName = diType->getName();
         } else {
             // TODO: we can name this from the DIType properly.
