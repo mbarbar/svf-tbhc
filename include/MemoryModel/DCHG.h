@@ -117,6 +117,10 @@ public:
         typedefs.insert(diTypedef);
     }
 
+    const std::set<const llvm::DIDerivedType *> &getTypedefs(void) const {
+        return typedefs;
+    }
+
     void setVTable(const GlobalValue *vtbl) {
         vtable = vtbl;
     }
@@ -198,7 +202,7 @@ private:
     void buildVTables(const Module &module);
 
     /// Attaches the typedef(s) to the base node.
-    void handleTypedef(const llvm::DIDerivedType *typedefType);
+    void handleTypedef(const llvm::DIType *typedefType);
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.

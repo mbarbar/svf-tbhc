@@ -95,7 +95,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
 void DCHGraph::handleDISubroutineType(const llvm::DISubroutineType *subroutineType) {
 }
 
-void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
+void DCHGraph::handleTypedef(const llvm::DIType *typedefType) {
     assert(typedefType && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef);
 
     // Need to gather them in a set first because we don't know the base type till
@@ -103,17 +103,12 @@ void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     std::vector<const llvm::DIDerivedType *> typedefs;
     // Check for NULL because you can typedef void.
     while (typedefType != NULL && typedefType->getTag() == llvm::dwarf::DW_TAG_typedef) {
+        const llvm::DIDerivedType *typedefDerivedType = SVFUtil::dyn_cast<llvm::DIDerivedType>(typedefType);
         // The typedef itself.
-        typedefs.push_back(typedefType);
+        typedefs.push_back(typedefDerivedType);
 
         // Next in the typedef line.
-        if (typedefType->getBaseType() == NULL) {
-            // We use this because dyn_cast won't accept a NULL. The while condition
-            // will catch it; no need to break.
-            typedefType = NULL;
-        } else {
-            typedefType = SVFUtil::dyn_cast<llvm::DIDerivedType>(typedefType->getBaseType());
-        }
+        typedefType = typedefDerivedType->getBaseType();
     }
 
     const llvm::DIType *baseType = typedefType;
@@ -320,6 +315,28 @@ void DCHGraph::print(void) const {
         }
 
         currIndent -= singleIndent;
+
+        llvm::outs() << indent(currIndent) << "Typedefs\n";
+
+        currIndent += singleIndent;
+
+        const std::set<const llvm::DIDerivedType *> &typedefs = node->getTypedefs();
+        for (std::set<const llvm::DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
+            const llvm::DIDerivedType *typedefType = *typedefI;
+            std::string typedefName = "void";
+            if (typedefType != NULL) {
+                typedefName = typedefType->getName();
+            }
+
+            llvm::outs() << indent(currIndent) << typedefName << "\n";
+        }
+
+        if (typedefs.size() == 0) {
+            llvm::outs() << indent(currIndent) << "(none)\n";
+        }
+
+        currIndent -= singleIndent;
+
         currIndent -= singleIndent;
     }
 }
