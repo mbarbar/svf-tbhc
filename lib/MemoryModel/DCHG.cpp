@@ -29,9 +29,12 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
             llvm::DINodeArray fields = compositeType->getElements();
             if (!fields.empty()) {
                 // fields[0] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
+                // It can also give a Subprogram type if the class just had non-virtual functions.
+                // We can happily ignore that.
                 llvm::DIDerivedType *firstMember = SVFUtil::dyn_cast<llvm::DIDerivedType>(fields[0]);
-                assert(firstMember != NULL && "DCHGraph::handleDICompositeType: first field is not a DIDerivedType?");
-                addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
+                if (firstMember != NULL) {
+                    addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
+                }
             }
         }
 
