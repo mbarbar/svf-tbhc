@@ -66,6 +66,9 @@ public:
         this->diType = diType;
         if (diType->getRawName() != NULL) {
             typeName = diType->getName();
+        } else {
+            // TODO: we can name this from the DIType properly.
+            typeName = "unnamed!";
         }
     }
 
