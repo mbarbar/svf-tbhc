@@ -119,26 +119,53 @@ void DCHGraph::handleTypedef(const llvm::DIDerivedType *typedefType) {
     }
 }
 
-void DCHGraph::buildVTables(void) {
-    llvm::DebugInfoFinder finder;
-    for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
-        finder.processModule(*(svfModule.getModule(i)));
-    }
+void DCHGraph::buildVTables(const Module &module) {
+    for (Module::const_global_iterator gvI = module.global_begin(); gvI != module.global_end(); ++gvI) {
+        // Though this will return more than GlobalVariables, we only care about GlobalVariables (for the vtbls).
+        const GlobalVariable *gv = SVFUtil::dyn_cast<const GlobalVariable>(&(*gvI));
+        if (gv == nullptr) continue;
+        if (gv->hasMetadata("tirvt") && gv->getNumOperands() > 0) {
+            llvm::DIType *type = llvm::dyn_cast<llvm::DIType>(gv->getMetadata("tirvt"));
+            assert(type && "Bad metadata for tirvt");
+            DCHNode *node = getOrCreateNode(type);
+            node->setVTable(gv);
 
-    for (llvm::DebugInfoFinder::iterator diSubProgI = finder.subprogram_begin(); diSubProgI != finder.subprogram_end(); ++diSubProgI) {
-        llvm::DISubrogram *diSubProg = *diSubProgI;
-        if (!(diSubProg->getSPFlags() & llvm::DISubrogram::SPFlagVirtuality)) {
-            // Don't care about non-virtuals.
-            continue;
+            const ConstantStruct *vtbls = SVFUtil::dyn_cast<ConstantStruct>(gv->getOperand(0));
+            assert(vtbls && "unexpected vtable type");
+            for (unsigned nthVtbl = 0; nthVtbl < vtbls->getNumOperands(); ++nthVtbl) {
+                const ConstantArray *vtbl = SVFUtil::dyn_cast<ConstantArray>(vtbls->getOperand(nthVtbl));
+                assert(vtbl && "Element of vtbl struct not an array");
+
+                std::vector<const Function *> &vfns = node->getVfnVector(nthVtbl);
+
+                // Iterating over the vtbl, we will run into:
+                // 1. i8* null         (don't care for now).
+                // 2. i8* inttoptr ... (don't care for now).
+                // 3. i8* bitcast  ... (we only care when a function pointer is being bitcasted).
+                for (unsigned cN = 0; cN < vtbl->getNumOperands(); ++cN) {
+                    Constant *c = vtbl->getOperand(cN);
+                    if (SVFUtil::isa<ConstantPointerNull>(c)) {
+                        // Don't care for now.
+                        continue;
+                    }
+
+                    ConstantExpr *ce = SVFUtil::dyn_cast<ConstantExpr>(c);
+                    assert(ce && "non-ConstantExpr, non-ConstantPointerNull in vtable?");
+                    if (ce->getOpcode() != Instruction::BitCast) {
+                        continue;
+                    }
+
+                    // Could be a GlobalAlias which we don't care about, or a virtual/thunk function.
+                    const Function *vfn = SVFUtil::dyn_cast<Function>(ce->getOperand(0));
+                    if (vfn == nullptr) {
+                        continue;
+                    }
+
+                    vfns.push_back(vfn);
+                }
+            }
         }
-
-        llvm::DIType *type = diSubProg->getContainingType();
-        const llvm::Function *vFun = svfModule.getFunction(diSubProg->getLinkageName());
-        getOrCreateNode(type)->addVirtualFunction(vFun, diSubProg->getVirtualIndex());
     }
-
-    // We now have the primary vtables in place (with gaps for inherited functions).
-    // We need to handle inheritance, particularly multiple inheritance.
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
@@ -219,6 +246,8 @@ void DCHGraph::buildCHG(bool extend) {
         }
     }
 
-    buildVTables();
+    for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
+      buildVTables(*(svfModule.getModule(i)));
+    }
 }
 

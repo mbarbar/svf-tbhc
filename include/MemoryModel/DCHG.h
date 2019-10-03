@@ -113,34 +113,25 @@ public:
     }
     //@}
 
-    void addVirtualFunctionVector(FuncVector vfuncvec) {
-        virtualFunctionVectors.push_back(vfuncvec);
-    }
-    const std::vector<FuncVector> &getVirtualFunctionVectors() const {
-        return virtualFunctionVectors;
-    }
-    void getVirtualFunctions(u32_t idx, FuncVector &virtualFunctions) const;
-
-    const GlobalValue *getVTable() const {
-        return vtable;
+    void addTypedef(const llvm::DIDerivedType *diTypedef) {
+        typedefs.insert(diTypedef);
     }
 
     void setVTable(const GlobalValue *vtbl) {
         vtable = vtbl;
     }
 
-    void addTypedef(const llvm::DIDerivedType *diTypedef) {
-        typedefs.insert(diTypedef);
+    const GlobalValue *getVTable() const {
+        return vtable;
     }
 
-    void addVirtualFunction(const Function *func, unsigned int virtualIndex) {
-        primaryVTable.reserve(virtualIndex);
-        primaryVTable[virtualIndex] = func;
-    }
+    /// Return the nth virtual function vector in the vtable.
+    std::vector<const Function *> &getVfnVector(unsigned n) {
+        if (vfnVectors.size() < n + 1) {
+            vfnVectors.resize(n + 1);
+        }
 
-    const Function *getVirtualFunctionFromPrimaryVTable(unsigned int virtualIndex) {
-        primaryVTable.reserve(virtualIndex);
-        return primaryVTable[virtualIndex];
+        return vfnVectors[n];
     }
 
 private:
@@ -153,19 +144,10 @@ private:
     size_t flags;
     /// The virtual functions which this class actually defines/overrides.
     std::vector<const Function *> primaryVTable;
-    /*
-     * virtual functions inherited from different classes are separately stored
-     * to model different vtables inherited from different fathers.
-     *
-     * Example:
-     * class C: public A, public B
-     * vtableC = {Af1, Af2, ..., inttoptr, Bg1, Bg2, ...} ("inttoptr"
-     * instruction works as the delimiter for separating virtual functions
-     * inherited from different classes)
-     *
-     * virtualFunctionVectors = {{Af1, Af2, ...}, {Bg1, Bg2, ...}}
-     */
-    std::vector<std::vector<const Function*>> virtualFunctionVectors;
+    /// If a vtable is split into more than one vfn vector for multiple inheritance,
+    /// 0 would be the primary base + this classes virtual functions, 1 would be
+    /// the second parent, 2 would be third parent, etc.
+    std::vector<std::vector<const Function*>> vfnVectors;
 };
 
 /// Dwarf based CHG.
@@ -206,7 +188,7 @@ private:
     void handleDISubroutineType(const llvm::DISubroutineType *subroutineType);
 
     /// Finds all defined virtual functions and attaches them to nodes.
-    void buildVTables(void);
+    void buildVTables(const Module &module);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIDerivedType *typedefType);
