@@ -208,6 +208,18 @@ private:
     /// Only suitable for TODO.
     DCHNode *getOrCreateNode(const llvm::DIType *type);
 
+    /// Checks if a node exists for type.
+    bool hasNode(const llvm::DIType *type) const {
+        // Check, does the node for type exist?
+        if (diTypeToNodeMap[type] != NULL) {
+            return diTypeToNodeMap[type];
+        }
+
+        if (typedefToNodeMap[type] != NULL) {
+            return typedefToNodeMap[type];
+        }
+    }
+
     /// Creates an edge between from t1 to t2.
     DCHEdge *addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);
     /// Returns the edge between t1 and t2 if it exists, returns NULL otherwise.
