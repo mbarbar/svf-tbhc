@@ -204,7 +204,7 @@ public:
     }
 
     override const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const;
-    override void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &overrideFunctions) const;
+    override void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const;
 
 protected:
     /// SVF Module this CHG is built from.

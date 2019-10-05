@@ -269,7 +269,7 @@ const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
     return vtblSet;
 }
 
-void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &overrideFunctions) const {
+void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const {
 }
 
 
