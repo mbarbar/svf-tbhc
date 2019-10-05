@@ -186,7 +186,7 @@ public:
     void analyzeVTables(const Module &M);
     const CHGraph::CHNodeSetTy& getInstancesAndDescendants(const std::string className);
     const CHNodeSetTy& getCSClasses(CallSite cs);
-    override void getVFnsFromVtbls(CallSite cs,VTableSet &vtbls, VFunSet &virtualFunctions) const;
+    void getVFnsFromVtbls(CallSite cs,VTableSet &vtbls, VFunSet &virtualFunctions) const override;
     void dump(const std::string& filename);
     void printCH();
 
@@ -223,20 +223,20 @@ public:
 		return templateNameToInstancesMap[className];
 	}
 
-	override inline const bool csHasVtblsBasedonCHA(CallSite cs) const {
+	inline const bool csHasVtblsBasedonCHA(CallSite cs) const override {
 		CallSiteToVTableSetMap::const_iterator it = csToCHAVtblsMap.find(cs);
 		return it != csToCHAVtblsMap.end();
 	}
-	override inline const bool csHasVFnsBasedonCHA(CallSite cs) const {
+	inline const bool csHasVFnsBasedonCHA(CallSite cs) const override {
 		CallSiteToVFunSetMap::const_iterator it = csToCHAVFnsMap.find(cs);
 		return it != csToCHAVFnsMap.end();
 	}
-	override inline const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
+	inline const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const override {
 		CallSiteToVTableSetMap::const_iterator it = csToCHAVtblsMap.find(cs);
 		assert(it != csToCHAVtblsMap.end() && "cs does not have vtabls based on CHA.");
 		return it->second;
 	}
-	override inline const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
+	inline const VFunSet &getCSVFsBasedonCHA(CallSite cs) const override {
 		CallSiteToVFunSetMap::const_iterator it = csToCHAVFnsMap.find(cs);
 		assert(it != csToCHAVFnsMap.end() && "cs does not have vfns based on CHA.");
 		return it->second;

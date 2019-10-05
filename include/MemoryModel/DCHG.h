@@ -185,7 +185,7 @@ public:
 
     void print(void) const;
 
-    override const bool csHasVFnsBasedonCHA(CallSite cs) const {
+    const bool csHasVFnsBasedonCHA(CallSite cs) const override {
         llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
         if (cs.getInstruction() == NULL || md == NULL) {
             return false;
@@ -195,9 +195,9 @@ public:
         return getOrCreateNode(type)->getVTable != NULL;
     }
 
-    override const VFunSet &getCSVFsBasedonCHA(CallSite cs) const;
+    const VFunSet &getCSVFsBasedonCHA(CallSite cs) const override;
 
-    override const bool csHasVtblsBasedonCHA(CallSite cs) const {
+    const bool csHasVtblsBasedonCHA(CallSite cs) const override {
         llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
         if (cs.getInstruction() == NULL || md == NULL) {
             return false;
@@ -207,8 +207,8 @@ public:
         return getOrCreateNode(type)->getVTable() != NULL;
     }
 
-    override const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const;
-    override void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const;
+    const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const override;
+    void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const override;
 
 protected:
     /// SVF Module this CHG is built from.
