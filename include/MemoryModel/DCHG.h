@@ -72,6 +72,10 @@ public:
 
     ~DCHNode() { }
 
+    llvm::DIType *getType(void) const {
+        return diType;
+    }
+
     std::string getName() const {
         return typeName;
     }
