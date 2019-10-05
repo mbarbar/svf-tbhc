@@ -186,24 +186,14 @@ public:
     void print(void) const;
 
     const bool csHasVFnsBasedonCHA(CallSite cs) const override {
-        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
-        if (cs.getInstruction() == NULL || md == NULL) {
-            return false;
-        }
-
-        llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(md);
+        llvm::DIType *type = getCSStaticType(cs);
         return getOrCreateNode(type)->getVTable != NULL;
     }
 
     const VFunSet &getCSVFsBasedonCHA(CallSite cs) const override;
 
     const bool csHasVtblsBasedonCHA(CallSite cs) const override {
-        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
-        if (cs.getInstruction() == NULL || md == NULL) {
-            return false;
-        }
-
-        llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(md);
+        llvm::DIType *type = getCSStaticType(cs);
         return getOrCreateNode(type)->getVTable() != NULL;
     }
 
@@ -246,6 +236,15 @@ private:
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
     DCHNode *getOrCreateNode(const llvm::DIType *type);
+
+    /// Retrieves the metadata associated with a *virtual* callsite.
+    const llvm::DIType *getCSStaticType(CallSite cs) const {
+        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
+        assert(md != nullptr && "Missing type metadata at virtual callsite");
+        llvm::DIType *diType = llvm::dyn_cast<llvm::DIType>(md);
+        assert(diType != nullptr && "Incorrect metadata type at virtual callsite");
+        return diType;
+    }
 
     /// Checks if a node exists for type.
     bool hasNode(const llvm::DIType *type) const {
