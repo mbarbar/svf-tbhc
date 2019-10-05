@@ -180,6 +180,32 @@ void DCHGraph::buildVTables(const Module &module) {
     }
 }
 
+std::set<const DCHNode *> &cha(const llvm::DIType *type) {
+    // Check if we've already computed.
+    if (chaMap.find(type) != chaMap.end()) {
+        return chaMap[type];
+    }
+
+    std::set<const DCHNode *> children;
+    const DCHNode *node = getOrCreateNode(type);
+    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = src->getInEdges().begin(); edgeI != src->getInEdges().end(); ++edgeI) {
+        DCHEdge *edge = *edgeI;
+        if (edge->getEdgeKind() != DCHEdge::INHERITANCE) {
+            // Don't care about anything but inheritance edges. First-field won't matter.
+            continue;
+        }
+
+        std::set<const DCHNode *> cchildren = cha(edge->getSrcNode()->getType());
+        // Children's children are my children.
+        children.insert(cchildren.begin(), cchildren.end());
+    }
+
+    // Cache results.
+    chaMap[type] = children;
+    // Return the permanent object; we're returning a reference.
+    return chaMap[type];
+}
+
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
     // Check, does the node for type exist?
     if (diTypeToNodeMap[type] != NULL) {

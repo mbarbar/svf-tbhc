@@ -221,6 +221,8 @@ protected:
     std::map<const llvm::DIType *, DCHNode *> typedefToNodeMap;
     /// Maps VTables to the DIType associated with them.
     std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
+    /// Maps types to all children (i.e. CHA).
+    std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
 
 private:
     /// Construction helper to process DIBasicTypes.
@@ -234,6 +236,9 @@ private:
 
     /// Finds all defined virtual functions and attaches them to nodes.
     void buildVTables(const Module &module);
+
+    /// Returns a set of all children of type (CHA). Also gradually builds chaMap.
+    std::set<const DCHNode *> &cha(const llvm::DIType *type);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
