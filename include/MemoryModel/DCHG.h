@@ -213,6 +213,8 @@ protected:
     std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
     std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
+    /// Maps types to a set with their vtable and all their children's.
+    std::map<const llvm::DIType *, VTableSet> vtableCHAMap;
 
 private:
     /// Construction helper to process DIBasicTypes.

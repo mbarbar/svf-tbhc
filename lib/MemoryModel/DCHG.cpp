@@ -291,8 +291,26 @@ const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
 }
 
 const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
+    const llvm::DIType *tyoe = getCSStaticType(cs);
+    // Check if we've already computed.
+    if (vtblCHAMap.find(type) != vtblCHAMap.end()) {
+        return vtblCHAMap[type];
+    }
+
     VTableSet vtblSet;
-    return vtblSet;
+    std::set<const DCHNode *> children = cha(type);
+    for (std::set<const DCHNode *>::const_iterator childI = children.begin(); childI != children.end(); ++childI) {
+        const GlobalValue *vtbl = (*childI)->getVTable();
+        // TODO: what if it is null?
+        if (vtbl != nullptr) {
+            vtblSet.insert(vtbl);
+        }
+    }
+
+    // Cache.
+    vtblCHAMap[type] = vtblSet;
+    // Return cached version - not the stack object.
+    return vtblCHAMap[type];
 }
 
 void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const {
