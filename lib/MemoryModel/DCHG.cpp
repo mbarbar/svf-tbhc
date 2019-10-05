@@ -12,6 +12,8 @@
 
 #include "llvm/IR/DebugInfo.h"
 
+const std::string DCHGraph::tirMetadataName = "tir";
+
 void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
     getOrCreateNode(basicType);
 }
@@ -255,6 +257,20 @@ void DCHGraph::buildCHG(bool extend) {
       buildVTables(*(svfModule.getModule(i)));
     }
 }
+
+const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
+    VFunSet vfnSet;
+    return vfnSet;
+}
+
+const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
+    VTableSet vtblSet;
+    return vtblSet;
+}
+
+void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &overrideFunctions) const {
+}
+
 
 static std::string indent(size_t n) {
     return std::string(n, ' ');

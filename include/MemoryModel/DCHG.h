@@ -12,6 +12,7 @@
 #define DCHG_H_
 
 #include "MemoryModel/GenericGraph.h"
+#include "MemoryModel/CHG.h"
 #include "Util/SVFModule.h"
 #include "Util/WorkList.h"
 
@@ -160,8 +161,10 @@ private:
 };
 
 /// Dwarf based CHG.
-class DCHGraph : public GenericGraph<DCHNode, DCHEdge> {
+class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
+    static const std::string tirMetadataName;
+
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
     }
@@ -177,6 +180,31 @@ public:
     }
 
     void print(void) const;
+
+    override const bool csHasVFnsBasedonCHA(CallSite cs) const {
+        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
+        if (cs.getInstruction() == NULL || md == NULL) {
+            return false;
+        }
+
+        llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(md);
+        return getOrCreateNode(type)->getVTable != NULL;
+    }
+
+    override const VFunSet &getCSVFsBasedonCHA(CallSite cs) const;
+
+    override const bool csHasVtblsBasedonCHA(CallSite cs) const {
+        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
+        if (cs.getInstruction() == NULL || md == NULL) {
+            return false;
+        }
+
+        llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(md);
+        return getOrCreateNode(type)->getVTable() != NULL;
+    }
+
+    override const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const;
+    override void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &overrideFunctions) const;
 
 protected:
     /// SVF Module this CHG is built from.
