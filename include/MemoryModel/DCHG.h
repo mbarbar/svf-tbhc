@@ -215,6 +215,8 @@ protected:
     std::map<const llvm::DIType *, DCHNode *> diTypeToNodeMap;
     /// Maps typedefs to their (potentially transitive) base type.
     std::map<const llvm::DIType *, DCHNode *> typedefToNodeMap;
+    /// Maps VTables to the DIType associated with them.
+    std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
 
 private:
     /// Construction helper to process DIBasicTypes.

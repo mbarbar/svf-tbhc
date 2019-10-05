@@ -140,6 +140,7 @@ void DCHGraph::buildVTables(const Module &module) {
             assert(type && "Bad metadata for tirvt");
             DCHNode *node = getOrCreateNode(type);
             node->setVTable(gv);
+            vtblToTypeMap[gv] = type;
 
             const ConstantStruct *vtbls = SVFUtil::dyn_cast<ConstantStruct>(gv->getOperand(0));
             assert(vtbls && "unexpected vtable type");
