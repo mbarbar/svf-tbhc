@@ -286,8 +286,18 @@ void DCHGraph::buildCHG(bool extend) {
 }
 
 const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
-    VFunSet vfnSet;
-    return vfnSet;
+    if (csCHAMap.find(cs) != csCHAMap.end()) {
+        return csCHAMap[cs];
+    }
+
+    VFunSet vfns;
+    const VTableSet &vtbls = getCSVtblsBasedonCHA(cs);
+    getVFnsFromVtbls(cs, vtbls, vfns);
+
+    // Cache.
+    csCHAMap[cs] = vfns;
+    // Return cached object, not the stack object.
+    return csCHAMap[cs];
 }
 
 const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
@@ -314,6 +324,70 @@ const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
 }
 
 void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const {
+    size_t idx = getVCallIdx(cs);
+    for (VTableSet::const_iterator vtblI = vtbls.begin(); vtblI != vtbls.end(); ++vtblI) {
+        const llvm::DIType *type = vtblToTypeMap[*vtblI];
+        const DCHNode *node = getOrCreateNode(type);
+        std::vector<std::vector<const Function *>> allVfns = node->getVfnVectors();
+        for (std::vector<std::vector<const Function *>>::const_iterator vfnVI = allVfns.begin(); vfnVI != allVfns.end(); ++vfnVI) {
+            // We only care about any virtual function corresponding to idx.
+            if (idx >= vfnVI->size()) {
+                continue;
+            }
+
+            const Function *callee = (*vfnVI)[idx];
+            // Practically a copy of that in lib/MemoryModel/CHA.cpp
+            if (cs.arg_size() == callee->arg_size() || (cs.getFunctionType()->isVarArg() && callee->isVarArg())) {
+                DemangledName dname = cppUtil::demangle(callee->getName().str());
+                std::string calleeName = dname.funcName;
+
+                /*
+                 * The compiler will add some special suffix (e.g.,
+                 * "[abi:cxx11]") to the end of some virtual function:
+                 * In dealII
+                 * function: FE_Q<3>::get_name
+                 * will be mangled as: _ZNK4FE_QILi3EE8get_nameB5cxx11Ev
+                 * after demangling: FE_Q<3>::get_name[abi:cxx11]
+                 * The special suffix ("[abi:cxx11]") needs to be removed
+                 */
+                const std::string suffix("[abi:cxx11]");
+                size_t suffixPos = calleeName.rfind(suffix);
+                if (suffixPos != string::npos) {
+                    calleeName.erase(suffixPos, suffix.size());
+                }
+
+                /*
+                 * if we can't get the function name of a virtual callsite, all virtual
+                 * functions corresponding to idx will be valid
+                 */
+                if (funName.size() == 0) {
+                    virtualFunctions.insert(callee);
+                } else if (funName[0] == '~') {
+                    /*
+                     * if the virtual callsite is calling a destructor, then all
+                     * destructors in the ch will be valid
+                     * class A { virtual ~A(){} };
+                     * class B: public A { virtual ~B(){} };
+                     * int main() {
+                     *   A *a = new B;
+                     *   delete a;  /// the function name of this virtual callsite is ~A()
+                     * }
+                     */
+                    if (calleeName[0] == '~') {
+                        virtualFunctions.insert(callee);
+                    }
+                } else {
+                    /*
+                     * For other virtual function calls, the function name of the callsite
+                     * and the function name of the target callee should match exactly
+                     */
+                    if (funName.compare(calleeName) == 0) {
+                        virtualFunctions.insert(callee);
+                    }
+                }
+            }
+        }
+    }
 }
 
 

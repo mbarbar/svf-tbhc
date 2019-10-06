@@ -215,6 +215,8 @@ protected:
     std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
     /// Maps types to a set with their vtable and all their children's.
     std::map<const llvm::DIType *, VTableSet> vtableCHAMap;
+    /// Maps callsites to a set of potential virtual functions based on CHA.
+    std::map<CallSite, VFunSet> csCHAMap;
 
 private:
     /// Construction helper to process DIBasicTypes.
