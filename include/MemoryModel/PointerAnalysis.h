@@ -32,6 +32,7 @@
 
 #include "MemoryModel/PAG.h"
 #include "MemoryModel/ConditionalPT.h"
+#include "MemoryModel/CHG.h"
 #include "MemoryModel/PointsToDS.h"
 #include "Util/PTACallGraph.h"
 #include "Util/SCC.h"
@@ -39,8 +40,7 @@
 #include "MemoryModel/PointsToDFDS.h"
 #include "WPA/CSC.h"
 
-class CHGraph;
-class CHNode;
+class CommonCHGraph;
 
 class TypeSystem;
 class SVFModule;
@@ -124,7 +124,7 @@ protected:
     /// Interprocedural control-flow graph
     ICFG* icfg;
     /// CHGraph
-    static CHGraph *chgraph;
+    static CommonCHGraph *chgraph;
     /// TypeSystem
     TypeSystem *typeSystem;
 
@@ -376,7 +376,7 @@ public:
     //@}
 
     /// get CHGraph
-    CHGraph *getCHGraph() const {
+    CommonCHGraph *getCHGraph() const {
         return chgraph;
     }
 

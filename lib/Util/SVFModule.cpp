@@ -57,6 +57,8 @@ static llvm::cl::opt<bool> SVFMain("svfmain", llvm::cl::init(false), llvm::cl::d
 
 LLVMModuleSet *SVFModule::llvmModuleSet = NULL;
 std::string SVFModule::pagReadFromTxt = "";
+const std::string tirMetadataName = "tir";
+const uint32_t tirModuleFlagValue = 1;
 
 LLVMModuleSet::LLVMModuleSet(Module *mod) {
     moduleNum = 1;

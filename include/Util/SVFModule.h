@@ -200,6 +200,9 @@ public:
     typedef AliasSetType::iterator alias_iterator;
     typedef AliasSetType::const_iterator const_alias_iterator;
 
+    static const std::string tirMetadataName;
+    static const uint32_t tirModuleFlagValue;
+
 private:
     static LLVMModuleSet *llvmModuleSet;
     static std::string pagReadFromTxt;
@@ -297,6 +300,26 @@ public:
 
     GlobalVariable *getGlobalRep(const GlobalVariable *val) const {
         return llvmModuleSet->getGlobalRep(val);
+    }
+
+    // Returns true if all LLVM modules are compiled with tir.
+    bool allTir(void) const {
+        // Iterate over all modules. If a single module does not have the correct tir module flag,
+        // short-circuit and return false.
+        for (u32_t i = 0; i < getModuleNum(); ++i) {
+            llvm::Metadata *tirModuleFlag = getModule(i)->getModuleFlag(tirMetadataName);
+            if (tirModuleFlag == nullptr) {
+                return false;
+            }
+
+            llvm::ConstantAsMetadata *flagConstMetadata = SVFUtil::dyn_cast<llvm::ConstantAsMetadata>(tirModuleFlag);
+            ConstantInt *flagConstInt = SVFUtil::dyn_cast<ConstantInt>(flagConstMetadata->getValue());
+            if (flagConstInt->getZExtValue() != tirModuleFlagValue) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// Iterators

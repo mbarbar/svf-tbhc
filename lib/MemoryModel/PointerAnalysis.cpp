@@ -88,7 +88,7 @@ static llvm::cl::opt<bool> INCDFPTData("incdata", llvm::cl::init(true),
 static llvm::cl::opt<bool> connectVCallOnCHA("vcall-cha", llvm::cl::init(false),
                                        llvm::cl::desc("connect virtual calls using cha"));
 
-CHGraph* PointerAnalysis::chgraph = NULL;
+CommonCHGraph* PointerAnalysis::chgraph = NULL;
 PAG* PointerAnalysis::pag = NULL;
 
 /*!
@@ -147,13 +147,14 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
             PAGBuilder builder;
             pag = builder.build(svfModule);
 
-            chgraph = new CHGraph(svfModule);
-            chgraph->buildCHG();
-
-            DCHGraph *dchg = new DCHGraph(svfModule);
-            dchg->buildCHG(true);
-            dchg->print();
-            //typeSystem = new TypeSystem(pag);
+            if (svfModule->allTir()) {
+                chgraph = new DCHGraph(svfModule);
+                // TODO: we might want to have an option for extending.
+                chgraph->buildCHG(true);
+            } else {
+                chgraph = new CHGraph(svfModule);
+                chgraph->buildCHG();
+            }
         }
 
         // dump the PAG graph
