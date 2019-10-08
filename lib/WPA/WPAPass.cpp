@@ -40,6 +40,7 @@
 #include "WPA/AndersenSFR.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/TypeAnalysis.h"
+#include "WPA/TypeBasedHeapCloning.h"
 
 char WPAPass::ID = 0;
 
@@ -61,6 +62,7 @@ static llvm::cl::bits<PointerAnalysis::PTATY> PASelected(llvm::cl::desc("Select 
             clEnumValN(PointerAnalysis::AndersenWaveDiff_WPA, "ander", "Diff wave propagation inclusion-based analysis"),
             clEnumValN(PointerAnalysis::AndersenWaveDiffWithType_WPA, "andertype", "Diff wave propagation with type inclusion-based analysis"),
             clEnumValN(PointerAnalysis::FSSPARSE_WPA, "fspta", "Sparse flow sensitive pointer analysis"),
+            clEnumValN(PointerAnalysis::TBHC_WPA, "tbhc", "Type-based flow-sensitive heap cloning"),
 			clEnumValN(PointerAnalysis::TypeCPP_WPA, "type", "Type-based fast analysis for Callgraph, PAG and CHA")
         ));
 
@@ -135,6 +137,9 @@ void WPAPass::runPointerAnalysis(SVFModule svfModule, u32_t kind)
             break;
         case PointerAnalysis::FSSPARSE_WPA:
             _pta = new FlowSensitive();
+            break;
+        case PointerAnalysis::TBHC_WPA:
+            _pta = new TypeBasedHeapCloning();
             break;
         case PointerAnalysis::TypeCPP_WPA:
             _pta = new TypeAnalysis();
