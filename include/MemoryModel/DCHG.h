@@ -72,7 +72,7 @@ public:
 
     ~DCHNode() { }
 
-    llvm::DIType *getType(void) const {
+    const llvm::DIType *getType(void) const {
         return diType;
     }
 
@@ -167,10 +167,9 @@ private:
 /// Dwarf based CHG.
 class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
-    static const std::string tirMetadataName;
-
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
+        this->kind = DI;
     }
 
     //~DCHGraph();
@@ -185,20 +184,27 @@ public:
 
     void print(void) const;
 
-    const bool csHasVFnsBasedonCHA(CallSite cs) const override {
-        llvm::DIType *type = getCSStaticType(cs);
-        return getOrCreateNode(type)->getVTable != NULL;
+    virtual const bool csHasVFnsBasedonCHA(CallSite cs) const override {
+        return csHasVtblsBasedonCHA(cs);
     }
 
-    const VFunSet &getCSVFsBasedonCHA(CallSite cs) const override;
+    virtual const VFunSet &getCSVFsBasedonCHA(CallSite cs) override;
 
-    const bool csHasVtblsBasedonCHA(CallSite cs) const override {
-        llvm::DIType *type = getCSStaticType(cs);
-        return getOrCreateNode(type)->getVTable() != NULL;
+    virtual const bool csHasVtblsBasedonCHA(CallSite cs) const override {
+        const llvm::DIType *type = getCSStaticType(cs);
+        if (!hasNode(type)) {
+            return false;
+        }
+
+        return getNode(type)->getVTable() != NULL;
     }
 
-    const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const override;
-    void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const override;
+    virtual const VTableSet &getCSVtblsBasedonCHA(CallSite cs) override;
+    virtual void getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) override;
+
+    static inline bool classof(const CommonCHGraph *chg) {
+        return chg->getKind() == DI;
+    }
 
 protected:
     /// SVF Module this CHG is built from.
@@ -214,7 +220,7 @@ protected:
     /// Maps types to all children (i.e. CHA).
     std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
     /// Maps types to a set with their vtable and all their children's.
-    std::map<const llvm::DIType *, VTableSet> vtableCHAMap;
+    std::map<const llvm::DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
     std::map<CallSite, VFunSet> csCHAMap;
 
@@ -237,13 +243,20 @@ private:
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
 
+    /// Determines whether a node for type exists.
+    /*
+    DCHNode *hasNode(const llvm::DIType *type) const {
+        return diTypeToNodeMap.find(type) != diTypeToNodeMap.end(); 
+    }
+    */
+
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
     DCHNode *getOrCreateNode(const llvm::DIType *type);
 
     /// Retrieves the metadata associated with a *virtual* callsite.
     const llvm::DIType *getCSStaticType(CallSite cs) const {
-        llvm::MDNode *md = cs.getInstruction()->hasMetadata(tirMetadataName);
+        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::tirMetadataName);
         assert(md != nullptr && "Missing type metadata at virtual callsite");
         llvm::DIType *diType = llvm::dyn_cast<llvm::DIType>(md);
         assert(diType != nullptr && "Incorrect metadata type at virtual callsite");
@@ -252,15 +265,23 @@ private:
 
     /// Checks if a node exists for type.
     bool hasNode(const llvm::DIType *type) const {
-        // Check, does the node for type exist?
-        if (diTypeToNodeMap[type] != NULL) {
-            return diTypeToNodeMap[type];
+        diTypeToNodeMap.find(type) != diTypeToNodeMap.end()
+        || typedefToNodeMap.find(type) != diTypeToNodeMap.end();
+    }
+
+    /// Returns the node for type (NULL if it doesn't exist).
+    DCHNode *getNode(const llvm::DIType *type) const {
+        if (diTypeToNodeMap.find(type) != diTypeToNodeMap.end()) {
+            return diTypeToNodeMap.at(type);
         }
 
-        if (typedefToNodeMap[type] != NULL) {
-            return typedefToNodeMap[type];
+        if (typedefToNodeMap.find(type) != diTypeToNodeMap.end()) {
+            return typedefToNodeMap.at(type);
         }
+
+        return nullptr;
     }
+
 
     /// Creates an edge between from t1 to t2.
     DCHEdge *addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);

@@ -164,6 +164,7 @@ public:
     } RELATIONTYPE;
 
     CHGraph(const SVFModule svfModule): svfMod(svfModule), classNum(0), vfID(0), buildingCHGTime(0) {
+        this->kind = Standard;
     }
     ~CHGraph();
 
@@ -186,7 +187,7 @@ public:
     void analyzeVTables(const Module &M);
     const CHGraph::CHNodeSetTy& getInstancesAndDescendants(const std::string className);
     const CHNodeSetTy& getCSClasses(CallSite cs);
-    void getVFnsFromVtbls(CallSite cs,VTableSet &vtbls, VFunSet &virtualFunctions) const override;
+    void getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) override;
     void dump(const std::string& filename);
     void printCH();
 
@@ -231,16 +232,20 @@ public:
 		CallSiteToVFunSetMap::const_iterator it = csToCHAVFnsMap.find(cs);
 		return it != csToCHAVFnsMap.end();
 	}
-	inline const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const override {
+	inline const VTableSet &getCSVtblsBasedonCHA(CallSite cs) override {
 		CallSiteToVTableSetMap::const_iterator it = csToCHAVtblsMap.find(cs);
 		assert(it != csToCHAVtblsMap.end() && "cs does not have vtabls based on CHA.");
 		return it->second;
 	}
-	inline const VFunSet &getCSVFsBasedonCHA(CallSite cs) const override {
+	inline const VFunSet &getCSVFsBasedonCHA(CallSite cs) override {
 		CallSiteToVFunSetMap::const_iterator it = csToCHAVFnsMap.find(cs);
 		assert(it != csToCHAVFnsMap.end() && "cs does not have vfns based on CHA.");
 		return it->second;
 	}
+
+    static inline bool classof(const CommonCHGraph *chg) {
+        return chg->getKind() == Standard;
+    }
 
 protected:
     SVFModule svfMod;

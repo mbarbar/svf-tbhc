@@ -12,7 +12,7 @@
 
 #include "llvm/IR/DebugInfo.h"
 
-const std::string DCHGraph::tirMetadataName = "tir";
+static llvm::cl::opt<bool> printDCHG("print-dchg", llvm::cl::init(false), llvm::cl::desc("print the DCHG if debug information is available"));
 
 void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
     getOrCreateNode(basicType);
@@ -180,7 +180,7 @@ void DCHGraph::buildVTables(const Module &module) {
     }
 }
 
-std::set<const DCHNode *> &cha(const llvm::DIType *type) {
+std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type) {
     // Check if we've already computed.
     if (chaMap.find(type) != chaMap.end()) {
         return chaMap[type];
@@ -188,7 +188,7 @@ std::set<const DCHNode *> &cha(const llvm::DIType *type) {
 
     std::set<const DCHNode *> children;
     const DCHNode *node = getOrCreateNode(type);
-    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = src->getInEdges().begin(); edgeI != src->getInEdges().end(); ++edgeI) {
+    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->getInEdges().begin(); edgeI != node->getInEdges().end(); ++edgeI) {
         DCHEdge *edge = *edgeI;
         if (edge->getEdgeKind() != DCHEdge::INHERITANCE) {
             // Don't care about anything but inheritance edges. First-field won't matter.
@@ -261,7 +261,7 @@ void DCHGraph::buildCHG(bool extend) {
     extended = extend;
     llvm::DebugInfoFinder finder;
     for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
-      finder.processModule(*(svfModule.getModule(i)));
+       finder.processModule(*(svfModule.getModule(i)));
     }
 
     for (llvm::DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
@@ -281,13 +281,17 @@ void DCHGraph::buildCHG(bool extend) {
     }
 
     for (u32_t i = 0; i < svfModule.getModuleNum(); ++i) {
-      buildVTables(*(svfModule.getModule(i)));
+        buildVTables(*(svfModule.getModule(i)));
+    }
+
+    if (printDCHG) {
+        print();
     }
 }
 
-const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
+const VFunSet &DCHGraph::getCSVFsBasedonCHA(CallSite cs) {
     if (csCHAMap.find(cs) != csCHAMap.end()) {
-        return csCHAMap[cs];
+        return csCHAMap.at(cs);
     }
 
     VFunSet vfns;
@@ -297,14 +301,14 @@ const VFunSet &getCSVFsBasedonCHA(CallSite cs) const {
     // Cache.
     csCHAMap[cs] = vfns;
     // Return cached object, not the stack object.
-    return csCHAMap[cs];
+    return csCHAMap.at(cs);
 }
 
-const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
-    const llvm::DIType *tyoe = getCSStaticType(cs);
+const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
+    const llvm::DIType *type = getCSStaticType(cs);
     // Check if we've already computed.
     if (vtblCHAMap.find(type) != vtblCHAMap.end()) {
-        return vtblCHAMap[type];
+        return vtblCHAMap.at(type);
     }
 
     VTableSet vtblSet;
@@ -320,14 +324,17 @@ const VTableSet &getCSVtblsBasedonCHA(CallSite cs) const {
     // Cache.
     vtblCHAMap[type] = vtblSet;
     // Return cached version - not the stack object.
-    return vtblCHAMap[type];
+    return vtblCHAMap.at(type);
 }
 
-void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const {
-    size_t idx = getVCallIdx(cs);
+void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) {
+    size_t idx = cppUtil::getVCallIdx(cs);
+    std::string funName = cppUtil::getFunNameOfVCallSite(cs);
     for (VTableSet::const_iterator vtblI = vtbls.begin(); vtblI != vtbls.end(); ++vtblI) {
-        const llvm::DIType *type = vtblToTypeMap[*vtblI];
-        const DCHNode *node = getOrCreateNode(type);
+        assert(vtblToTypeMap.find(*vtblI) != vtblToTypeMap.end() && "floating vtbl");
+        const llvm::DIType *type = vtblToTypeMap.at(*vtblI);
+        assert(hasNode(type) && "trying to get vtbl for type not in graph");
+        const DCHNode *node = getNode(type);
         std::vector<std::vector<const Function *>> allVfns = node->getVfnVectors();
         for (std::vector<std::vector<const Function *>>::const_iterator vfnVI = allVfns.begin(); vfnVI != allVfns.end(); ++vfnVI) {
             // We only care about any virtual function corresponding to idx.
@@ -338,7 +345,7 @@ void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) 
             const Function *callee = (*vfnVI)[idx];
             // Practically a copy of that in lib/MemoryModel/CHA.cpp
             if (cs.arg_size() == callee->arg_size() || (cs.getFunctionType()->isVarArg() && callee->isVarArg())) {
-                DemangledName dname = cppUtil::demangle(callee->getName().str());
+                cppUtil::DemangledName dname = cppUtil::demangle(callee->getName().str());
                 std::string calleeName = dname.funcName;
 
                 /*
@@ -352,7 +359,7 @@ void getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) 
                  */
                 const std::string suffix("[abi:cxx11]");
                 size_t suffixPos = calleeName.rfind(suffix);
-                if (suffixPos != string::npos) {
+                if (suffixPos != std::string::npos) {
                     calleeName.erase(suffixPos, suffix.size());
                 }
 

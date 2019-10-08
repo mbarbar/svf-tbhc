@@ -597,7 +597,7 @@ const CHGraph::CHNodeSetTy& CHGraph::getCSClasses(CallSite cs) {
  * Get virtual functions for callsite "cs" based on vtbls (calculated
  * based on pointsto set)
  */
-void CHGraph::getVFnsFromVtbls(CallSite cs, VTableSet &vtbls, VFunSet &virtualFunctions) const {
+void CHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) {
 
     /// get target virtual functions
     size_t idx = getVCallIdx(cs);

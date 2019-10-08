@@ -83,8 +83,11 @@ void TypeAnalysis::callGraphSolveBasedOnCHA(const CallSiteToFunPtrMap& callsites
 
 
 void TypeAnalysis::dumpCHAStats() {
-
-	const CHGraph *chgraph = getCHGraph();
+    const CHGraph *chgraph = SVFUtil::dyn_cast<CHGraph>(getCHGraph());
+    if (chgraph == NULL) {
+        SVFUtil::errs() << "dumpCHAStats only implemented for standard CHGraph.\n";
+        return;
+    }
 
     s32_t pure_abstract_class_num = 0,
           multi_inheritance_class_num = 0;
