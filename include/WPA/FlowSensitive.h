@@ -191,13 +191,13 @@ protected:
     /// Handle various constraints
     //@{
     virtual void processNode(NodeID nodeId);
-    bool processSVFGNode(SVFGNode* node);
-    bool processAddr(const AddrSVFGNode* addr);
-    bool processCopy(const CopySVFGNode* copy);
-    bool processPhi(const PHISVFGNode* phi);
-    bool processGep(const GepSVFGNode* edge);
-    bool processLoad(const LoadSVFGNode* load);
-    bool processStore(const StoreSVFGNode* store);
+    virtual bool processSVFGNode(SVFGNode* node);
+    virtual bool processAddr(const AddrSVFGNode* addr);
+    virtual bool processCopy(const CopySVFGNode* copy);
+    virtual bool processPhi(const PHISVFGNode* phi);
+    virtual bool processGep(const GepSVFGNode* edge);
+    virtual bool processLoad(const LoadSVFGNode* load);
+    virtual bool processStore(const StoreSVFGNode* store);
     //@}
 
     /// Update call graph
