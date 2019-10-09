@@ -19,6 +19,31 @@ class SVFModule;
  * Flow sensitive whole program pointer analysis with type-based heap cloning.
  */
 class TypeBasedHeapCloning : public FlowSensitive {
+public:
+    /// Flow sensitive analysis with TBHC.
+    virtual void analyze(SVFModule svfModule) override;
+    /// Initialize analysis.
+    virtual void initialize(SVFModule svfModule) override;
+    /// Finalize analysis.
+    virtual void finalize() override;
+
+    /// Get PTA name
+    virtual const std::string PTAName() const override{
+        return "TBHC";
+    }
+
+private:
+    /// Object -> its type.
+    /// undef type is TODO
+    std::map<NodeID, DIType *> objToType;
+    /// Object -> allocation site (SVFG node).
+    std::map<NodeID, NodeID> objToAllocation;
+    /// Object -> cloning site (SVFG node).
+    std::map<NodeID, NodeID> objToCloneSite;
+    /// (Original) object -> set of its clones.
+    std::map<NodeID, std::set<NodeID>> objToClones;
+    /// (Clone) object -> original object (opposite of obj to clones).
+    std::map<NodeID, NodeID> cloneToOriginalObj;
 };
 
 #endif /* TYPEBASEDHEAPCLONING_H_ */
