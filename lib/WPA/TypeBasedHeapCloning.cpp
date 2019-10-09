@@ -47,6 +47,18 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
+bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
+    return FlowSensitive::processGep(edge);
+}
+
+bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+    return FlowSensitive::processLoad(load);
+}
+
+bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
+    return FlowSensitive::processStore(store);
+}
+
 const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
     assert(v != nullptr && "TBHC: trying to get metadata from nullptr!");
 
