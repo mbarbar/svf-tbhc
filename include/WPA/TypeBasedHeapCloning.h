@@ -20,6 +20,8 @@ class SVFModule;
  */
 class TypeBasedHeapCloning : public FlowSensitive {
 public:
+    static const llvm::DIType *undefType;
+
     /// Flow sensitive analysis with TBHC.
     virtual void analyze(SVFModule svfModule) override;
     /// Initialize analysis.
@@ -32,10 +34,15 @@ public:
         return "TBHC";
     }
 
+    virtual bool processAddr(const AddrSVFGNode* addr) override;
+
 private:
+    /// Returns the tir type attached to the value, nullptr if non-existant.
+    const llvm::DIType *getTypeFromMetadata(const Value *) const;
+
     /// Object -> its type.
     /// undef type is TODO
-    std::map<NodeID, DIType *> objToType;
+    std::map<NodeID, const DIType *> objToType;
     /// Object -> allocation site (SVFG node).
     std::map<NodeID, NodeID> objToAllocation;
     /// Object -> cloning site (SVFG node).
