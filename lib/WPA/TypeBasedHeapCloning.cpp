@@ -80,3 +80,11 @@ const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) co
     return type;
 }
 
+const llvm::DIType *TypeBasedHeapCloning::tilde(const llvm::DIType *generalType) const {
+    const llvm::DIDerivedType *ptrType = SVFUtil::dyn_cast<llvm::DIDerivedType>(generalType);
+    assert(ptrType && ptrType->getTag() == llvm::dwarf::DW_TAG_pointer_type && "TBHC: trying to tilde a non-pointer");
+
+    llvm::DIType *pointeeType = ptrType->getBaseType();
+    return pointeeType;
+}
+

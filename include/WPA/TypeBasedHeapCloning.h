@@ -43,6 +43,9 @@ private:
     /// Returns the tir type attached to the value, nullptr if non-existant.
     const llvm::DIType *getTypeFromMetadata(const Value *) const;
 
+    /// Returns the (one-level) pointee of ptrType.
+    const llvm::DIType *tilde(const llvm::DIType *ptrType) const;
+
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;
