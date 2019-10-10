@@ -30,12 +30,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     NodeID dstID = addr->getPAGDstNodeID();
     PAGNode *srcNode = addr->getPAGSrcNode();
 
-    /// TODO: see FlowSensitive::processAddr.
-    if (isFieldInsensitive(srcID)) {
-        srcID = getFIObjNode(srcID);
-    }
-
-    bool changed = addPts(dstID, srcID);
+    bool changed = FlowSensitive::processAddr(addr);
 
     // We should not have any type, not even undefined.
     assert(objToType.find(srcID) == objToType.end() && "TBHC: addr: already has a type?");
