@@ -180,30 +180,35 @@ void DCHGraph::buildVTables(const Module &module) {
     }
 }
 
-std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type) {
+std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstField) {
+    std::map<const llvm::DIType *, std::set<const DCHNode *>> &cacheMap =
+        firstField ? chaFFMap : chaMap;
+
     // Check if we've already computed.
-    if (chaMap.find(type) != chaMap.end()) {
-        return chaMap[type];
+    if (cacheMap.find(type) != cacheMap.end()) {
+        return cacheMap[type];
     }
 
     std::set<const DCHNode *> children;
     const DCHNode *node = getOrCreateNode(type);
     for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->getInEdges().begin(); edgeI != node->getInEdges().end(); ++edgeI) {
         DCHEdge *edge = *edgeI;
-        if (edge->getEdgeKind() != DCHEdge::INHERITANCE) {
-            // Don't care about anything but inheritance edges. First-field won't matter.
+        // Don't care about anything but inheritance and first-field edges.
+        if (edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
+            if (!firstField) continue;
+        } else if (edge->getEdgeKind() != DCHEdge::INHERITANCE) {
             continue;
         }
 
-        std::set<const DCHNode *> cchildren = cha(edge->getSrcNode()->getType());
+        std::set<const DCHNode *> cchildren = cha(edge->getSrcNode()->getType(), firstField);
         // Children's children are my children.
         children.insert(cchildren.begin(), cchildren.end());
     }
 
     // Cache results.
-    chaMap[type] = children;
+    cacheMap[type] = children;
     // Return the permanent object; we're returning a reference.
-    return chaMap[type];
+    return cacheMap[type];
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
@@ -312,7 +317,7 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
     }
 
     VTableSet vtblSet;
-    std::set<const DCHNode *> children = cha(type);
+    std::set<const DCHNode *> children = cha(type, false);
     for (std::set<const DCHNode *>::const_iterator childI = children.begin(); childI != children.end(); ++childI) {
         const GlobalValue *vtbl = (*childI)->getVTable();
         // TODO: what if it is null?
@@ -397,6 +402,13 @@ void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &vi
     }
 }
 
+bool DCHGraph::isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstField) {
+    assert(hasNode(a) && hasNode(b) && "DCHG: isBase query for non-existent node!");
+    const DCHNode *bNode = getNode(b);
+
+    std::set<const DCHNode *> &aChildren = cha(a, firstField);
+    return aChildren.find(bNode) != aChildren.end();
+}
 
 static std::string indent(size_t n) {
     return std::string(n, ' ');

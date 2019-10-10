@@ -202,6 +202,10 @@ public:
     virtual const VTableSet &getCSVtblsBasedonCHA(CallSite cs) override;
     virtual void getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) override;
 
+    /// Returns true if a is a transitive base of b. firstField determines
+    /// whether to consider first-field edges.
+    virtual bool isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstField);
+
     static inline bool classof(const CommonCHGraph *chg) {
         return chg->getKind() == DI;
     }
@@ -219,6 +223,8 @@ protected:
     std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
     std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
+    /// Maps types to all children but also considering first field.
+    std::map<const llvm::DIType *, std::set<const DCHNode *>> chaFFMap;
     /// Maps types to a set with their vtable and all their children's.
     std::map<const llvm::DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
@@ -238,7 +244,7 @@ private:
     void buildVTables(const Module &module);
 
     /// Returns a set of all children of type (CHA). Also gradually builds chaMap.
-    std::set<const DCHNode *> &cha(const llvm::DIType *type);
+    std::set<const DCHNode *> &cha(const llvm::DIType *type, bool firstField);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
