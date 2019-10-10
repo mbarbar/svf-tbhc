@@ -64,6 +64,13 @@ const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) co
         mdNode = go->getMetadata(SVFModule::tirMetadataName);
     }
 
+    if (mdNode == nullptr) {
+        llvm::outs() << "TBHC: unannotated value\n";
+        llvm::outs().flush();
+        v->dump();
+        return nullptr;
+    }
+
     const llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(mdNode);
 
     if (type == nullptr) {
