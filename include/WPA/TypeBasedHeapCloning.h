@@ -47,6 +47,9 @@ private:
     /// Returns the (one-level) pointee of ptrType.
     const DIType *tilde(const DIType *ptrType) const;
 
+    /// Returns a clone of o created at cloneSite with type type.
+    NodeID cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type);
+
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;

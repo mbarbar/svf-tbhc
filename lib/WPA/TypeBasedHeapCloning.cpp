@@ -96,3 +96,18 @@ const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
     return pointeeType;
 }
 
+NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+    // Dummy objects for clones are okay because tracking is done with maps.
+    NodeID clone = pag->addDummyObjNode();
+
+    // Clone's attributes.
+    objToType[clone] = type;
+    objToCloneSite[clone] = cloneSite->getId();
+
+    // Tracking of object<->clone.
+    objToClones[o].insert(clone);
+    cloneToOriginalObj[clone] = o;
+
+    return clone;
+}
+
