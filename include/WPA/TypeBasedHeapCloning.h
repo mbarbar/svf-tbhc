@@ -38,6 +38,7 @@ public:
     virtual bool processGep(const GepSVFGNode* edge) override;
     virtual bool processLoad(const LoadSVFGNode* load) override;
     virtual bool processStore(const StoreSVFGNode* store) override;
+    virtual bool processDeref(const SVFGNode *stmt, const NodeID ptrId);
 
 private:
     /// Returns the tir type attached to the value, nullptr if non-existant.

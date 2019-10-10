@@ -42,6 +42,13 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
+bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
+    bool changed = false;
+    PointsTo &ptrPt = getPts(ptrId);
+
+    return changed;
+}
+
 bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
     return FlowSensitive::processGep(edge);
 }
