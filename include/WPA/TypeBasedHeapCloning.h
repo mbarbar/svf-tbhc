@@ -20,7 +20,7 @@ class SVFModule;
  */
 class TypeBasedHeapCloning : public FlowSensitive {
 public:
-    static const llvm::DIType *undefType;
+    static const DIType *undefType;
 
     /// Flow sensitive analysis with TBHC.
     virtual void analyze(SVFModule svfModule) override;
@@ -42,10 +42,10 @@ public:
 
 private:
     /// Returns the tir type attached to the value, nullptr if non-existant.
-    const llvm::DIType *getTypeFromMetadata(const Value *) const;
+    const DIType *getTypeFromMetadata(const Value *) const;
 
     /// Returns the (one-level) pointee of ptrType.
-    const llvm::DIType *tilde(const llvm::DIType *ptrType) const;
+    const DIType *tilde(const DIType *ptrType) const;
 
     /// Object -> its type.
     /// undef type is TODO

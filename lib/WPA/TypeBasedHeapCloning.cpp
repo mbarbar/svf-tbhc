@@ -10,7 +10,7 @@
 #include "WPA/TypeBasedHeapCloning.h"
 
 // TODO: maybe better to actually construct something.
-const llvm::DIType *TypeBasedHeapCloning::undefType = static_cast<llvm::DIType *>(malloc(sizeof(llvm::DIType)));
+const DIType *TypeBasedHeapCloning::undefType = static_cast<DIType *>(malloc(sizeof(DIType)));
 
 void TypeBasedHeapCloning::analyze(SVFModule svfModule) {
     // TODO: unclear if this will need to change.
@@ -35,7 +35,8 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     // We should not have any type, not even undefined.
     assert(objToType.find(srcID) == objToType.end() && "TBHC: addr: already has a type?");
 
-    const llvm::DIType *type = isHeapMemObj(srcID) ? undefType : getTypeFromMetadata(srcNode->getValue());
+    // TODO: maybe tilde(getType...)
+    const DIType *type = isHeapMemObj(srcID) ? undefType : getTypeFromMetadata(srcNode->getValue());
     objToType[srcID] = type;
     objToAllocation[srcID] = addr->getId();
 
@@ -61,13 +62,13 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     return FlowSensitive::processStore(store);
 }
 
-const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
+const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
     assert(v != nullptr && "TBHC: trying to get metadata from nullptr!");
 
-    const llvm::MDNode *mdNode = nullptr;
-    if (const Instruction *inst = SVFUtil::dyn_cast<llvm::Instruction>(v)) {
+    const MDNode *mdNode = nullptr;
+    if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
         mdNode = inst->getMetadata(SVFModule::tirMetadataName);
-    } else if (const GlobalObject *go = SVFUtil::dyn_cast<llvm::GlobalObject>(v)) {
+    } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
         mdNode = go->getMetadata(SVFModule::tirMetadataName);
     }
 
@@ -78,7 +79,7 @@ const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) co
         return nullptr;
     }
 
-    const llvm::DIType *type = SVFUtil::dyn_cast<llvm::DIType>(mdNode);
+    const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
 
     if (type == nullptr) {
         llvm::outs() << "TBHC: no tir metadata found\n";
@@ -87,11 +88,11 @@ const llvm::DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) co
     return type;
 }
 
-const llvm::DIType *TypeBasedHeapCloning::tilde(const llvm::DIType *generalType) const {
-    const llvm::DIDerivedType *ptrType = SVFUtil::dyn_cast<llvm::DIDerivedType>(generalType);
-    assert(ptrType && ptrType->getTag() == llvm::dwarf::DW_TAG_pointer_type && "TBHC: trying to tilde a non-pointer");
+const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
+    const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(generalType);
+    assert(ptrType && ptrType->getTag() == dwarf::DW_TAG_pointer_type && "TBHC: trying to tilde a non-pointer");
 
-    llvm::DIType *pointeeType = ptrType->getBaseType();
+    DIType *pointeeType = ptrType->getBaseType();
     return pointeeType;
 }
 
