@@ -141,3 +141,7 @@ bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) 
     return dchg->isBase(a, b, true);
 }
 
+void TypeBasedHeapCloning::backPropagateDumb(NodeID o) {
+
+}
+

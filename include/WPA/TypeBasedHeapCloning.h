@@ -59,6 +59,9 @@ private:
     /// by only passing two parameters like the rules.
     bool isBase(const llvm::DIType *a, const llvm::DIType *b) const;
 
+    /// Back-propagates o to its allocation site.
+    void backPropagateDumb(NodeID o);
+
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;
