@@ -46,9 +46,28 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID ptrId) {
+bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) {
     bool changed = false;
-    PointsTo &ptrPt = getPts(ptrId);
+    PointsTo &pPt = getPts(pId);
+    const PAGNode *pNode = pag->getPAGNode(pId);
+    assert(pNode && "TBHC: dereferencing something not in PAG?");
+    const DIType *t = getTypeFromMetadata(pNode->getValue());
+
+    for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
+        NodeID o = *oI;
+        const DIType *tp = objToType[o];  // tp == t'
+
+        // Split into the three DEREF cases.
+        if (tp == undefType) {
+            // [DEREF-UNTYPED]
+        } else if (isBase(tilde(t), tp) || isVoid(tilde(t))) {
+            // [DEREF-UP]
+        } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
+            // [DEREF-DOWN]
+        } else {
+            // Implicit FILTER.
+        }
+    }
 
     return changed;
 }
