@@ -47,6 +47,10 @@ private:
     /// Returns the (one-level) pointee of ptrType.
     const DIType *tilde(const DIType *ptrType) const;
 
+    /// Returns true if type represents some form of void.
+    /// Currently, void itself (null), __vtbl_ptr_type, __internal_untyped.
+    bool isVoid(const DIType *type) const;
+
     /// Returns a clone of o created at cloneSite with type type.
     NodeID cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type);
 
