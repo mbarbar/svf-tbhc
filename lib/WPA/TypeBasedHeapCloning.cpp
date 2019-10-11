@@ -19,6 +19,9 @@ void TypeBasedHeapCloning::analyze(SVFModule svfModule) {
 
 void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
     FlowSensitive::initialize(svfModule);
+
+    dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
+    assert(dchg != nullptr && "TBHC: requires DCHGraph");
 }
 
 void TypeBasedHeapCloning::finalize(void) {
@@ -113,5 +116,9 @@ NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSi
 
 bool isVoid(const DIType *type) const {
     return false;
+}
+
+bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
+    return dchg->isBase(a, b, true);
 }
 

@@ -10,6 +10,7 @@
 #ifndef TYPEBASEDHEAPCLONING_H_
 #define TYPEBASEDHEAPCLONING_H_
 
+#include "MemoryModel/DCHG.h"
 #include "MSSA/SVFGOPT.h"
 #include "MSSA/SVFGBuilder.h"
 #include "WPA/FlowSensitive.h"
@@ -54,6 +55,10 @@ private:
     /// Returns a clone of o created at cloneSite with type type.
     NodeID cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type);
 
+    /// Wrapper around DCHGraph::isBase. Purpose is to keep our conditions clean
+    /// by only passing two parameters like the rules.
+    bool isBase(const llvm::DIType *a, const llvm::DIType *b) const;
+
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;
@@ -65,6 +70,8 @@ private:
     std::map<NodeID, std::set<NodeID>> objToClones;
     /// (Clone) object -> original object (opposite of obj to clones).
     std::map<NodeID, NodeID> cloneToOriginalObj;
+
+    DCHGraph *dchg = nullptr;
 };
 
 #endif /* TYPEBASEDHEAPCLONING_H_ */
