@@ -125,6 +125,8 @@ NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSi
     // Clone's attributes.
     objToType[clone] = type;
     objToCloneSite[clone] = cloneSite->getId();
+    // Same allocation site as the original object.
+    objToAllocation[clone] = objToAllocation[o];
 
     // Tracking of object<->clone.
     objToClones[o].insert(clone);
