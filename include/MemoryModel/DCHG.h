@@ -271,8 +271,8 @@ private:
 
     /// Checks if a node exists for type.
     bool hasNode(const llvm::DIType *type) const {
-        diTypeToNodeMap.find(type) != diTypeToNodeMap.end()
-        || typedefToNodeMap.find(type) != diTypeToNodeMap.end();
+        return diTypeToNodeMap.find(type) != diTypeToNodeMap.end()
+               || typedefToNodeMap.find(type) != diTypeToNodeMap.end();
     }
 
     /// Returns the node for type (NULL if it doesn't exist).
