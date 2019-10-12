@@ -130,6 +130,8 @@ NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSi
     objToClones[o].insert(clone);
     cloneToOriginalObj[clone] = o;
 
+    backPropagateDumb(clone);
+
     return clone;
 }
 
@@ -142,6 +144,16 @@ bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) 
 }
 
 void TypeBasedHeapCloning::backPropagateDumb(NodeID o) {
+    NodeID allocSite = objToAllocation[o];
+    assert(allocSite != 0 && "TBHC: alloc for clone never set");
+    SVFGNode *genericNode = svfg->getSVFGNode(allocSite);
+    assert(genericNode != nullptr && "TBHC: Allocation site not found?");
+    AddrSVFGNode *allocSiteNode = SVFUtil::dyn_cast<AddrSVFGNode>(allocSiteNode);
+    assert(allocSiteNode != nullptr && "TBHC: Allocation site is not an Addr SVFG node?");
 
+    if (getPts(allocSiteNode->getPAGDstNodeID()).test_and_set(o)) {
+        // If o had never been to allocSite, need to re-propagate.
+        propagate(&genericNode);
+    }
 }
 
