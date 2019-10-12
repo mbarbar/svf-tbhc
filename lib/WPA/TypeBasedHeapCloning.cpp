@@ -57,15 +57,33 @@ bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) 
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp == t'
 
+        NodeID prop;
         // Split into the three DEREF cases.
         if (tp == undefType) {
             // [DEREF-UNTYPED]
+            prop = cloneObject(o, stmt, tilde(t));
         } else if (isBase(tilde(t), tp) || isVoid(tilde(t))) {
             // [DEREF-UP]
+            prop = o;
         } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
             // [DEREF-DOWN]
+            prop = cloneObject(o, stmt, tilde(t));
         } else {
             // Implicit FILTER.
+            prop = 0;
+        }
+
+        // TODO: this has plenty of room for optimisation. Might be wiser to
+        //       empty it out and make a new set or just have fewer branches.
+        if (prop == 0) {
+            // Not propagating in this case; remove.
+            pPt.reset(o);
+        } else {
+            // If prop is the same as o, we're not doing anything!
+            if (prop != o) {
+                pPt.reset(o);
+                pPt.set(prop);
+            }
         }
     }
 
