@@ -95,10 +95,12 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+    processDeref(load, load->getPAGSrcNodeID());
     return FlowSensitive::processLoad(load);
 }
 
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
+    processDeref(store, store->getPAGDstNodeID());
     return FlowSensitive::processStore(store);
 }
 
