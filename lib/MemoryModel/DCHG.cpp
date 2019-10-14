@@ -101,6 +101,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
 }
 
 void DCHGraph::handleDISubroutineType(const llvm::DISubroutineType *subroutineType) {
+    // TODO
 }
 
 void DCHGraph::handleTypedef(const llvm::DIType *typedefType) {
