@@ -198,14 +198,14 @@ public:
 
     void print(void) const;
 
-    virtual const bool csHasVFnsBasedonCHA(CallSite cs) const override {
+    virtual const bool csHasVFnsBasedonCHA(CallSite cs) override {
         return csHasVtblsBasedonCHA(cs);
     }
 
     virtual const VFunSet &getCSVFsBasedonCHA(CallSite cs) override;
 
-    virtual const bool csHasVtblsBasedonCHA(CallSite cs) const override {
-        const llvm::DIType *type = getCSStaticType(cs);
+    virtual const bool csHasVtblsBasedonCHA(CallSite cs) override {
+        const llvm::DIType *type = getCanonicalType(getCSStaticType(cs));
         if (!hasNode(type)) {
             return false;
         }
@@ -225,6 +225,8 @@ public:
     }
 
     /// Returns the type representing all qualifier-variations of t.
+    /// This should only matter in the case of DerivedTypes where
+    /// qualifiers and have qualified base types cause a mess.
     const DIType *getCanonicalType(const DIType *t);
 
 protected:
@@ -234,8 +236,6 @@ protected:
     bool extended = false;
     /// Maps DITypes to their nodes.
     std::map<const llvm::DIType *, DCHNode *> diTypeToNodeMap;
-    /// Maps typedefs to their (potentially transitive) base type.
-    std::map<const llvm::DIType *, DCHNode *> typedefToNodeMap;
     /// Maps VTables to the DIType associated with them.
     std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
@@ -284,19 +284,16 @@ private:
     }
 
     /// Checks if a node exists for type.
-    bool hasNode(const llvm::DIType *type) const {
-        return diTypeToNodeMap.find(type) != diTypeToNodeMap.end()
-               || typedefToNodeMap.find(type) != diTypeToNodeMap.end();
+    bool hasNode(const llvm::DIType *type) {
+        type = getCanonicalType(type);
+        return diTypeToNodeMap.find(type) != diTypeToNodeMap.end();
     }
 
     /// Returns the node for type (NULL if it doesn't exist).
-    DCHNode *getNode(const llvm::DIType *type) const {
-        if (diTypeToNodeMap.find(type) != diTypeToNodeMap.end()) {
+    DCHNode *getNode(const llvm::DIType *type) {
+        type = getCanonicalType(type);
+        if (hasNode(type)) {
             return diTypeToNodeMap.at(type);
-        }
-
-        if (typedefToNodeMap.find(type) != diTypeToNodeMap.end()) {
-            return typedefToNodeMap.at(type);
         }
 
         return nullptr;

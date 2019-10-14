@@ -126,8 +126,6 @@ void DCHGraph::handleTypedef(const llvm::DIType *typedefType) {
     for (std::vector<const llvm::DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
         // Base type needs to hold its typedefs.
         baseTypeNode->addTypedef(*typedefI);
-        // Want to quickly get the base type from the typedef.
-        typedefToNodeMap[*typedefI] = baseTypeNode;
     }
 }
 
@@ -141,7 +139,7 @@ void DCHGraph::buildVTables(const Module &module) {
             assert(type && "Bad metadata for tirvt");
             DCHNode *node = getOrCreateNode(type);
             node->setVTable(gv);
-            vtblToTypeMap[gv] = type;
+            vtblToTypeMap[gv] = getCanonicalType(type);
 
             const ConstantStruct *vtbls = SVFUtil::dyn_cast<ConstantStruct>(gv->getOperand(0));
             assert(vtbls && "unexpected vtable type");
@@ -182,6 +180,7 @@ void DCHGraph::buildVTables(const Module &module) {
 }
 
 std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstField) {
+    type = getCanonicalType(type);
     std::map<const llvm::DIType *, std::set<const DCHNode *>> &cacheMap =
         firstField ? chaFFMap : chaMap;
 
@@ -213,13 +212,11 @@ std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstFie
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {
+    type = getCanonicalType(type);
+
     // Check, does the node for type exist?
     if (diTypeToNodeMap[type] != NULL) {
         return diTypeToNodeMap[type];
-    }
-
-    if (typedefToNodeMap[type] != NULL) {
-        return typedefToNodeMap[type];
     }
 
     DCHNode *node = new DCHNode(type, numTypes++);
@@ -311,7 +308,7 @@ const VFunSet &DCHGraph::getCSVFsBasedonCHA(CallSite cs) {
 }
 
 const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
-    const llvm::DIType *type = getCSStaticType(cs);
+    const llvm::DIType *type = getCanonicalType(getCSStaticType(cs));
     // Check if we've already computed.
     if (vtblCHAMap.find(type) != vtblCHAMap.end()) {
         return vtblCHAMap.at(type);
@@ -404,6 +401,8 @@ void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &vi
 }
 
 bool DCHGraph::isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstField) {
+    a = getCanonicalType(a);
+    b = getCanonicalType(b);
     assert(hasNode(a) && hasNode(b) && "DCHG: isBase query for non-existent node!");
     const DCHNode *bNode = getNode(b);
 

@@ -224,11 +224,11 @@ public:
 		return templateNameToInstancesMap[className];
 	}
 
-	inline const bool csHasVtblsBasedonCHA(CallSite cs) const override {
+	inline const bool csHasVtblsBasedonCHA(CallSite cs) override {
 		CallSiteToVTableSetMap::const_iterator it = csToCHAVtblsMap.find(cs);
 		return it != csToCHAVtblsMap.end();
 	}
-	inline const bool csHasVFnsBasedonCHA(CallSite cs) const override {
+	inline const bool csHasVFnsBasedonCHA(CallSite cs) override {
 		CallSiteToVFunSetMap::const_iterator it = csToCHAVFnsMap.find(cs);
 		return it != csToCHAVFnsMap.end();
 	}
