@@ -57,15 +57,33 @@ bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) 
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp == t'
 
+        NodeID prop;
         // Split into the three DEREF cases.
         if (tp == undefType) {
             // [DEREF-UNTYPED]
+            prop = cloneObject(o, stmt, tilde(t));
         } else if (isBase(tilde(t), tp) || isVoid(tilde(t))) {
             // [DEREF-UP]
+            prop = o;
         } else if (isBase(tp, tilde(t)) && tp != tilde(t)) {
             // [DEREF-DOWN]
+            prop = cloneObject(o, stmt, tilde(t));
         } else {
             // Implicit FILTER.
+            prop = 0;
+        }
+
+        // TODO: this has plenty of room for optimisation. Might be wiser to
+        //       empty it out and make a new set or just have fewer branches.
+        if (prop == 0) {
+            // Not propagating in this case; remove.
+            pPt.reset(o);
+        } else {
+            // If prop is the same as o, we're not doing anything!
+            if (prop != o) {
+                pPt.reset(o);
+                pPt.set(prop);
+            }
         }
     }
 
@@ -77,10 +95,12 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+    processDeref(load, load->getPAGSrcNodeID());
     return FlowSensitive::processLoad(load);
 }
 
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
+    processDeref(store, store->getPAGDstNodeID());
     return FlowSensitive::processStore(store);
 }
 
@@ -132,6 +152,8 @@ NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSi
     objToClones[o].insert(clone);
     cloneToOriginalObj[clone] = o;
 
+    backPropagateDumb(clone);
+
     return clone;
 }
 
@@ -144,6 +166,16 @@ bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) 
 }
 
 void TypeBasedHeapCloning::backPropagateDumb(NodeID o) {
+    NodeID allocSite = objToAllocation[o];
+    assert(allocSite != 0 && "TBHC: alloc for clone never set");
+    SVFGNode *genericNode = svfg->getSVFGNode(allocSite);
+    assert(genericNode != nullptr && "TBHC: Allocation site not found?");
+    AddrSVFGNode *allocSiteNode = SVFUtil::dyn_cast<AddrSVFGNode>(allocSiteNode);
+    assert(allocSiteNode != nullptr && "TBHC: Allocation site is not an Addr SVFG node?");
 
+    if (getPts(allocSiteNode->getPAGDstNodeID()).test_and_set(o)) {
+        // If o had never been to allocSite, need to re-propagate.
+        propagate(&genericNode);
+    }
 }
 
