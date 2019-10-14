@@ -410,6 +410,27 @@ bool DCHGraph::isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstFi
     return aChildren.find(bNode) != aChildren.end();
 }
 
+const DIType *DCHGraph::getCanonicalType(const DIType *t) {
+    if (canonicalTypeMap.find(t) != canonicalTypeMap.end()) {
+        return canonicalTypeMap.at(t);
+    }
+
+    // Canonical type for t is not cached, find one for it.
+    for (std::set<const DIType *>::iterator canonTypeI = canonicalTypes.begin(); canonTypeI != canonicalTypes.end(); ++canonTypeI) {
+        if (teq(t, *canonTypeI)) {
+            // Found a canonical type.
+            canonicalTypeMap[t] = *canonTypeI;
+            return canonicalTypeMap[t];
+        }
+    }
+
+    // No canonical type found, so t will be a canonical type.
+    canonicalTypes.insert(t);
+    canonicalTypeMap[t] = t;
+
+    return canonicalTypeMap[t];
+}
+
 const DIType *DCHGraph::stripQualifiers(const DIType *t) {
     while (true) {
         // nullptr means void.

@@ -224,6 +224,9 @@ public:
         return chg->getKind() == DI;
     }
 
+    /// Returns the type representing all qualifier-variations of t.
+    const DIType *getCanonicalType(const DIType *t);
+
 protected:
     /// SVF Module this CHG is built from.
     SVFModule svfModule;
@@ -243,6 +246,10 @@ protected:
     std::map<const llvm::DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
     std::map<CallSite, VFunSet> csCHAMap;
+    /// Maps types to their canonical type (many-to-one).
+    std::map<const DIType *, const DIType *> canonicalTypeMap;
+    /// Set of all possible canonical types (i.e. values of canonicalTypeMap).
+    std::set<const DIType *> canonicalTypes;
 
 private:
     /// Construction helper to process DIBasicTypes.
