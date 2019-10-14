@@ -249,6 +249,9 @@ private:
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
 
+    /// Returns the DIType beneath the qualifiers.
+    const DIType *stripQualifiers(const DIType *) const;
+
     /// Determines whether a node for type exists.
     /*
     DCHNode *hasNode(const llvm::DIType *type) const {

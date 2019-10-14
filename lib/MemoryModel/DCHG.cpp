@@ -410,6 +410,46 @@ bool DCHGraph::isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstFi
     return aChildren.find(bNode) != aChildren.end();
 }
 
+const DIType *DCHGraph::stripQualifiers(const DIType *t) const {
+    while (true) {
+        // nullptr means void.
+        if (t == nullptr) break;
+
+        unsigned tag = t->getTag();
+        // Verbose for clarity.
+        if (   tag == dwarf::DW_TAG_const_type
+            || tag == dwarf::DW_TAG_atomic_type
+            || tag == dwarf::DW_TAG_volatile_type
+            || tag == dwarf::DW_TAG_restrict_type
+            || tag == dwarf::DW_TAG_typedef) {
+            // Qualifier - get underlying type.
+            const DIDerivedType *dt = llvm::dyn_cast<DIDerivedType>(t);
+            assert(t && "TBHC: expected DerivedType");
+            t = dt->getBaseType();
+        } else if (   tag == dwarf::DW_TAG_array_type
+                   || tag == dwarf::DW_TAG_class_type
+                   || tag == dwarf::DW_TAG_structure_type
+                   || tag == dwarf::DW_TAG_union_type
+                   || tag == dwarf::DW_TAG_enumeration_type
+                   || tag == dwarf::DW_TAG_pointer_type
+                   || tag == dwarf::DW_TAG_ptr_to_member_type
+                   || tag == dwarf::DW_TAG_reference_type
+                   || tag == dwarf::DW_TAG_rvalue_reference_type) {
+            // TODO: check rvalue_reference_type.
+            // Hit a non-qualifier.
+            break;
+        } else if (   tag == dwarf::DW_TAG_inheritance
+                   || tag == dwarf::DW_TAG_member
+                   || tag == dwarf::DW_TAG_friend) {
+            assert(false && "TBHC: unexpected tag when stripping qualifiers");
+        } else {
+            assert(false && "TBHC: unhandled tag when stripping qualifiers");
+        }
+    }
+
+    return t;
+}
+
 static std::string indent(size_t n) {
     return std::string(n, ' ');
 }
