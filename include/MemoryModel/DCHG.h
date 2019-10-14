@@ -252,13 +252,6 @@ private:
     /// Returns the DIType beneath the qualifiers.
     const DIType *stripQualifiers(const DIType *) const;
 
-    /// Determines whether a node for type exists.
-    /*
-    DCHNode *hasNode(const llvm::DIType *type) const {
-        return diTypeToNodeMap.find(type) != diTypeToNodeMap.end(); 
-    }
-    */
-
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
     DCHNode *getOrCreateNode(const llvm::DIType *type);
