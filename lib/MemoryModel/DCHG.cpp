@@ -450,6 +450,37 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
     return t;
 }
 
+bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
+    t1 = stripQualifiers(t1);
+    t2 = stripQualifiers(t2);
+
+    if (t1 == t2) {
+        // Trivial case.
+        return true;
+    }
+
+    if (t1 == nullptr || t2 == nullptr) {
+        // Since t1 != t2 and one of them is null, it is
+        // impossible for them to be equal.
+        return false;
+    }
+
+    if (t1->getTag() != t2->getTag()) {
+        // Different types of tags -> *certainly* different types.
+        return false;
+    }
+
+    if (SVFUtil::isa<DIDerivedType>(t1)) {
+        const DIDerivedType *dt1 = SVFUtil::dyn_cast<DIDerivedType>(t1);
+        const DIDerivedType *dt2 = SVFUtil::dyn_cast<DIDerivedType>(t2);
+        assert(dt1 != nullptr && dt2 != nullptr && "DCHGraph::teq: bad cast to DIDerivedType");
+
+        return teq(dt1->getBaseType(), dt2->getBaseType());
+    } else {
+        return t1 == t2;
+    }
+}
+
 static std::string indent(size_t n) {
     return std::string(n, ' ');
 }

@@ -170,6 +170,16 @@ public:
     /// Returns the DIType beneath the qualifiers.
     static const DIType *stripQualifiers(const DIType *);
 
+    /// Returns true if t1 and t2 are equivalent, ignoring qualifiers.
+    /// For equality...
+    ///  Tags always need to be equal.
+    ///  TODO: should we equate pointers and references?
+    ///   DIBasicType:      shallow pointer equality.
+    ///   DIDerivedType:    base types (teq).
+    ///   DICompositeType:  shallow pointer equality.
+    ///   DISubroutineType: shallow pointer equality.
+    static bool teq(const DIType *t1, const DIType *t2);
+
 public:
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
