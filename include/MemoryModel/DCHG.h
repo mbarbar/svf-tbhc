@@ -167,6 +167,10 @@ private:
 /// Dwarf based CHG.
 class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
+    /// Returns the DIType beneath the qualifiers.
+    static const DIType *stripQualifiers(const DIType *);
+
+public:
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
         this->kind = DI;
@@ -248,9 +252,6 @@ private:
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
-
-    /// Returns the DIType beneath the qualifiers.
-    const DIType *stripQualifiers(const DIType *) const;
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.

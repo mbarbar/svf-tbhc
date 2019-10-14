@@ -410,7 +410,7 @@ bool DCHGraph::isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstFi
     return aChildren.find(bNode) != aChildren.end();
 }
 
-const DIType *DCHGraph::stripQualifiers(const DIType *t) const {
+const DIType *DCHGraph::stripQualifiers(const DIType *t) {
     while (true) {
         // nullptr means void.
         if (t == nullptr) break;
