@@ -499,6 +499,12 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         assert(dt1 != nullptr && dt2 != nullptr && "DCHGraph::teq: bad cast to DIDerivedType");
 
         return teq(dt1->getBaseType(), dt2->getBaseType());
+    } else if (t1->getTag() == dwarf::DW_TAG_array_type) {
+        const DICompositeType *ct1 = SVFUtil::dyn_cast<DICompositeType>(t1);
+        const DICompositeType *ct2 = SVFUtil::dyn_cast<DICompositeType>(t2);
+        assert(ct1 != nullptr && ct2 != nullptr && "DCHGraph::teq: bad cast to DICompositeType");
+
+        return teq(ct1->getBaseType(), ct2->getBaseType());
     } else {
         return t1 == t2;
     }
