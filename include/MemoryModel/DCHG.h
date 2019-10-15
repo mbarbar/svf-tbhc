@@ -180,6 +180,9 @@ public:
     ///   DISubroutineType: shallow pointer equality.
     static bool teq(const DIType *t1, const DIType *t2);
 
+    /// Returns a human-readable version of the DIType.
+    static std::string diTypeToStr(const DIType *);
+
 public:
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {

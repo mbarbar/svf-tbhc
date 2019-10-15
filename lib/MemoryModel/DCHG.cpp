@@ -7,6 +7,8 @@
  *      Author: Mohamad Barbar
  */
 
+#include <sstream>
+
 #include "MemoryModel/DCHG.h"
 #include "Util/CPPUtil.h"
 
@@ -500,6 +502,91 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
     } else {
         return t1 == t2;
     }
+}
+
+std::string diTypeToStr(const DIType *t) {
+    std::stringstream ss;
+    if (const DIBasicType *bt = SVFUtil::dyn_cast<DIBasicType>(t)) {
+        ss << std::string(bt->getName());
+    } else if (const DIDerivedType *dt = SVFUtil::dyn_cast<DIDerivedType>(t)) {
+        if (dt->getTag() == dwarf::DW_TAG_const_type) {
+            ss << "const " << diTypeToStr(dt->getBaseType());
+        } else if (dt->getTag() == dwarf::DW_TAG_volatile_type) {
+            ss << "volatile " << diTypeToStr(dt->getBaseType());
+        } else if (dt->getTag() == dwarf::DW_TAG_restrict_type) {
+            ss << "restrict " << diTypeToStr(dt->getBaseType());
+        } else if (dt->getTag() == dwarf::DW_TAG_atomic_type) {
+            ss << "atomic " << diTypeToStr(dt->getBaseType());
+        } else if (dt->getTag() == dwarf::DW_TAG_pointer_type) {
+            ss << diTypeToStr(dt->getBaseType()) << " *";
+        } else if (dt->getTag() == dwarf::DW_TAG_ptr_to_member_type) {
+            // TODO: double check
+            ss << diTypeToStr(dt->getBaseType()) << " *";
+        } else if (dt->getTag() == dwarf::DW_TAG_reference_type) {
+            ss << diTypeToStr(dt->getBaseType()) << " &";
+        } else if (dt->getTag() == dwarf::DW_TAG_rvalue_reference_type) {
+            // TODO: double check
+            ss << diTypeToStr(dt->getBaseType()) << " &";
+        } else if (dt->getTag() == dwarf::DW_TAG_typedef) {
+            ss << std::string(dt->getName()) << "->" << diTypeToStr(dt->getBaseType());
+        }
+    } else if (const DICompositeType *ct = SVFUtil::dyn_cast<DICompositeType>(ct)) {
+        if (ct->getTag() == dwarf::DW_TAG_class_type
+            || ct->getTag() == dwarf::DW_TAG_structure_type
+            || ct->getTag() == dwarf::DW_TAG_union_type) {
+
+            if (ct->getTag() == dwarf::DW_TAG_class_type) {
+                ss << "class";
+            } else if (ct->getTag() == dwarf::DW_TAG_structure_type) {
+                ss << "struct";
+            } else if (ct->getTag() == dwarf::DW_TAG_union_type) {
+                ss << "union";
+            }
+
+            ss << ".";
+
+            if (ct->getName() != "") {
+                ss << std::string(ct->getName());
+            } else {
+                // Iterate over the element types.
+                ss << "{ ";
+
+                llvm::DINodeArray fields = ct->getElements();
+                for (unsigned i = 0; i < fields.size(); ++i) {
+                    // fields[i] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
+                    // It can also give a Subprogram type if the class just had non-virtual functions.
+                    if (const DISubprogram *sp = SVFUtil::dyn_cast<DISubprogram>(fields[i])) {
+                        ss << std::string(sp->getName());
+                    } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
+                        assert(mt->getTag() == dwarf::DW_TAG_member && "DCHG: expected member");
+                    }
+
+                    if (i != fields.size() - 1) {
+                        ss << ", ";
+                    }
+                }
+
+                ss << " }";
+            }
+        } else if (ct->getTag() == dwarf::DW_TAG_array_type) {
+            ss << diTypeToStr(ct->getBaseType());
+            llvm::DINodeArray sizes = ct->getElements();
+            for (unsigned i = 0; i < sizes.size(); ++i) {
+                llvm::DISubrange *sr = SVFUtil::dyn_cast<llvm::DISubrange>(sizes[0]);
+                assert(sr != nullptr && "DCHG: non-subrange as array element?");
+                // TODO: use sr->getCount
+                ss << "[" << 123 << "]";
+            }
+        } else if (ct->getTag() == dwarf::DW_TAG_enumeration_type) {
+            ss << "enum " << diTypeToStr(ct->getBaseType());
+        } else if (ct->getTag() == dwarf::DW_TAG_union_type) {
+
+        }
+    } else if (const DISubroutineType *st = SVFUtil::dyn_cast<DISubroutineType>(st)) {
+        ss << std::string(st->getName());
+    }
+
+    return ss.str();
 }
 
 static std::string indent(size_t n) {
