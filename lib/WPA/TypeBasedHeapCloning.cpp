@@ -127,7 +127,7 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
         llvm::outs() << "TBHC: no tir metadata found\n";
     }
 
-    return type;
+    return dchg->getCanonicalType(type);
 }
 
 const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
