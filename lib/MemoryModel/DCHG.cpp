@@ -42,6 +42,8 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
             }
         }
 
+        flatten(compositeType);
+
         break;
     case llvm::dwarf::DW_TAG_union_type:
         // TODO: unsure.
@@ -211,6 +213,37 @@ std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstFie
     cacheMap[type] = children;
     // Return the permanent object; we're returning a reference.
     return cacheMap[type];
+}
+
+void DCHGraph::flatten(const DICompositeType *type) {
+    assert(type != nullptr
+           && (type->getTag() == dwarf::DW_TAG_class_type
+           || type->getTag() == dwarf::DW_TAG_structure_type)
+           && "DCHG::flatten: expected a class/struct");
+
+    std::vector<const DIType *> &flattenedComposite = fieldTypes[type];
+    llvm::DINodeArray fields = type->getElements();
+    for (unsigned i = 0; i < fields.size(); ++i) {
+        if (const DISubprogram *sp = SVFUtil::dyn_cast<DISubprogram>(fields[i])) {
+            // sp->getType should be a SubroutineType. TODO: assert it?
+            flattenedComposite.push_back(sp->getType());
+        } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
+            assert(mt->getTag() == dwarf::DW_TAG_member && "DCHG: expected member");
+            // Either we have a class, struct, or something not in need of flattening.
+            const DIType *fieldType = mt->getBaseType();
+            if (fieldType->getTag() == dwarf::DW_TAG_structure_type
+                || fieldType->getTag() == dwarf::DW_TAG_class_type) {
+                flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
+                flattenedComposite.insert(flattenedComposite.end(),
+                                          fieldTypes.at(fieldType).begin(),
+                                          fieldTypes.at(fieldType).end());
+            } else {
+                flattenedComposite.push_back(fieldType);
+            }
+        } else {
+            assert(false && "DCHG: unexpected field type");
+        }
+    }
 }
 
 DCHNode *DCHGraph::getOrCreateNode(const llvm::DIType *type) {

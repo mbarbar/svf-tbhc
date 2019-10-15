@@ -253,6 +253,8 @@ protected:
     std::map<const DIType *, const DIType *> canonicalTypeMap;
     /// Set of all possible canonical types (i.e. values of canonicalTypeMap).
     std::set<const DIType *> canonicalTypes;
+    /// Maps types to their flattened fields' types.
+    std::map<const DIType *, std::vector<const DIType *>> fieldTypes;
 
 private:
     /// Construction helper to process DIBasicTypes.
@@ -272,6 +274,9 @@ private:
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const llvm::DIType *typedefType);
+
+    /// Populates fieldTypes for type and all its elements.
+    void flatten(const DICompositeType *type);
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
