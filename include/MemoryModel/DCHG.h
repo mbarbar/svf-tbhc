@@ -232,6 +232,20 @@ public:
     /// qualifiers and have qualified base types cause a mess.
     const DIType *getCanonicalType(const DIType *t);
 
+    /// Returns the type of field number idx (flattened) in base.
+    const DIType *getFieldType(const DIType *base, unsigned idx) {
+        base = getCanonicalType(base);
+        assert((base->getTag() == dwarf::DW_TAG_class_type
+                || base->getTag() == dwarf::DW_TAG_structure_type)
+               && "DCHG: non-class/struct don't have fields?");
+
+        const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
+        assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
+        std::vector<const DIType *> fields = fieldTypes.at(base);
+        assert(fields.size() > idx && "DCHG: idx into struct larger than # fields!");
+        return fields[idx];
+    }
+
 protected:
     /// SVF Module this CHG is built from.
     SVFModule svfModule;
