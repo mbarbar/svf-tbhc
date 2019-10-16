@@ -91,7 +91,35 @@ bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) 
 }
 
 bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
-    return FlowSensitive::processGep(edge);
+    // Copy of that in FlowSensitive.cpp + some changes.
+    const PointsTo& srcPts = getPts(edge->getPAGSrcNodeID());
+
+    PointsTo tmpDstPts;
+    for (PointsTo::iterator qi = srcPts.begin(); qi != srcPts.end(); ++qi) {
+        NodeID q = *qi;
+        if (isBlkObjOrConstantObj(q)) {
+            tmpDstPts.set(q);
+        } else {
+            if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
+                setObjFieldInsensitive(q);
+                NodeID fiObj = getFIObjNode(q);
+                tmpDstPts.set(fiObj);
+
+                // TODO: check type!
+                objToType[fiObj] = objToType.at(q);
+            } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
+                NodeID fieldSrcqNode = getGepObjNode(q, normalGep->getLocationSet());
+                tmpDstPts.set(fieldSrcqNode);
+
+                const DIType *t = objToType[q];
+                objToType[fieldSrcqNode] = dchg->getFieldType(t, normalGep->getOffset());
+            } else {
+                assert(false && "new gep edge?");
+            }
+        }
+    }
+
+    return unionPts(edge->getPAGDstNodeID(), tmpDstPts);
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
