@@ -469,7 +469,9 @@ const DIType *DCHGraph::getCanonicalType(const DIType *t) {
 const DIType *DCHGraph::stripQualifiers(const DIType *t) {
     while (true) {
         // nullptr means void.
-        if (t == nullptr) break;
+        if (t == nullptr || SVFUtil::isa<DIBasicType>(t)) {
+            break;
+        }
 
         unsigned tag = t->getTag();
         // Verbose for clarity.
