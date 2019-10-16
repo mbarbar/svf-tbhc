@@ -228,7 +228,8 @@ void DCHGraph::flatten(const DICompositeType *type) {
             // sp->getType should be a SubroutineType. TODO: assert it?
             flattenedComposite.push_back(sp->getType());
         } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
-            assert(mt->getTag() == dwarf::DW_TAG_member && "DCHG: expected member");
+            assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
+                   && "DCHG: expected member");
             // Either we have a class, struct, or something not in need of flattening.
             const DIType *fieldType = mt->getBaseType();
             if (fieldType->getTag() == dwarf::DW_TAG_structure_type
