@@ -470,7 +470,9 @@ const DIType *DCHGraph::getCanonicalType(const DIType *t) {
 const DIType *DCHGraph::stripQualifiers(const DIType *t) {
     while (true) {
         // nullptr means void.
-        if (t == nullptr || SVFUtil::isa<DIBasicType>(t)) {
+        if (t == nullptr
+            || SVFUtil::isa<DIBasicType>(t)
+            || SVFUtil::isa<DISubroutineType>(t)) {
             break;
         }
 
