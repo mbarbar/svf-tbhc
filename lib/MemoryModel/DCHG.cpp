@@ -46,10 +46,12 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
 
         break;
     case llvm::dwarf::DW_TAG_union_type:
-        // TODO: unsure.
+        // TODO: what can deref a union legally? (make them first fields).
+        getOrCreateNode(compositeType);
         break;
     case llvm::dwarf::DW_TAG_enumeration_type:
-        // TODO: unsure.
+        // TODO: maybe just drop these to the base type?
+        getOrCreateNode(compositeType);
         break;
     default:
         assert(false && "DCHGraph::buildCHG: unexpected CompositeType tag.");
