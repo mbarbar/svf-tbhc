@@ -160,7 +160,11 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
 
 const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
     const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(generalType);
-    assert(ptrType && ptrType->getTag() == dwarf::DW_TAG_pointer_type && "TBHC: trying to tilde a non-pointer");
+    assert(ptrType
+           && (ptrType->getTag() == dwarf::DW_TAG_pointer_type
+               || ptrType->getTag() == dwarf::DW_TAG_reference_type)
+           && "TBHC: trying to tilde a non-pointer");
+    // TODO: we'll have to see if we need to consider rvalue_reference.
 
     DIType *pointeeType = ptrType->getBaseType();
     return pointeeType;

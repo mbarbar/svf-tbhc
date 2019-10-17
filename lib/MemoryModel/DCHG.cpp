@@ -81,7 +81,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
         if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_reference_type:
-        // TODO: are these just pointers?
+        if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_rvalue_reference_type:
         // TODO: are these just pointers?
