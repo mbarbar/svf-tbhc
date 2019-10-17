@@ -235,6 +235,13 @@ public:
     /// Returns the type of field number idx (flattened) in base.
     const DIType *getFieldType(const DIType *base, unsigned idx) {
         base = getCanonicalType(base);
+
+        if (base->getTag() == dwarf::DW_TAG_array_type) {
+            const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
+            assert(cbase && "DCHG: bad DIComposite case");
+            return cbase->getBaseType();
+        }
+
         assert((base->getTag() == dwarf::DW_TAG_class_type
                 || base->getTag() == dwarf::DW_TAG_structure_type)
                && "DCHG: non-class/struct don't have fields?");
