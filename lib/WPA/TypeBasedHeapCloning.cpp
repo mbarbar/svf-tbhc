@@ -49,6 +49,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
 bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) {
     bool changed = false;
     PointsTo &pPt = getPts(pId);
+    PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
     const DIType *t = getTypeFromMetadata(pNode->getValue());
@@ -57,7 +58,8 @@ bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) 
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp == t'
 
-        NodeID prop;
+        NodeID prop = 0;
+        bool filter = false;
         // Split into the three DEREF cases.
         if (tp == undefType) {
             // [DEREF-UNTYPED]
@@ -70,21 +72,19 @@ bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) 
             prop = cloneObject(o, stmt, tilde(t));
         } else {
             // Implicit FILTER.
-            prop = 0;
+            filter = true;
         }
 
-        // TODO: this has plenty of room for optimisation. Might be wiser to
-        //       empty it out and make a new set or just have fewer branches.
-        if (prop == 0) {
-            // Not propagating in this case; remove.
-            pPt.reset(o);
-        } else {
-            // If prop is the same as o, we're not doing anything!
-            if (prop != o) {
-                pPt.reset(o);
-                pPt.set(prop);
-            }
+        if (!filter) {
+            pNewPt.set(prop);
         }
+    }
+
+    // TODO: do we need to set changed if pNewPt is a subset of pPt?
+    if (pPt != pNewPt) {
+        pPt.clear();
+        unionPts(pId, pNewPt);
+        changed = true;
     }
 
     return changed;
