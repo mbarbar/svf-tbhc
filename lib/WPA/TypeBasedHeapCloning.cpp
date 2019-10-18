@@ -46,13 +46,13 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processDeref(const SVFGNode *stmt, const NodeID pId) {
+bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID pId) {
     bool changed = false;
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
-    const DIType *t = getTypeFromMetadata(pNode->getValue());
+    const DIType *t = getTypeFromMetadata(stmt->getInst());
 
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
