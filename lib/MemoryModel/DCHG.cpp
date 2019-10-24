@@ -529,26 +529,27 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return false;
     }
 
-    if (SVFUtil::isa<DIBasicType>(t1)) {
-        // This makes unsigned and signed equivalent if they're the right size.
-        return t1->getSizeInBits() == t2->getSizeInBits()
-               && t1->getAlignInBits() == t2->getAlignInBits();
-    } else if (SVFUtil::isa<DIDerivedType>(t1)) {
+
+    if (SVFUtil::isa<DIDerivedType>(t1) && SVFUtil::isa<DIDerivedType>(t2)) {
         const DIDerivedType *dt1 = SVFUtil::dyn_cast<DIDerivedType>(t1);
         const DIDerivedType *dt2 = SVFUtil::dyn_cast<DIDerivedType>(t2);
         assert(dt1 != nullptr && dt2 != nullptr && "DCHGraph::teq: bad cast to DIDerivedType");
 
         // This will make pointers and references equivalent.
         return teq(dt1->getBaseType(), dt2->getBaseType());
+    } else if (t1->getTag() != t2->getTag()) {
+        // Different types of tags --> *certainly* different types (aside from the above cases).
+        return false;
+    } else if (SVFUtil::isa<DIBasicType>(t1)) {
+        // This makes unsigned and signed equivalent if they're the right size.
+        return t1->getSizeInBits() == t2->getSizeInBits()
+               && t1->getAlignInBits() == t2->getAlignInBits();
     } else if (t1->getTag() == dwarf::DW_TAG_array_type) {
         const DICompositeType *ct1 = SVFUtil::dyn_cast<DICompositeType>(t1);
         const DICompositeType *ct2 = SVFUtil::dyn_cast<DICompositeType>(t2);
         assert(ct1 != nullptr && ct2 != nullptr && "DCHGraph::teq: bad cast to DICompositeType");
 
         return teq(ct1->getBaseType(), ct2->getBaseType());
-    } else if (t1->getTag() != t2->getTag()) {
-        // Different types of tags --> *certainly* different types (aside from the above cases).
-        return false;
     } else {
 
         return t1 == t2;
