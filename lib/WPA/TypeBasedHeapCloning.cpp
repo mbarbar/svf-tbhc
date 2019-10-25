@@ -38,9 +38,20 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     // We should not have any type, not even undefined.
     assert(objToType.find(srcID) == objToType.end() && "TBHC: addr: already has a type?");
 
-    // TODO: maybe tilde(getType...)
-    const DIType *type = isHeapMemObj(srcID) ? undefType : getTypeFromMetadata(srcNode->getValue());
-    objToType[srcID] = type;
+    const DIType *objType;
+    if (isHeapMemObj(srcID)) {
+        objType = undefType;
+    } else if (SVFUtil::isa<DummyObjPN>(srcNode)) {
+        // Probably constants that have been merged into one.
+        // We make it undefined even though it's technically a global
+        // to keep in line with SVF's design.
+        // This will end up splitting into one for each type of constant.
+        objType = undefType;
+    } else {
+        objType = getTypeFromMetadata(srcNode->getValue());
+    }
+
+    objToType[srcID] = objType;
     objToAllocation[srcID] = addr->getId();
 
     return changed;
