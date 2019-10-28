@@ -36,7 +36,10 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     bool changed = FlowSensitive::processAddr(addr);
 
     // We should not have any type, not even undefined.
-    assert(objToType.find(srcID) == objToType.end() && "TBHC: addr: already has a type?");
+    // This all assumes that there is only one outgoing edge from each object.
+    // Some of the constant objects have more, so we make that exception.
+    assert(objToType.find(srcID) == objToType.end() && !SVFUtil::isa<DummyObjPN>(srcNode)
+           && "TBHC: addr: already has a type?");
 
     const DIType *objType;
     if (isHeapMemObj(srcID)) {
