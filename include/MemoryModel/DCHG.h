@@ -235,6 +235,10 @@ public:
     /// Returns the type of field number idx (flattened) in base.
     const DIType *getFieldType(const DIType *base, unsigned idx) {
         base = getCanonicalType(base);
+        if (base == nullptr) {
+            // Conservative; the base object is untyped, sadly.
+            return nullptr;
+        }
 
         if (base->getTag() == dwarf::DW_TAG_array_type) {
             const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
