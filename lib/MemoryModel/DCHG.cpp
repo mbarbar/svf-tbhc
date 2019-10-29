@@ -16,6 +16,8 @@
 
 static llvm::cl::opt<bool> printDCHG("print-dchg", llvm::cl::init(false), llvm::cl::desc("print the DCHG if debug information is available"));
 
+const std::string DCHGraph::tirInternalUntypedName = "__tir_internal_untyped";
+
 void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
     getOrCreateNode(basicType);
 }
@@ -305,10 +307,26 @@ void DCHGraph::buildCHG(bool extend) {
        finder.processModule(*(svfModule.getModule(i)));
     }
 
+    // Create the void node regardless of whether it appears.
+    getOrCreateNode(nullptr);
+    // Find any char type.
+    DIType *charType = nullptr;
+    // We want void at the top, char as a child, and everything is a child of char:
+    //     void
+    //      |
+    //     char
+    //    / | \
+    //   x  y  z
+
+
     for (llvm::DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
         llvm::DIType *type = *diTypeI;
-
         if (llvm::DIBasicType *basicType = SVFUtil::dyn_cast<llvm::DIBasicType>(type)) {
+            if (basicType->getEncoding() == dwarf::DW_ATE_unsigned_char
+                || basicType->getEncoding() == dwarf::DW_ATE_signed_char) {
+                charType = type;
+            }
+
             handleDIBasicType(basicType);
         } else if (llvm::DICompositeType *compositeType = SVFUtil::dyn_cast<llvm::DICompositeType>(type)) {
             handleDICompositeType(compositeType);
@@ -327,6 +345,20 @@ void DCHGraph::buildCHG(bool extend) {
 
     if (printDCHG) {
         print();
+    }
+
+    // Build the void/char/everything else relation.
+    // TODO: for cleanliness these should probably be some special edge, not FF/inheritance.
+    if (extended) {
+        // void <-- char
+        addEdge(charType, nullptr, DCHEdge::FIRST_FIELD);
+        // char <-- x, char <-- y, ...
+        for (iterator nodeI = begin(); nodeI != end(); ++nodeI) {
+            // Everything without a parent gets char as a parent.
+            if (nodeI->second->getOutEdges().size() == 0) {
+                addEdge(nodeI->second->getType(), charType, DCHEdge::FIRST_FIELD);
+            }
+        }
     }
 }
 
@@ -523,12 +555,18 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return true;
     }
 
+    if ((t1 == nullptr && t2 && t2->getName() == tirInternalUntypedName)
+        || (t2 == nullptr && t1 && t1->getName() == tirInternalUntypedName)) {
+        // We're treating the internal untyped from Tir as void (null).
+        return true;
+    }
+
+
     if (t1 == nullptr || t2 == nullptr) {
         // Since t1 != t2 and one of them is null, it is
         // impossible for them to be equal.
         return false;
     }
-
 
     if (SVFUtil::isa<DIDerivedType>(t1) && SVFUtil::isa<DIDerivedType>(t2)) {
         const DIDerivedType *dt1 = SVFUtil::dyn_cast<DIDerivedType>(t1);

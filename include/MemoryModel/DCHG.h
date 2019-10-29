@@ -167,6 +167,8 @@ private:
 /// Dwarf based CHG.
 class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
+    static const std::string tirInternalUntypedName;
+
     /// Returns the DIType beneath the qualifiers.
     static const DIType *stripQualifiers(const DIType *);
 

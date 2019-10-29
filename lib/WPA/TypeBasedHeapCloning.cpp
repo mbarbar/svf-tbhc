@@ -10,7 +10,7 @@
 #include "WPA/TypeBasedHeapCloning.h"
 
 // TODO: maybe better to actually construct something.
-const DIType *TypeBasedHeapCloning::undefType = static_cast<DIType *>(malloc(sizeof(DIType)));
+const DIType *TypeBasedHeapCloning::undefType = nullptr;
 
 void TypeBasedHeapCloning::analyze(SVFModule svfModule) {
     // TODO: unclear if this will need to change.
