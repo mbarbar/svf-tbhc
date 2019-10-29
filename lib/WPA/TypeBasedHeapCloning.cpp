@@ -122,11 +122,15 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
                 // TODO: check type!
                 objToType[fiObj] = objToType.at(q);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
-                NodeID fieldSrcqNode = getGepObjNode(q, normalGep->getLocationSet());
-                tmpDstPts.set(fieldSrcqNode);
+                NodeID fieldSrcQNode = getGepObjNode(q, normalGep->getLocationSet());
+                tmpDstPts.set(fieldSrcQNode);
 
+                assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
                 const DIType *t = objToType[q];
-                objToType[fieldSrcqNode] = dchg->getFieldType(t, normalGep->getOffset());
+                objToType[fieldSrcQNode] = dchg->getFieldType(t, normalGep->getLocationSet());
+                // Unfortunately some values are untyped so the fields will have
+                // to go through normal initialisation.
+                objToAllocation[fieldSrcQNode] = objToAllocation[q];
             } else {
                 assert(false && "new gep edge?");
             }
