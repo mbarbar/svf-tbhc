@@ -62,6 +62,11 @@ private:
     /// Returns true if o is a clone.
     bool isClone(NodeID o) const;
 
+    /// Returns the GEP object node(s) of base for ls. This may include clones.
+    /// If there are no GEP objects, then getGepObjNode is called on the PAG
+    /// (through base's getGepObjNode) which will create one.
+    std::set<NodeID> getGepObjClones(NodeID base, const LocationSet& ls);
+
     /// Back-propagates o to its allocation site.
     void backPropagateDumb(NodeID o);
 

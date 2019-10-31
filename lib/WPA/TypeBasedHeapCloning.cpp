@@ -122,15 +122,16 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
                 // TODO: check type!
                 objToType[fiObj] = objToType.at(q);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
-                NodeID fieldSrcQNode = getGepObjNode(q, normalGep->getLocationSet());
-                tmpDstPts.set(fieldSrcQNode);
+                std::set<NodeID> fieldClones = getGepObjClones(q, normalGep->getLocationSet());
+                for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
+                    NodeID fc = *fcI;
+                    tmpDstPts.set(fc);
 
-                assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
-                const DIType *t = objToType[q];
-                objToType[fieldSrcQNode] = dchg->getFieldType(t, normalGep->getLocationSet().getOffset());
-                // Unfortunately some values are untyped so the fields will have
-                // to go through normal initialisation.
-                objToAllocation[fieldSrcQNode] = objToAllocation[q];
+                    assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
+                    const DIType *t = objToType[q];
+                    objToType[fc] = dchg->getFieldType(t, normalGep->getLocationSet().getOffset());
+                    objToAllocation[fc] = objToAllocation[q];
+                }
             } else {
                 assert(false && "new gep edge?");
             }
@@ -238,6 +239,32 @@ bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) 
 
 bool TypeBasedHeapCloning::isClone(NodeID o) const {
     return cloneToOriginalObj.find(o) != cloneToOriginalObj.end();
+}
+
+std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
+    // TODO: might need to cache on ls for performance.
+    std::set<NodeID> geps;
+    for (std::set<NodeID>::iterator gepI = objToGeps[base].begin(); gepI != objToGeps[base].end(); ++gepI) {
+        NodeID gep = *gepI;
+        PAGNode *node = pag->getPAGNode(gep);
+        assert(node && "gep node doesn't exist?");
+        GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node);
+        assert(gepNode && "gep node is not actually a gep node?");
+
+        // TODO: is it enough to just compare offsets?
+        if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
+            geps.insert(gep);
+        }
+    }
+
+    if (geps.empty()) {
+        // No gep node has even be created, so create one.
+        NodeID gep = pag->getGepObjNode(base, ls);
+        objToGeps[base].insert(gep);
+        geps.insert(gep);
+    }
+
+    return geps;
 }
 
 void TypeBasedHeapCloning::backPropagateDumb(NodeID o) {
