@@ -53,7 +53,7 @@ private:
     bool isVoid(const DIType *type) const;
 
     /// Returns a clone of o created at cloneSite with type type.
-    NodeID cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type);
+    NodeID cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type);
 
     /// Wrapper around DCHGraph::isBase. Purpose is to keep our conditions clean
     /// by only passing two parameters like the rules.

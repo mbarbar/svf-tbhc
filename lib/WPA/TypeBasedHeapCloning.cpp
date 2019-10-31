@@ -188,7 +188,11 @@ const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
     return pointeeType;
 }
 
-NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+    if (isClone(o)) {
+        o = cloneToOriginalObj[o];
+    }
+
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     const PAGNode *obj = pag->getPAGNode(o);
     NodeID clone;
