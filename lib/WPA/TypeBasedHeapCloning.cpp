@@ -127,7 +127,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
 
                 assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
                 const DIType *t = objToType[q];
-                objToType[fieldSrcQNode] = dchg->getFieldType(t, normalGep->getLocationSet());
+                objToType[fieldSrcQNode] = dchg->getFieldType(t, normalGep->getLocationSet().getOffset());
                 // Unfortunately some values are untyped so the fields will have
                 // to go through normal initialisation.
                 objToAllocation[fieldSrcQNode] = objToAllocation[q];
