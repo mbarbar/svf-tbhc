@@ -248,9 +248,17 @@ public:
             return cbase->getBaseType();
         }
 
+        /* TODO: we want this, but untyped things mess it up.
         assert((base->getTag() == dwarf::DW_TAG_class_type
                 || base->getTag() == dwarf::DW_TAG_structure_type)
                && "DCHG: non-class/struct don't have fields?");
+        */
+        if (!(base->getTag() == dwarf::DW_TAG_class_type
+              || base->getTag() == dwarf::DW_TAG_structure_type)) {
+            // TODO: what if the inside is actually a pointer - we want
+            //       a void pointer.
+            return nullptr;
+        }
 
         const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
         assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
