@@ -59,6 +59,9 @@ private:
     /// by only passing two parameters like the rules.
     bool isBase(const llvm::DIType *a, const llvm::DIType *b) const;
 
+    /// Returns true if o is a clone.
+    bool isClone(NodeID o) const;
+
     /// Back-propagates o to its allocation site.
     void backPropagateDumb(NodeID o);
 

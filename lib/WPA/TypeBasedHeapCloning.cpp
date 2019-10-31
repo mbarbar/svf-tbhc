@@ -223,6 +223,10 @@ bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) 
     return dchg->isBase(a, b, true);
 }
 
+bool TypeBasedHeapCloning::isClone(NodeID o) const {
+    return cloneToOriginalObj.find(o) != cloneToOriginalObj.end();
+}
+
 void TypeBasedHeapCloning::backPropagateDumb(NodeID o) {
     NodeID allocSite = objToAllocation[o];
     assert(allocSite != 0 && "TBHC: alloc for clone never set");
