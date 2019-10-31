@@ -216,7 +216,8 @@ NodeID TypeBasedHeapCloning::cloneObject(const NodeID o, const SVFGNode *cloneSi
 }
 
 bool TypeBasedHeapCloning::isVoid(const DIType *type) const {
-    return false;
+    // TODO: not sufficient.
+    return type == nullptr;
 }
 
 bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) const {

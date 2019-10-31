@@ -580,6 +580,7 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return false;
     } else if (SVFUtil::isa<DIBasicType>(t1)) {
         // This makes unsigned and signed equivalent if they're the right size.
+        // TODO: incorrect handling of float and bool.
         return t1->getSizeInBits() == t2->getSizeInBits()
                && t1->getAlignInBits() == t2->getAlignInBits();
     } else if (t1->getTag() == dwarf::DW_TAG_array_type) {
