@@ -595,6 +595,23 @@ public:
     inline const MemObj* addDummyMemObj(NodeID i, const Type* type) {
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);
     }
+
+    inline NodeID addCloneObjNode() {
+        NodeID id = nodeNum;
+        const MemObj* mem = addDummyMemObj(id, NULL);
+        return addObjNode(NULL, new CloneObjPN(id, mem), id);
+    }
+
+    inline NodeID addCloneGepObjNode(const MemObj *mem, const LocationSet &l) {
+        NodeID id = nodeNum;
+        return addObjNode(mem->getRefVal(), new CloneGepObjPN(mem, id, l), id);
+    }
+
+    inline NodeID addCloneFIObjNode(const MemObj *mem) {
+        NodeID id = nodeNum;
+        return addObjNode(mem->getRefVal(), new CloneFIObjPN(mem->getRefVal(), id, mem), id);
+    }
+
     inline NodeID addBlackholeObjNode() {
         return addObjNode(NULL, new DummyObjPN(getBlackHoleNode(),getBlackHoleObj()), getBlackHoleNode());
     }
