@@ -76,6 +76,8 @@ private:
     std::map<NodeID, std::set<NodeID>> objToClones;
     /// (Clone) object -> original object (opposite of obj to clones).
     std::map<NodeID, NodeID> cloneToOriginalObj;
+    /// Maps objects to the GEP nodes beneath them.
+    std::map<NodeID, std::set<NodeID>> objToGeps;
 
     DCHGraph *dchg = nullptr;
 };

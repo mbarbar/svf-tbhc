@@ -189,19 +189,26 @@ const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
 }
 
 NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
-    if (isClone(o)) {
-        o = cloneToOriginalObj[o];
-    }
-
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     const PAGNode *obj = pag->getPAGNode(o);
     NodeID clone;
     if (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(obj)) {
         clone = pag->addCloneGepObjNode(gepObj->getMemObj(), gepObj->getLocationSet());
+        // The base needs to know about this guy.
+        objToGeps[gepObj->getMemObj()->getSymId()].insert(clone);
     } else if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
         clone = pag->addCloneFIObjNode(fiObj->getMemObj());
-    } else {  // It's a normal object.
+    } else {
+        // Could be a dummy object.
         clone = pag->addCloneObjNode();
+    }
+
+    // We also need to clone the GEP objects underneath o.
+    std::set<NodeID> geps = objToGeps[o];
+    for (std::set<NodeID>::iterator gepI = geps.begin(); gepI != geps.end(); ++gepI) {
+        NodeID gep = *gepI;
+        NodeID gepClone = cloneObject(gep, cloneSite, objToType[gep]);
+        objToGeps[clone].insert(gepClone);
     }
 
     // Clone's attributes.
@@ -211,6 +218,7 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     objToAllocation[clone] = objToAllocation[o];
 
     // Tracking of object<->clone.
+    if (isClone(o)) o = cloneToOriginalObj[o];
     objToClones[o].insert(clone);
     cloneToOriginalObj[clone] = o;
 
