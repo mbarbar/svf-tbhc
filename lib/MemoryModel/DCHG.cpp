@@ -343,10 +343,6 @@ void DCHGraph::buildCHG(bool extend) {
         buildVTables(*(svfModule.getModule(i)));
     }
 
-    if (printDCHG) {
-        print();
-    }
-
     // Build the void/char/everything else relation.
     // TODO: for cleanliness these should probably be some special edge, not FF/inheritance.
     if (extended) {
@@ -359,6 +355,10 @@ void DCHGraph::buildCHG(bool extend) {
                 addEdge(nodeI->second->getType(), charType, DCHEdge::FIRST_FIELD);
             }
         }
+    }
+
+    if (printDCHG) {
+        print();
     }
 }
 
@@ -595,12 +595,19 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
     }
 }
 
-std::string diTypeToStr(const DIType *t) {
+std::string DCHGraph::diTypeToStr(const DIType *t) {
     std::stringstream ss;
+
+    if (t == nullptr) {
+        return "null (void)";
+    }
+
     if (const DIBasicType *bt = SVFUtil::dyn_cast<DIBasicType>(t)) {
         ss << std::string(bt->getName());
     } else if (const DIDerivedType *dt = SVFUtil::dyn_cast<DIDerivedType>(t)) {
-        if (dt->getTag() == dwarf::DW_TAG_const_type) {
+        if (dt->getName() == "__vtbl_ptr_type") {
+            ss << "(vtbl * =) __vtbl_ptr_type";
+        } else if (dt->getTag() == dwarf::DW_TAG_const_type) {
             ss << "const " << diTypeToStr(dt->getBaseType());
         } else if (dt->getTag() == dwarf::DW_TAG_volatile_type) {
             ss << "volatile " << diTypeToStr(dt->getBaseType());
@@ -621,7 +628,7 @@ std::string diTypeToStr(const DIType *t) {
         } else if (dt->getTag() == dwarf::DW_TAG_typedef) {
             ss << std::string(dt->getName()) << "->" << diTypeToStr(dt->getBaseType());
         }
-    } else if (const DICompositeType *ct = SVFUtil::dyn_cast<DICompositeType>(ct)) {
+    } else if (const DICompositeType *ct = SVFUtil::dyn_cast<DICompositeType>(t)) {
         if (ct->getTag() == dwarf::DW_TAG_class_type
             || ct->getTag() == dwarf::DW_TAG_structure_type
             || ct->getTag() == dwarf::DW_TAG_union_type) {
@@ -673,7 +680,7 @@ std::string diTypeToStr(const DIType *t) {
         } else if (ct->getTag() == dwarf::DW_TAG_union_type) {
 
         }
-    } else if (const DISubroutineType *st = SVFUtil::dyn_cast<DISubroutineType>(st)) {
+    } else if (const DISubroutineType *st = SVFUtil::dyn_cast<DISubroutineType>(t)) {
         ss << std::string(st->getName());
     }
 
@@ -696,7 +703,7 @@ void DCHGraph::print(void) const {
         llvm::outs() << line;
 
         // TODO: need to properly name non-class nodes.
-        llvm::outs() << indent(currIndent) << id << ": " << node->getName() << "\n";
+        llvm::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << "\n";
 
         currIndent += singleIndent;
         llvm::outs() << indent(currIndent) << "Virtual functions\n";
@@ -736,8 +743,8 @@ void DCHGraph::print(void) const {
                 arrow = "----unknown---->";
             }
 
-            llvm::outs() << indent(currIndent) << "[ " << node->getName() << " ] "
-                         << arrow << " [ " << edge->getDstNode()->getName() << " ]\n";
+            llvm::outs() << indent(currIndent) << "[ " << diTypeToStr(node->getType()) << " ] "
+                         << arrow << " [ " << diTypeToStr(edge->getDstNode()->getType()) << " ]\n";
         }
 
         if (node->getOutEdges().size() == 0) {
