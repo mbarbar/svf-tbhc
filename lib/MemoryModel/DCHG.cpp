@@ -345,14 +345,15 @@ void DCHGraph::buildCHG(bool extend) {
 
     // Build the void/char/everything else relation.
     // TODO: for cleanliness these should probably be some special edge, not FF/inheritance.
-    if (extended) {
+    if (extended && charType != nullptr) {
         // void <-- char
-        addEdge(charType, nullptr, DCHEdge::FIRST_FIELD);
+        addEdge(charType, nullptr, DCHEdge::INHERITANCE);
         // char <-- x, char <-- y, ...
         for (iterator nodeI = begin(); nodeI != end(); ++nodeI) {
             // Everything without a parent gets char as a parent.
-            if (nodeI->second->getOutEdges().size() == 0) {
-                addEdge(nodeI->second->getType(), charType, DCHEdge::FIRST_FIELD);
+            if (nodeI->second->getType() != nullptr
+                && nodeI->second->getOutEdges().size() == 0) {
+                addEdge(nodeI->second->getType(), charType, DCHEdge::INHERITANCE);
             }
         }
     }
