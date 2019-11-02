@@ -198,6 +198,16 @@ const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
 }
 
 NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+    // Check the desired clone doesn't already exist.
+    // TODO: this can be cached better.
+    std::set<NodeID> clones = objToClones[o];
+    for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
+        NodeID clone = *cloneI;
+        if (objToCloneSite[clone] == cloneSite->getId() && objToType[clone] == type) {
+            return clone;
+        }
+    }
+
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     const PAGNode *obj = pag->getPAGNode(o);
     NodeID clone;
