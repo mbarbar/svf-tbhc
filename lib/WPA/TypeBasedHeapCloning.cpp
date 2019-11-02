@@ -223,12 +223,16 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     }
 
     // We also need to clone the GEP objects underneath o.
+    /*
     std::set<NodeID> geps = objToGeps[o];
     for (std::set<NodeID>::iterator gepI = geps.begin(); gepI != geps.end(); ++gepI) {
         NodeID gep = *gepI;
+        // TODO: why is this happening?
+        if (o == gep) continue;
         NodeID gepClone = cloneObject(gep, cloneSite, objToType[gep]);
         objToGeps[clone].insert(gepClone);
     }
+    */
 
     // Clone's attributes.
     objToType[clone] = type;
@@ -260,17 +264,31 @@ bool TypeBasedHeapCloning::isClone(NodeID o) const {
 }
 
 std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
-    // TODO: might need to cache on ls for performance.
+    PAGNode *node = pag->getPAGNode(base);
+    assert(node);
+    ObjPN *objNode = SVFUtil::dyn_cast<ObjPN>(node);
+    assert(objNode);
+
     std::set<NodeID> geps;
+    if (objNode->getMemObj()->isFieldInsensitive()) {
+        geps.insert(pag->getFIObjNode(base));
+        return geps;
+    }
+
+    // TODO: might need to cache on ls for performance.
     for (std::set<NodeID>::iterator gepI = objToGeps[base].begin(); gepI != objToGeps[base].end(); ++gepI) {
         NodeID gep = *gepI;
         PAGNode *node = pag->getPAGNode(gep);
         assert(node && "gep node doesn't exist?");
-        GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node);
-        assert(gepNode && "gep node is not actually a gep node?");
+        assert(SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node));
 
-        // TODO: is it enough to just compare offsets?
-        if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
+        if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
+            // TODO: is it enough to just compare offsets?
+            if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
+                geps.insert(gep);
+            }
+        } else {
+            // Definitely a FIObj.
             geps.insert(gep);
         }
     }
