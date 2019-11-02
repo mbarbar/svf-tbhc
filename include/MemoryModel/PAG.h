@@ -495,7 +495,7 @@ public:
         else if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
             return (gepNode->getMemObj()->isNonPtrFieldObj(gepNode->getLocationSet()));
         }
-        else if (SVFUtil::isa<DummyObjPN>(node)) {
+        else if (SVFUtil::isa<DummyObjPN>(node) || SVFUtil::isa<CloneObjPN>(node)) {
             return false;
         }
         else {
