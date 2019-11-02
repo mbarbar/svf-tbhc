@@ -68,7 +68,10 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
     PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
-    const DIType *tildet = getTypeFromMetadata(pNode->getValue());
+    // TODO: this ternary op. is due to deficiency in tir's coverage.
+    const DIType *tildet = getTypeFromMetadata(stmt->getInst() != nullptr ?
+                                                     stmt->getInst()
+                                                   : pNode->getValue());
 
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
