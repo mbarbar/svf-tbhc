@@ -705,7 +705,7 @@ void DCHGraph::print(void) const {
         llvm::outs() << line;
 
         // TODO: need to properly name non-class nodes.
-        llvm::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << "\n";
+        llvm::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << " [" << node->getType() << "]" << "\n";
 
         currIndent += singleIndent;
         llvm::outs() << indent(currIndent) << "Virtual functions\n";
