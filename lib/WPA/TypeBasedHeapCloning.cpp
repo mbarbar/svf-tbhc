@@ -80,7 +80,10 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
         NodeID prop = 0;
         bool filter = false;
         // Split into the three DEREF cases.
-        if (tp == undefType) {
+        if (tp == tildet) {
+            // Early case for [DEREF-UP]
+            prop = o;
+        } else if (isVoid(tp) && !isVoid(tildet)) {
             // [DEREF-UNTYPED]
             prop = cloneObject(o, stmt, tildet);
         } else if (isBase(tildet, tp) || isVoid(tildet)) {
