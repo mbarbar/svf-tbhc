@@ -38,8 +38,10 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     // We should not have any type, not even undefined.
     // This all assumes that there is only one outgoing edge from each object.
     // Some of the constant objects have more, so we make that exception.
+    /* Can't have this because of back-propagation.
     assert((objToType.find(srcID) == objToType.end() || !SVFUtil::isa<DummyObjPN>(srcNode))
            && "TBHC: addr: already has a type?");
+     */
 
     const DIType *objType;
     if (isHeapMemObj(srcID)) {
