@@ -109,7 +109,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
 }
 
 void DCHGraph::handleDISubroutineType(const llvm::DISubroutineType *subroutineType) {
-    // TODO
+    getOrCreateNode(subroutineType);
 }
 
 void DCHGraph::handleTypedef(const llvm::DIType *typedefType) {
@@ -569,6 +569,7 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return false;
     }
 
+    // TODO: do we need special handling of subroutine types?
     if (SVFUtil::isa<DIDerivedType>(t1) && SVFUtil::isa<DIDerivedType>(t2)) {
         const DIDerivedType *dt1 = SVFUtil::dyn_cast<DIDerivedType>(t1);
         const DIDerivedType *dt2 = SVFUtil::dyn_cast<DIDerivedType>(t2);
