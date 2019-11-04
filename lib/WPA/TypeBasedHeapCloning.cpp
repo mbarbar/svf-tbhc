@@ -114,7 +114,6 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
         }
     }
 
-    // TODO: do we need to set changed if pNewPt is a subset of pPt?
     if (pPt != pNewPt) {
         pPt.clear();
         unionPts(pId, pNewPt);
