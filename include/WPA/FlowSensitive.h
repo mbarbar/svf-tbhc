@@ -214,6 +214,7 @@ protected:
     bool isStrongUpdate(const SVFGNode* node, NodeID& singleton);
 
     SVFG* svfg;
+    SVFGBuilder memSSA;
 private:
     ///Get points-to set for a node from data flow IN/OUT set at a statement.
     //@{
@@ -236,7 +237,6 @@ private:
     //@}
 
     static FlowSensitive* fspta;
-    SVFGBuilder memSSA;
 
     /// Statistics.
     //@{

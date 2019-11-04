@@ -8,6 +8,8 @@
  */
 
 #include "WPA/TypeBasedHeapCloning.h"
+#include "WPA/WPAStat.h"
+#include "WPA/Andersen.h"
 
 // TODO: maybe better to actually construct something.
 const DIType *TypeBasedHeapCloning::undefType = nullptr;
@@ -18,7 +20,11 @@ void TypeBasedHeapCloning::analyze(SVFModule svfModule) {
 }
 
 void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
-    FlowSensitive::initialize(svfModule);
+    PointerAnalysis::initialize(svfModule);
+    AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfModule);
+    svfg = memSSA.buildFullSVFG(ander);
+    setGraph(svfg);
+    stat = new FlowSensitiveStat(this);
 
     dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
     assert(dchg != nullptr && "TBHC: requires DCHGraph");
