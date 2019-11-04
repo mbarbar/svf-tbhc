@@ -57,13 +57,14 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     const DIType *objType;
     if (isHeapMemObj(srcID)) {
         objType = undefType;
-    } else if (SVFUtil::isa<DummyObjPN>(srcNode)) {
+    } else if (pag->isConstantObj(srcID)) {
         // Probably constants that have been merged into one.
         // We make it undefined even though it's technically a global
         // to keep in line with SVF's design.
         // This will end up splitting into one for each type of constant.
         objType = undefType;
     } else {
+        // Stack/global.
         objType = getTypeFromMetadata(srcNode->getValue());
     }
 
@@ -282,7 +283,8 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
 
     std::set<NodeID> geps;
     if (objNode->getMemObj()->isFieldInsensitive()) {
-        geps.insert(pag->getFIObjNode(base));
+        // If it's field-insensitive, well base represents everything.
+        geps.insert(base);
         return geps;
     }
 
