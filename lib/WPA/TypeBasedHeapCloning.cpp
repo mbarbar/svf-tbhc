@@ -130,7 +130,8 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
     PointsTo tmpDstPts;
     for (PointsTo::iterator qi = srcPts.begin(); qi != srcPts.end(); ++qi) {
         NodeID q = *qi;
-        if (isBlkObjOrConstantObj(q)) {
+        if (isBlkObjOrConstantObj(q)
+            || (isClone(q) && isBlkObjOrConstantObj(cloneToOriginalObj[q]))) {
             tmpDstPts.set(q);
         } else {
             if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
