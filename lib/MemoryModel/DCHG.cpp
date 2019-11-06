@@ -199,6 +199,8 @@ std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstFie
 
     std::set<const DCHNode *> children;
     const DCHNode *node = getOrCreateNode(type);
+    // Consider oneself a child, otherwise the recursion will just come up with nothing.
+    children.insert(node);
     for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->getInEdges().begin(); edgeI != node->getInEdges().end(); ++edgeI) {
         DCHEdge *edge = *edgeI;
         // Don't care about anything but inheritance and first-field edges.
