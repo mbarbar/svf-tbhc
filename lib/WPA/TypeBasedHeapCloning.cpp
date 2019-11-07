@@ -9,8 +9,9 @@
 
 // TODO: rename CloneObjNode -> ConstantCloneNode
 // TODO: Deref function in rules
-// TODO: cloneObject, use original always
+// DONE: cloneObject, use original always
 // TODO: reference set for perf., not return set
+// TODO: back-propagating geps incorrectly.
 
 #include "WPA/TypeBasedHeapCloning.h"
 #include "WPA/WPAStat.h"
