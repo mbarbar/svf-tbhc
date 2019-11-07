@@ -149,9 +149,6 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
                     tmpDstPts.set(fc);
 
                     assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
-                    const DIType *t = objToType[q];
-                    objToType[fc] = dchg->getFieldType(t, normalGep->getLocationSet().getOffset());
-                    objToAllocation[fc] = objToAllocation[q];
                 }
             } else {
                 assert(false && "new gep edge?");
@@ -311,6 +308,8 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
         // No gep node has even be created, so create one.
         NodeID gep = pag->getGepObjNode(base, ls);
         objToGeps[base].insert(gep);
+        objToType[gep] = dchg->getFieldType(objToType[base], ls.getOffset());
+        objToAllocation[gep] = objToAllocation[base];
         geps.insert(gep);
     }
 
