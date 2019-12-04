@@ -67,9 +67,6 @@ private:
     /// (through base's getGepObjNode) which will create one.
     std::set<NodeID> getGepObjClones(NodeID base, const LocationSet& ls);
 
-    /// Back-propagates o to its allocation site.
-    void backPropagateDumb(NodeID o);
-
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;
