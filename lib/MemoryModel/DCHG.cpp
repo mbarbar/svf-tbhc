@@ -48,8 +48,19 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
 
         break;
     case llvm::dwarf::DW_TAG_union_type:
-        // TODO: what can deref a union legally? (make them first fields).
         getOrCreateNode(compositeType);
+        // All fields are first fields.
+        if (extended) {
+            llvm::DINodeArray fields = compositeType->getElements();
+            for (llvm::DINode *field : fields) {
+                // fields[0] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
+                llvm::DIDerivedType *firstMember = SVFUtil::dyn_cast<llvm::DIDerivedType>(field);
+                // Is this check necessary? TODO
+                if (firstMember != NULL) {
+                    addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
+                }
+            }
+        }
         break;
     case llvm::dwarf::DW_TAG_enumeration_type:
         // TODO: maybe just drop these to the base type?
