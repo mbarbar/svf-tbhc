@@ -582,32 +582,62 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return false;
     }
 
-    // TODO: do we need special handling of subroutine types?
-    if (SVFUtil::isa<DIDerivedType>(t1) && SVFUtil::isa<DIDerivedType>(t2)) {
-        const DIDerivedType *dt1 = SVFUtil::dyn_cast<DIDerivedType>(t1);
-        const DIDerivedType *dt2 = SVFUtil::dyn_cast<DIDerivedType>(t2);
-        assert(dt1 != nullptr && dt2 != nullptr && "DCHGraph::teq: bad cast to DIDerivedType");
+    // Check if we need base type comparisons.
+    if (SVFUtil::isa<DIBasicType>(t1) && SVFUtil::isa<DIBasicType>(t2)) {
+        const DIBasicType *b1 = SVFUtil::dyn_cast<DIBasicType>(t1);
+        const DIBasicType *b2 = SVFUtil::dyn_cast<DIBasicType>(t2);
 
-        // This will make pointers and references equivalent.
-        return teq(dt1->getBaseType(), dt2->getBaseType());
-    } else if (t1->getTag() != t2->getTag()) {
-        // Different types of tags --> *certainly* different types (aside from the above cases).
-        return false;
-    } else if (SVFUtil::isa<DIBasicType>(t1)) {
-        // This makes unsigned and signed equivalent if they're the right size.
-        // TODO: incorrect handling of float and bool.
+        unsigned enc1 = b1->getEncoding();
+        unsigned enc2 = b2->getEncoding();
+        bool okayEnc = ((enc1 == dwarf::DW_ATE_signed || enc1 == dwarf::DW_ATE_unsigned || enc1 == dwarf::DW_ATE_boolean)
+                        && (enc2 == dwarf::DW_ATE_signed || enc2 == dwarf::DW_ATE_unsigned || enc2 == dwarf::DW_ATE_boolean))
+                       ||
+                       (enc1 == dwarf::DW_ATE_float && enc2 == dwarf::DW_ATE_float)
+                       ||
+                       ((enc1 == dwarf::DW_ATE_signed_char || enc1 == dwarf::DW_ATE_unsigned_char)
+                        &&
+                        (enc2 == dwarf::DW_ATE_signed_char || enc2 == dwarf::DW_ATE_unsigned_char));
+
+        if (!okayEnc) return false;
+        // Now we have split integers, floats, and chars, ignoring signedness.
+
         return t1->getSizeInBits() == t2->getSizeInBits()
                && t1->getAlignInBits() == t2->getAlignInBits();
-    } else if (t1->getTag() == dwarf::DW_TAG_array_type) {
-        const DICompositeType *ct1 = SVFUtil::dyn_cast<DICompositeType>(t1);
-        const DICompositeType *ct2 = SVFUtil::dyn_cast<DICompositeType>(t2);
-        assert(ct1 != nullptr && ct2 != nullptr && "DCHGraph::teq: bad cast to DICompositeType");
-
-        return teq(ct1->getBaseType(), ct2->getBaseType());
-    } else {
-
-        return t1 == t2;
     }
+
+    // Check, do we need to compare base types?
+    // This makes pointers, references, and arrays equivalent.
+    if ((SVFUtil::isa<DIDerivedType>(t1) || t1->getTag() == dwarf::DW_TAG_array_type)
+        && (SVFUtil::isa<DIDerivedType>(t2) || t2->getTag() == dwarf::DW_TAG_array_type)) {
+        const DIType *base1, *base2;
+
+        // Set base1.
+        if (const DIDerivedType *d1 = SVFUtil::dyn_cast<DIDerivedType>(t1)) {
+            base1 = d1->getBaseType();
+        } else {
+            const DICompositeType *c1 = SVFUtil::dyn_cast<DICompositeType>(t1);
+            assert(c1 && "teq: bad cast for array type");
+            base1 = c1->getBaseType();
+        }
+
+        // Set base2.
+        if (const DIDerivedType *d2 = SVFUtil::dyn_cast<DIDerivedType>(t2)) {
+            base2 = d2->getBaseType();
+        } else {
+            const DICompositeType *c2 = SVFUtil::dyn_cast<DICompositeType>(t2);
+            assert(c2 && "teq: bad cast for array type");
+            base2 = c2->getBaseType();
+        }
+
+        return teq(base1, base2);
+    }
+
+    // TODO: do we need special handling of subroutine types?
+
+    // They were not equal base types (discounting signedness), nor were they
+    // "equal" pointers/references/arrays, nor were they completely equal (and
+    // thus equal structs/classes).
+    return false;
 }
 
 std::string DCHGraph::diTypeToStr(const DIType *t) {
