@@ -200,8 +200,8 @@ public:
     typedef AliasSetType::iterator alias_iterator;
     typedef AliasSetType::const_iterator const_alias_iterator;
 
-    static const std::string tirMetadataName;
-    static const uint32_t tirModuleFlagValue;
+    static const std::string ctirMetadataName;
+    static const uint32_t ctirModuleFlagValue;
 
 private:
     static LLVMModuleSet *llvmModuleSet;
@@ -302,19 +302,19 @@ public:
         return llvmModuleSet->getGlobalRep(val);
     }
 
-    // Returns true if all LLVM modules are compiled with tir.
-    bool allTir(void) const {
-        // Iterate over all modules. If a single module does not have the correct tir module flag,
+    // Returns true if all LLVM modules are compiled with ctir.
+    bool allCTir(void) const {
+        // Iterate over all modules. If a single module does not have the correct ctir module flag,
         // short-circuit and return false.
         for (u32_t i = 0; i < getModuleNum(); ++i) {
-            llvm::Metadata *tirModuleFlag = getModule(i)->getModuleFlag(tirMetadataName);
-            if (tirModuleFlag == nullptr) {
+            llvm::Metadata *ctirModuleFlag = getModule(i)->getModuleFlag(ctirMetadataName);
+            if (ctirModuleFlag == nullptr) {
                 return false;
             }
 
-            llvm::ConstantAsMetadata *flagConstMetadata = SVFUtil::dyn_cast<llvm::ConstantAsMetadata>(tirModuleFlag);
+            llvm::ConstantAsMetadata *flagConstMetadata = SVFUtil::dyn_cast<llvm::ConstantAsMetadata>(ctirModuleFlag);
             ConstantInt *flagConstInt = SVFUtil::dyn_cast<ConstantInt>(flagConstMetadata->getValue());
-            if (flagConstInt->getZExtValue() != tirModuleFlagValue) {
+            if (flagConstInt->getZExtValue() != ctirModuleFlagValue) {
                 return false;
             }
         }

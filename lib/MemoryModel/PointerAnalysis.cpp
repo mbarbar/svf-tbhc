@@ -147,7 +147,7 @@ void PointerAnalysis::initialize(SVFModule svfModule) {
             PAGBuilder builder;
             pag = builder.build(svfModule);
 
-            if (svfModule.allTir()) {
+            if (svfModule.allCTir()) {
                 DCHGraph *dchg = new DCHGraph(svfModule);
                 // TODO: we might want to have an option for extending.
                 dchg->buildCHG(true);

@@ -167,7 +167,8 @@ private:
 /// Dwarf based CHG.
 class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
-    static const std::string tirInternalUntypedName;
+    // TODO: not used anymore in ctir.
+    static const std::string ctirInternalUntypedName;
 
     /// Returns the DIType beneath the qualifiers.
     static const DIType *stripQualifiers(const DIType *);
@@ -319,7 +320,7 @@ private:
 
     /// Retrieves the metadata associated with a *virtual* callsite.
     const llvm::DIType *getCSStaticType(CallSite cs) const {
-        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::tirMetadataName);
+        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
         assert(md != nullptr && "Missing type metadata at virtual callsite");
         llvm::DIType *diType = llvm::dyn_cast<llvm::DIType>(md);
         assert(diType != nullptr && "Incorrect metadata type at virtual callsite");

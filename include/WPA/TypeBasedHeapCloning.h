@@ -42,7 +42,7 @@ public:
     virtual bool processDeref(const StmtSVFGNode *stmt, const NodeID ptrId);
 
 private:
-    /// Returns the tir type attached to the value, nullptr if non-existant.
+    /// Returns the ctir type attached to the value, nullptr if non-existant.
     const DIType *getTypeFromMetadata(const Value *) const;
 
     /// Returns the (one-level) pointee of ptrType.

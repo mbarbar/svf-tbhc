@@ -16,7 +16,8 @@
 
 static llvm::cl::opt<bool> printDCHG("print-dchg", llvm::cl::init(false), llvm::cl::desc("print the DCHG if debug information is available"));
 
-const std::string DCHGraph::tirInternalUntypedName = "__tir_internal_untyped";
+// TODO: not used for ctir.
+const std::string DCHGraph::ctirInternalUntypedName = "__ctir_internal_untyped";
 
 void DCHGraph::handleDIBasicType(const llvm::DIBasicType *basicType) {
     getOrCreateNode(basicType);
@@ -153,9 +154,9 @@ void DCHGraph::buildVTables(const Module &module) {
         // Though this will return more than GlobalVariables, we only care about GlobalVariables (for the vtbls).
         const GlobalVariable *gv = SVFUtil::dyn_cast<const GlobalVariable>(&(*gvI));
         if (gv == nullptr) continue;
-        if (gv->hasMetadata("tirvt") && gv->getNumOperands() > 0) {
-            llvm::DIType *type = llvm::dyn_cast<llvm::DIType>(gv->getMetadata("tirvt"));
-            assert(type && "Bad metadata for tirvt");
+        if (gv->hasMetadata("ctirvt") && gv->getNumOperands() > 0) {
+            llvm::DIType *type = llvm::dyn_cast<llvm::DIType>(gv->getMetadata("ctirvt"));
+            assert(type && "Bad metadata for ctirvt");
             DCHNode *node = getOrCreateNode(type);
             node->setVTable(gv);
             vtblToTypeMap[gv] = getCanonicalType(type);
@@ -569,9 +570,9 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return true;
     }
 
-    if ((t1 == nullptr && t2 && t2->getName() == tirInternalUntypedName)
-        || (t2 == nullptr && t1 && t1->getName() == tirInternalUntypedName)) {
-        // We're treating the internal untyped from Tir as void (null).
+    if ((t1 == nullptr && t2 && t2->getName() == ctirInternalUntypedName)
+        || (t2 == nullptr && t1 && t1->getName() == ctirInternalUntypedName)) {
+        // We're treating the internal untyped from ctir as void (null).
         return true;
     }
 

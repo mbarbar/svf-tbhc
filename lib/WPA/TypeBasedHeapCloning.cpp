@@ -81,7 +81,7 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
     PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
-    // TODO: this ternary op. is due to deficiency in tir's coverage.
+    // TODO: this ternary op. is due to deficiency in ctir's coverage.
     const DIType *tildet = getTypeFromMetadata(stmt->getInst() != nullptr ?
                                                      stmt->getInst()
                                                    : pNode->getValue());
@@ -174,9 +174,9 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
 
     const MDNode *mdNode = nullptr;
     if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
-        mdNode = inst->getMetadata(SVFModule::tirMetadataName);
+        mdNode = inst->getMetadata(SVFModule::ctirMetadataName);
     } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
-        mdNode = go->getMetadata(SVFModule::tirMetadataName);
+        mdNode = go->getMetadata(SVFModule::ctirMetadataName);
     }
 
     if (mdNode == nullptr) {
@@ -189,7 +189,7 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
     const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
 
     if (type == nullptr) {
-        llvm::outs() << "TBHC: no tir metadata found\n";
+        llvm::outs() << "TBHC: no ctir metadata found\n";
     }
 
     return dchg->getCanonicalType(type);
