@@ -180,16 +180,13 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
     }
 
     if (mdNode == nullptr) {
-        llvm::outs() << "TBHC: unannotated value\n";
-        llvm::outs().flush();
-        v->dump();
         return nullptr;
     }
 
     const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
-
     if (type == nullptr) {
-        llvm::outs() << "TBHC: no ctir metadata found\n";
+        llvm::errs() << "TBHC: bad ctir metadata type\n";
+        return nullptr;
     }
 
     return dchg->getCanonicalType(type);

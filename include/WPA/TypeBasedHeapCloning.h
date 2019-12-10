@@ -43,6 +43,7 @@ public:
 
 private:
     /// Returns the ctir type attached to the value, nullptr if non-existant.
+    /// Not static because it needs to DCHG to return the canonical type.
     const DIType *getTypeFromMetadata(const Value *) const;
 
     /// Returns the (one-level) pointee of ptrType.
