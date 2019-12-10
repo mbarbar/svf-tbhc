@@ -46,13 +46,6 @@ private:
     /// Not static because it needs to DCHG to return the canonical type.
     const DIType *getTypeFromMetadata(const Value *) const;
 
-    /// Returns the (one-level) pointee of ptrType.
-    const DIType *tilde(const DIType *ptrType) const;
-
-    /// Returns true if type represents some form of void.
-    /// Currently, void itself (null), __vtbl_ptr_type, __internal_untyped.
-    bool isVoid(const DIType *type) const;
-
     /// Returns a clone of o created at cloneSite with type type.
     NodeID cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type);
 

@@ -82,9 +82,8 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
     // TODO: this ternary op. is due to deficiency in ctir's coverage.
-    const DIType *tildet = getTypeFromMetadata(stmt->getInst() != nullptr ?
-                                                     stmt->getInst()
-                                                   : pNode->getValue());
+    const DIType *tildet = getTypeFromMetadata(stmt->getInst());
+    if (tildet == undefType) return false;
 
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
@@ -93,23 +92,14 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
         NodeID prop = 0;
         bool filter = false;
         // Split into the three DEREF cases.
-        if (tp == tildet) {
-            // Early case for [DEREF-UP]
-            prop = o;
-        } else if (isVoid(tp) && !isVoid(tildet)) {
-            // [DEREF-UNTYPED]
-            prop = cloneObject(o, stmt, tildet);
-        } else if (isBase(tildet, tp) || isVoid(tildet)) {
-            // [DEREF-UP]
-            prop = o;
-        } else if (isBase(tp, tildet) && tp != tildet) {
-            // [DEREF-DOWN]
+        if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
+            // First case.
             prop = cloneObject(o, stmt, tildet);
         } else {
-            // Implicit FILTER.
-            filter = true;
+            prop = 0;
         }
 
+        // TODO: filter unimplemented.
         if (!filter) {
             pNewPt.set(prop);
         }
@@ -192,18 +182,6 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
     return dchg->getCanonicalType(type);
 }
 
-const DIType *TypeBasedHeapCloning::tilde(const DIType *generalType) const {
-    const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(generalType);
-    assert(ptrType
-           && (ptrType->getTag() == dwarf::DW_TAG_pointer_type
-               || ptrType->getTag() == dwarf::DW_TAG_reference_type)
-           && "TBHC: trying to tilde a non-pointer");
-    // TODO: we'll have to see if we need to consider rvalue_reference.
-
-    DIType *pointeeType = ptrType->getBaseType();
-    return pointeeType;
-}
-
 NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
     if (isClone(o)) o = cloneToOriginalObj[o];
     // Check the desired clone doesn't already exist.
@@ -253,11 +231,6 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     cloneToOriginalObj[clone] = o;
 
     return clone;
-}
-
-bool TypeBasedHeapCloning::isVoid(const DIType *type) const {
-    // TODO: not sufficient.
-    return type == nullptr;
 }
 
 bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
