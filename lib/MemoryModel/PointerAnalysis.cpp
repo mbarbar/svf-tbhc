@@ -538,8 +538,8 @@ void BVDataPTAImpl::dumpAllPts() {
         pagNodes.insert(it->first);
     }
 
+    outs() << "----------------------------------------------\n";
     for(NodeSet::iterator it = pagNodes.begin(), eit = pagNodes.end(); it!=eit; it++) {
-        outs() << "----------------------------------------------\n";
         dumpPts(*it, this->getPts(*it));
         outs() << "----------------------------------------------\n";
     }
