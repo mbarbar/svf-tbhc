@@ -532,9 +532,15 @@ void PointerAnalysis::dumpPts(NodeID ptr, const PointsTo& pts) {
  * Dump all points-to including top-level (ValPN) and address-taken (ObjPN) variables
  */
 void BVDataPTAImpl::dumpAllPts() {
-    for(PAG::iterator it = pag->begin(), eit = pag->end(); it!=eit; it++) {
+    // std::set keeps its elements sorted.
+    NodeSet pagNodes;
+    for (PAG::iterator it = pag->begin(), eit = pag->end(); it!=eit; it++) {
+        pagNodes.insert(it->first);
+    }
+
+    for(NodeSet::iterator it = pagNodes.begin(), eit = pagNodes.end(); it!=eit; it++) {
         outs() << "----------------------------------------------\n";
-        dumpPts(it->first, this->getPts(it->first));
+        dumpPts(*it, this->getPts(*it));
         outs() << "----------------------------------------------\n";
     }
 }
