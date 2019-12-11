@@ -81,7 +81,6 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
     PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
-    // TODO: this ternary op. is due to deficiency in ctir's coverage.
     const DIType *tildet = getTypeFromMetadata(stmt->getInst());
     if (tildet == undefType) return false;
 
@@ -91,9 +90,7 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
 
         NodeID prop = 0;
         bool filter = false;
-        // Split into the three DEREF cases.
         if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
-            // First case.
             prop = cloneObject(o, stmt, tildet);
         } else {
             prop = 0;
