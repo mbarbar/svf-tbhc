@@ -238,7 +238,6 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
 
     std::set<NodeID> geps;
     if (baseNode->getMemObj()->isFieldInsensitive()) {
-    llvm::outs() << "insensitive\n";
         // If it's field-insensitive, well base represents everything.
         geps.insert(base);
         return geps;
