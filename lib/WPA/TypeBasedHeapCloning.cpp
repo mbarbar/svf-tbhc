@@ -95,7 +95,7 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
         if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
             prop = cloneObject(o, stmt, tildet);
         } else {
-            prop = 0;
+            prop = o;
         }
 
         // TODO: filter unimplemented.
@@ -115,29 +115,31 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
 
 bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
     // Copy of that in FlowSensitive.cpp + some changes.
-    const PointsTo& srcPts = getPts(edge->getPAGSrcNodeID());
+    NodeID q = edge->getPAGSrcNodeID();
+    bool qChanged = processDeref(edge, q);
+    const PointsTo& qPts = getPts(q);
 
     PointsTo tmpDstPts;
-    for (PointsTo::iterator qi = srcPts.begin(); qi != srcPts.end(); ++qi) {
-        NodeID q = *qi;
-        if (isBlkObjOrConstantObj(q)
-            || (isClone(q) && isBlkObjOrConstantObj(cloneToOriginalObj[q]))) {
-            tmpDstPts.set(q);
+    for (PointsTo::iterator oqi = qPts.begin(); oqi != qPts.end(); ++oqi) {
+        NodeID oq = *oqi;
+        if (isBlkObjOrConstantObj(oq)
+            || (isClone(oq) && isBlkObjOrConstantObj(cloneToOriginalObj[oq]))) {
+            tmpDstPts.set(oq);
         } else {
+            // Even though, in LLVM IR, oq was not loaded/stored, assumptions are
+            // being made about its type based on q.
             if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
-                setObjFieldInsensitive(q);
-                NodeID fiObj = getFIObjNode(q);
+                setObjFieldInsensitive(oq);
+                NodeID fiObj = getFIObjNode(oq);
                 tmpDstPts.set(fiObj);
 
                 // TODO: check type!
-                objToType[fiObj] = objToType.at(q);
+                objToType[fiObj] = objToType.at(oq);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
-                std::set<NodeID> fieldClones = getGepObjClones(q, normalGep->getLocationSet());
+                std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
                     NodeID fc = *fcI;
                     tmpDstPts.set(fc);
-
-                    assert(objToType.find(q) != objToType.end() && "TBHC: GEP base is untyped?");
                 }
             } else {
                 assert(false && "new gep edge?");
@@ -145,7 +147,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
         }
     }
 
-    return unionPts(edge->getPAGDstNodeID(), tmpDstPts);
+    return qChanged || unionPts(edge->getPAGDstNodeID(), tmpDstPts);
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
@@ -207,18 +209,6 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
         clone = pag->addCloneObjNode();
     }
 
-    // We also need to clone the GEP objects underneath o.
-    /*
-    std::set<NodeID> geps = objToGeps[o];
-    for (std::set<NodeID>::iterator gepI = geps.begin(); gepI != geps.end(); ++gepI) {
-        NodeID gep = *gepI;
-        // TODO: why is this happening?
-        if (o == gep) continue;
-        NodeID gepClone = cloneObject(gep, cloneSite, objToType[gep]);
-        objToGeps[clone].insert(gepClone);
-    }
-    */
-
     // Clone's attributes.
     objToType[clone] = type;
     objToCloneSite[clone] = cloneSite->getId();
@@ -243,11 +233,12 @@ bool TypeBasedHeapCloning::isClone(NodeID o) const {
 std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
     PAGNode *node = pag->getPAGNode(base);
     assert(node);
-    ObjPN *objNode = SVFUtil::dyn_cast<ObjPN>(node);
-    assert(objNode);
+    ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
+    assert(baseNode);
 
     std::set<NodeID> geps;
-    if (objNode->getMemObj()->isFieldInsensitive()) {
+    if (baseNode->getMemObj()->isFieldInsensitive()) {
+    llvm::outs() << "insensitive\n";
         // If it's field-insensitive, well base represents everything.
         geps.insert(base);
         return geps;
@@ -273,11 +264,17 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
 
     if (geps.empty()) {
         // No gep node has even be created, so create one.
-        NodeID gep = pag->getGepObjNode(base, ls);
-        objToGeps[base].insert(gep);
-        objToType[gep] = dchg->getFieldType(objToType[base], ls.getOffset());
-        objToAllocation[gep] = objToAllocation[base];
-        geps.insert(gep);
+        NodeID newGep;
+        if (isClone(base)) {
+            newGep = pag->addCloneGepObjNode(baseNode->getMemObj(), ls);
+        } else {
+            newGep = pag->getGepObjNode(base, ls);
+        }
+
+        objToGeps[base].insert(newGep);
+        objToType[newGep] = dchg->getFieldType(objToType[base], ls.getOffset());
+        objToAllocation[newGep] = objToAllocation[base];
+        geps.insert(newGep);
     }
 
     return geps;
