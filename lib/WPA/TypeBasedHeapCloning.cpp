@@ -139,6 +139,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
                 std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
                     NodeID fc = *fcI;
+                    gepToSVFGRetrievers[fc].insert(edge->getId());
                     tmpDstPts.set(fc);
                 }
             } else {
@@ -202,6 +203,10 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
         clone = pag->addCloneGepObjNode(gepObj->getMemObj(), gepObj->getLocationSet());
         // The base needs to know about this guy.
         objToGeps[gepObj->getMemObj()->getSymId()].insert(clone);
+        // Since getGepObjClones is updated, some GEP nodes need to be redone.
+        for (std::set<NodeID>::iterator svfgNodeI = gepToSVFGRetrievers[o].begin(); svfgNodeI != gepToSVFGRetrievers[o].end(); ++svfgNodeI) {
+            pushIntoWorklist(*svfgNodeI);
+        }
     } else if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
         clone = pag->addCloneFIObjNode(fiObj->getMemObj());
     } else {

@@ -74,6 +74,8 @@ private:
     std::map<NodeID, NodeID> cloneToOriginalObj;
     /// Maps objects to the GEP nodes beneath them.
     std::map<NodeID, std::set<NodeID>> objToGeps;
+    /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
+    std::map<NodeID, std::set<NodeID>> gepToSVFGRetrievers;
 
     DCHGraph *dchg = nullptr;
 };
