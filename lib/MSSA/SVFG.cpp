@@ -623,7 +623,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*> {
                 stmtNode->getInst()->print(rso);
                 rawstr << getSourceLoc(stmtNode->getInst()) << "\n";
                 rawstr << "[" << stmtNode->getInst()->getFunction()->getName().substr(0, 30) << "]\n";
-                rawstr << str.substr(0, 30);
+                rawstr << str.substr(0, 30) << "\n";
+                if (str.size() > 30) {
+                    rawstr << str.substr(30, 60) << "\n";
+                }
             }
             else if(stmtNode->getPAGDstNode()->hasValue()) {
                 rawstr << getSourceLoc(stmtNode->getPAGDstNode()->getValue());
