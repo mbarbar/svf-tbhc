@@ -13,6 +13,8 @@
 // TODO: reference set for perf., not return set
 // TODO: back-propagating geps incorrectly.
 
+#include <stack>
+
 #include "WPA/TypeBasedHeapCloning.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
@@ -34,6 +36,8 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
 
     dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
     assert(dchg != nullptr && "TBHC: requires DCHGraph");
+
+    buildBackPropagationMap();
 }
 
 void TypeBasedHeapCloning::finalize(void) {
@@ -282,5 +286,54 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
     }
 
     return geps;
+}
+
+/// Places all paths from initNode to wherever it may need to back-propagate in paths.
+static void getBackPropagationPaths(SVFGNode *node, std::vector<std::vector<NodeID>> &paths,
+                                    std::vector<NodeID> currPath=std::vector<NodeID>()) {
+    currPath.push_back(node->getId());
+
+    std::set<SVFGNode *> nextNodes;
+    for (auto inEdgeI = node->getInEdges().begin(); inEdgeI != node->getInEdges().end(); ++inEdgeI) {
+        // Don't cross returns. Don't go through GEPs.
+        if (!(SVFUtil::isa<RetDirSVFGEdge>(*inEdgeI) || SVFUtil::isa<RetIndSVFGEdge>(*inEdgeI))
+            && !(SVFUtil::isa<GepSVFGNode>((*inEdgeI)->getSrcNode()))) {
+            nextNodes.insert((*inEdgeI)->getSrcNode());
+        }
+    }
+
+    if (nextNodes.empty()) {
+        paths.push_back(currPath);
+    } else {
+        for (std::set<SVFGNode *>::iterator nodeI = nextNodes.begin(); nodeI != nextNodes.end(); ++nodeI) {
+            getBackPropagationPaths(*nodeI, paths, currPath);
+        }
+    }
+}
+
+void TypeBasedHeapCloning::buildBackPropagationMap(void) {
+    std::vector<std::vector<NodeID>> paths;
+    for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
+        SVFGNode *svfgNode = nI->second;
+        if (StmtSVFGNode *stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(svfgNode)) {
+            if (SVFUtil::isa<LoadSVFGNode>(stmtNode) || SVFUtil::isa<StoreSVFGNode>(stmtNode)
+                || SVFUtil::isa<GepSVFGNode>(stmtNode)) {
+                if (getTypeFromMetadata(stmtNode->getInst() ? stmtNode->getInst()
+                                                            : stmtNode->getPAGEdge()->getValue())) {
+                    // Only nodes which have ctir metadata can possibly be used as
+                    // initialisation points.
+                    getBackPropagationPaths(stmtNode, paths);
+                }
+            }
+        }
+    }
+
+    for (auto vv = paths.begin(); vv != paths.end(); ++vv) {
+        llvm::outs() << "[ ";
+        for (auto vi = vv->begin(); vi != vv->end(); ++vi) {
+            llvm::outs() << *vi << ", ";
+        }
+        llvm::outs() << " ]\n";
+    }
 }
 

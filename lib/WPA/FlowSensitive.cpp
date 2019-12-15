@@ -290,6 +290,10 @@ bool FlowSensitive::propAlongIndirectEdge(const IndirectSVFGEdge* edge)
     const PointsTo& pts = edge->getPointsTo();
     for (PointsTo::iterator ptdIt = pts.begin(), ptdEit = pts.end(); ptdIt != ptdEit; ++ptdIt) {
         NodeID ptd = *ptdIt;
+        llvm::errs() << "  src: " << src->getId()
+                     << "dst: " << dst->getId()
+                     << "ptd: " << ptd
+                     << "\n";;
 
         if (propVarPtsFromSrcToDst(ptd, src, dst))
             changed = true;

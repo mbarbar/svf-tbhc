@@ -56,6 +56,13 @@ private:
     /// Returns true if o is a clone.
     bool isClone(NodeID o) const;
 
+    /// Builds the 1-to-1 map of SVFG nodes to where they need to back-propagate to.
+    /// Algorithm in English:
+    ///   Iterate backwards, gathering nodes along the way. Never take a return edge.
+    ///   Don't follow through GEP nodes (we handle field objects differently).
+    ///   No edges to take? This is a back-propagation node for all the gathered nodes.
+    void buildBackPropagationMap(void);
+
     /// Returns the GEP object node(s) of base for ls. This may include clones.
     /// If there are no GEP objects, then getGepObjNode is called on the PAG
     /// (through base's getGepObjNode) which will create one.
@@ -76,6 +83,8 @@ private:
     std::map<NodeID, std::set<NodeID>> objToGeps;
     /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
     std::map<NodeID, std::set<NodeID>> gepToSVFGRetrievers;
+    /// Maps SVFG nodes to where back-propagation needs to go to.
+    std::map<NodeID, std::set<NodeID>> svfgNodeToBPNode;
 
     DCHGraph *dchg = nullptr;
 };
