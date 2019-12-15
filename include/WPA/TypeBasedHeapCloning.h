@@ -23,6 +23,10 @@ class TypeBasedHeapCloning : public FlowSensitive {
 public:
     static const DIType *undefType;
 
+    /// Constructor
+    TypeBasedHeapCloning(PTATY type = TBHC_WPA) : FlowSensitive(type) {
+    }
+
     /// Flow sensitive analysis with TBHC.
     virtual void analyze(SVFModule svfModule) override;
     /// Initialize analysis.
