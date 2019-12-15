@@ -42,6 +42,27 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
 
 void TypeBasedHeapCloning::finalize(void) {
     FlowSensitive::finalize();
+
+    // Print clones with their types.
+    llvm::outs() << "=== Original objects to clones ===\n";
+    for (std::map<NodeID, std::set<NodeID>>::iterator ocI = objToClones.begin(); ocI != objToClones.end(); ++ocI) {
+        NodeID originalObjId = ocI->first;
+        std::set<NodeID> clones = ocI->second;
+        llvm::outs() << "  " << originalObjId << " : "
+                     << "(" << clones.size() << ")"
+                     << "[ ";
+        for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
+            llvm::outs() << *cloneI
+                         << "{" << dchg->diTypeToStr(objToType[*cloneI]) << "}"
+                         << (std::next(cloneI) == clones.end() ? "" : ", ");
+        }
+
+        llvm::outs() << " ]\n";
+    }
+
+    llvm::outs() << "==================================\n";
+
+    getDFPTDataTy()->dumpPTData();
 }
 
 bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
