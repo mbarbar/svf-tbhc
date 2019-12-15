@@ -215,7 +215,6 @@ protected:
 
     SVFG* svfg;
     SVFGBuilder memSSA;
-private:
     ///Get points-to set for a node from data flow IN/OUT set at a statement.
     //@{
     inline const PointsTo& getDFInPtsSet(const SVFGNode* stmt, const NodeID node) {
@@ -226,6 +225,7 @@ private:
     }
     //@}
 
+private:
     ///Get IN/OUT data flow map;
     //@{
     inline const DFInOutMap& getDFInputMap() const {
