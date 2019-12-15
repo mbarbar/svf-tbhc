@@ -65,6 +65,47 @@ void TypeBasedHeapCloning::finalize(void) {
     getDFPTDataTy()->dumpPTData();
 }
 
+bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
+    SVFGNode* src = edge->getSrcNode();
+    SVFGNode* dst = edge->getDstNode();
+
+    bool changed = false;
+
+    // Get points-to targets may be used by next SVFG node.
+    // Propagate points-to set for node used in dst.
+    const PointsTo& pts = edge->getPointsTo();
+    std::set<NodeID> edgePtsAndClones;
+    for (PointsTo::iterator oI = pts.begin(), oEI = pts.end(); oI != oEI; ++oI) {
+        edgePtsAndClones.insert(*oI);
+        edgePtsAndClones.insert(objToClones[*oI].begin(), objToClones[*oI].end());
+    }
+
+    for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
+        NodeID o = *oI;
+        llvm::errs() << "  src: " << src->getId()
+                     << " dst: " << dst->getId()
+                     << " o: " << o
+                     << "\n";;
+
+        if (propVarPtsFromSrcToDst(o, src, dst))
+            changed = true;
+
+        if (isFIObjNode(o)) {
+            /// If this is a field-insensitive obj, propagate all field node's pts
+            const NodeBS& allFields = getAllFieldsObjNode(o);
+            for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
+                    fieldIt != fieldEit; ++fieldIt) {
+                if (propVarPtsFromSrcToDst(*fieldIt, src, dst))
+                    changed = true;
+            }
+        }
+    }
+
+    llvm::outs() << "changed = " << changed << "\n";
+
+    return changed;
+}
+
 bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     NodeID srcID = addr->getPAGSrcNodeID();
     NodeID dstID = addr->getPAGDstNodeID();

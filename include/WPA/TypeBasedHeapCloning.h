@@ -39,6 +39,8 @@ public:
         return "TBHC";
     }
 
+    virtual bool propAlongIndirectEdge(const IndirectSVFGEdge* edge) override;
+
     virtual bool processAddr(const AddrSVFGNode* addr) override;
     virtual bool processGep(const GepSVFGNode* edge) override;
     virtual bool processLoad(const LoadSVFGNode* load) override;
