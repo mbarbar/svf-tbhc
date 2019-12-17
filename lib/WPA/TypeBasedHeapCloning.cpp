@@ -253,13 +253,9 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
 NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
     if (isClone(o)) o = cloneToOriginalObj[o];
     // Check the desired clone doesn't already exist.
-    // TODO: this can be cached better.
-    std::set<NodeID> clones = objToClones[o];
-    for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
-        NodeID clone = *cloneI;
-        if (objToCloneSite[clone] == cloneSite->getId() && objToType[clone] == type) {
-            return clone;
-        }
+    if (cloneSiteToClone.find(cloneSite->getId()) != cloneSiteToClone.end()) {
+        // It must be the correct type because everything made here is of one type.
+        return cloneSiteToClone[cloneSite->getId()];
     }
 
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
@@ -283,6 +279,7 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     // Clone's attributes.
     objToType[clone] = type;
     objToCloneSite[clone] = cloneSite->getId();
+    cloneSiteToClone[cloneSite->getId()] = clone;
     // Same allocation site as the original object.
     objToAllocation[clone] = objToAllocation[o];
 
