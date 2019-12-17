@@ -53,7 +53,11 @@ void TypeBasedHeapCloning::finalize(void) {
                      << "[ ";
         for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
             llvm::outs() << *cloneI
-                         << "{" << dchg->diTypeToStr(objToType[*cloneI]) << "}"
+                         << "{"
+                         << dchg->diTypeToStr(objToType[*cloneI])
+                         << ":"
+                         << objToCloneSite[*cloneI]
+                         << "}"
                          << (std::next(cloneI) == clones.end() ? "" : ", ");
         }
 
