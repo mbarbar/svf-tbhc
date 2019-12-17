@@ -218,7 +218,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
         }
     }
 
-    return qChanged || unionPts(edge->getPAGDstNodeID(), tmpDstPts);
+    return unionPts(edge->getPAGDstNodeID(), tmpDstPts) || qChanged;
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
