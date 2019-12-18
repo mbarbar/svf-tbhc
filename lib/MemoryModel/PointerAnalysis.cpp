@@ -266,10 +266,13 @@ void PointerAnalysis::finalize() {
         resetObjFieldSensitive();
 
     // TODO! Temporary for evaluating TBHC.
+    FunctionSet uniqueFunctions;
+
     std::set<CallSite> callsites;
     const CallEdgeMap& callEdges = getIndCallMap();
     for (CallEdgeMap::const_iterator ce = callEdges.begin(); ce != callEdges.end(); ++ce) {
         callsites.insert(ce->first);
+        uniqueFunctions.insert(ce->second.begin(), ce->second.end());
     }
 
     const CallSiteToFunPtrMap& indCS = getIndirectCallsites();
@@ -277,7 +280,10 @@ void PointerAnalysis::finalize() {
         callsites.insert(cs->first);
     }
 
-    llvm::outs() << "eval-indirect-calls ";
+    llvm::outs() << "eval-indirect-calls"
+                 << " "
+                 << uniqueFunctions.size()
+                 << " ";
     for (std::set<CallSite>::iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
         unsigned int n;
         if (!hasIndCSCallees(*csI)) {
