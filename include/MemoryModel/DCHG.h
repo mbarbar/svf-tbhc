@@ -186,6 +186,12 @@ public:
     /// Returns a human-readable version of the DIType.
     static std::string diTypeToStr(const DIType *);
 
+    /// TODO: temporary till isVirtualCall is worked out.
+    static bool isVirtualCallSite(CallSite cs) {
+        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
+        return md != nullptr;
+    }
+
 public:
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {

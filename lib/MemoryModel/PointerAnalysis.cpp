@@ -641,7 +641,8 @@ void PointerAnalysis::printIndCSTargets()
 void BVDataPTAImpl::onTheFlyCallGraphSolve(const CallSiteToFunPtrMap& callsites, CallEdgeMap& newEdges) {
     for(CallSiteToFunPtrMap::const_iterator iter = callsites.begin(), eiter = callsites.end(); iter!=eiter; ++iter) {
         CallSite cs = iter->first;
-        if (isVirtualCallSite(cs)) {
+        if ((SVFUtil::isa<DCHGraph>(chgraph) && DCHGraph::isVirtualCallSite(cs))
+            || (!SVFUtil::isa<DCHGraph>(chgraph) && isVirtualCallSite(cs))) {
             const Value *vtbl = getVCallVtblPtr(cs);
             assert(pag->hasValueNode(vtbl));
             NodeID vtblId = pag->getValueNode(vtbl);
