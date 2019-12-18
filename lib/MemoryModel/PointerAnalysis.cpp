@@ -264,6 +264,32 @@ void PointerAnalysis::finalize() {
 
     if (!UsePreCompFieldSensitive)
         resetObjFieldSensitive();
+
+    // TODO! Temporary for evaluating TBHC.
+    std::set<CallSite> callsites;
+    const CallEdgeMap& callEdges = getIndCallMap();
+    for (CallEdgeMap::const_iterator ce = callEdges.begin(); ce != callEdges.end(); ++ce) {
+        callsites.insert(ce->first);
+    }
+
+    const CallSiteToFunPtrMap& indCS = getIndirectCallsites();
+    for (CallSiteToFunPtrMap::const_iterator cs = indCS.begin(); cs != indCS.end(); ++cs) {
+        callsites.insert(cs->first);
+    }
+
+    llvm::outs() << "eval-indirect-calls ";
+    for (std::set<CallSite>::iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
+        unsigned int n;
+        if (!hasIndCSCallees(*csI)) {
+            n = 0;
+        } else {
+            n = callEdges.at(*csI).size();
+            assert(n != 0);
+        }
+
+        llvm::outs() << n << " ";
+    }
+    llvm::outs() << "\n";
 }
 
 /*!
