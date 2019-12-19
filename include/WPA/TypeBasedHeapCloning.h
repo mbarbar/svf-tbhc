@@ -93,6 +93,8 @@ private:
     std::map<NodeID, std::set<NodeID>> gepToSVFGRetrievers;
     /// Maps SVFG nodes to where back-propagation needs to go to.
     std::map<NodeID, std::set<NodeID>> svfgNodeToBPNode;
+    /// Maps Addr SVFG nodes to the objects which have been back-propagated to it.
+    std::map<NodeID, std::set<NodeID>> addrNodeToBPSet;
 
     DCHGraph *dchg = nullptr;
 };

@@ -142,6 +142,12 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     objToType[srcID] = objType;
     objToAllocation[srcID] = addr->getId();
 
+    std::set<NodeID> bpClones = addrNodeToBPSet[addr->getId()];
+    for (std::set<NodeID>::iterator oI = bpClones.begin(); oI != bpClones.end(); ++oI) {
+        changed = addPts(addr->getPAGDstNodeID(), *oI) || changed;
+        // No need for type stuff these are all clones; they are all typed.
+    }
+
     return changed;
 }
 
