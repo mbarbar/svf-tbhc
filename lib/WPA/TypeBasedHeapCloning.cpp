@@ -86,10 +86,12 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
 
     for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
         NodeID o = *oI;
+        /* TODO
         llvm::errs() << "  src: " << src->getId()
                      << " dst: " << dst->getId()
                      << " o: " << o
                      << "\n";;
+        */
 
         if (propVarPtsFromSrcToDst(o, src, dst))
             changed = true;
