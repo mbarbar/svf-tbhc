@@ -597,6 +597,14 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*> {
         else if(SVFUtil::isa<NullPtrSVFGNode>(node)) {
             rawstr << "NullPtr";
         }
+        else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node)) {
+            rawstr << "BinOp\n";
+            rawstr << getSourceLoc(&bop->getBB()->back());
+        }
+        else if(CmpVFGNode* cmp = SVFUtil::dyn_cast<CmpVFGNode>(node)) {
+            rawstr << "Cmp\n";
+            rawstr << getSourceLoc(&cmp->getBB()->back());
+        }
         else
             assert(false && "what else kinds of nodes do we have??");
 
