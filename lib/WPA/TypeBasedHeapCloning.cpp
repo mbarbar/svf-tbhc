@@ -14,6 +14,7 @@
 // TODO: back-propagating geps incorrectly.
 
 #include <stack>
+#include <forward_list>
 
 #include "WPA/TypeBasedHeapCloning.h"
 #include "WPA/WPAStat.h"
@@ -358,24 +359,38 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
 }
 
 /// Places all paths from initNode to wherever it may need to back-propagate in paths.
-static void getBackPropagationPaths(SVFGNode *node, std::vector<std::vector<NodeID>> &paths,
-                                    std::vector<NodeID> currPath=std::vector<NodeID>()) {
-    currPath.push_back(node->getId());
+static void getBackPropagationPaths(std::vector<std::vector<NodeID>> &paths,
+                                    std::forward_list<std::tuple<SVFGNode *, std::vector<NodeID>, std::set<NodeID>>> &todoList) {
+    while (!todoList.empty()) {
+        SVFGNode *currNode = std::get<0>(todoList.front());
+        std::vector<NodeID> currPath = std::get<1>(todoList.front());
+        std::set<NodeID> currSeen = std::get<2>(todoList.front());
+        todoList.pop_front();
 
-    std::set<SVFGNode *> nextNodes;
-    for (auto inEdgeI = node->getInEdges().begin(); inEdgeI != node->getInEdges().end(); ++inEdgeI) {
-        // Don't cross returns. Don't go through GEPs.
-        if (!(SVFUtil::isa<RetDirSVFGEdge>(*inEdgeI) || SVFUtil::isa<RetIndSVFGEdge>(*inEdgeI))
-            && !(SVFUtil::isa<GepSVFGNode>((*inEdgeI)->getSrcNode()))) {
-            nextNodes.insert((*inEdgeI)->getSrcNode());
+        currPath.push_back(currNode->getId());
+        currSeen.insert(currNode->getId());
+
+        std::set<SVFGNode *> nextNodes;
+        // Just because we didn't add any nodes doesn't mean we are at the end of a path. If we don't
+        // add any nodes because of a loop or GEP -> not path end; because of a ret edge -> path end.
+        // No nodes to follow anymore (should be at addr, TODO: what about CHI?) -> path end.
+        bool pathEnd = currNode->getInEdges().empty();
+        for (auto inEdgeI = currNode->getInEdges().begin(); inEdgeI != currNode->getInEdges().end(); ++inEdgeI) {
+            // Don't cross returns. Don't go through GEPs. Don't follow loops.
+            if (SVFUtil::isa<RetDirSVFGEdge>(*inEdgeI) || SVFUtil::isa<RetIndSVFGEdge>(*inEdgeI)) {
+                pathEnd = true;
+            } else if (!(SVFUtil::isa<GepSVFGNode>((*inEdgeI)->getSrcNode()))
+                       && currSeen.find((*inEdgeI)->getSrcNode()->getId()) == currSeen.end()) {
+                nextNodes.insert((*inEdgeI)->getSrcNode());
+            }
         }
-    }
 
-    if (nextNodes.empty()) {
-        paths.push_back(currPath);
-    } else {
-        for (std::set<SVFGNode *>::iterator nodeI = nextNodes.begin(); nodeI != nextNodes.end(); ++nodeI) {
-            getBackPropagationPaths(*nodeI, paths, currPath);
+        if (pathEnd) {
+            paths.push_back(currPath);
+        } else {
+            for (std::set<SVFGNode *>::iterator nextI = nextNodes.begin(); nextI != nextNodes.end(); ++nextI) {
+                todoList.push_front(std::make_tuple(*nextI, currPath, currSeen));
+            }
         }
     }
 }
@@ -391,12 +406,15 @@ void TypeBasedHeapCloning::buildBackPropagationMap(void) {
                                                             : stmtNode->getPAGEdge()->getValue())) {
                     // Only nodes which have ctir metadata can possibly be used as
                     // initialisation points.
-                    getBackPropagationPaths(stmtNode, paths);
+                    std::forward_list<std::tuple<SVFGNode *, std::vector<NodeID>, std::set<NodeID>>> todoList;
+                    todoList.push_front(std::make_tuple(stmtNode, std::vector<NodeID>(), std::set<NodeID>()));
+                    getBackPropagationPaths(paths, todoList);
                 }
             }
         }
     }
 
+    /*
     for (auto vv = paths.begin(); vv != paths.end(); ++vv) {
         llvm::outs() << "[ ";
         for (auto vi = vv->begin(); vi != vv->end(); ++vi) {
