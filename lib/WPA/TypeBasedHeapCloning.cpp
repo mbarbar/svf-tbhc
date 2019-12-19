@@ -107,8 +107,6 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
         }
     }
 
-    llvm::outs() << "changed = " << changed << "\n";
-
     return changed;
 }
 
