@@ -271,7 +271,7 @@ public:
         assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
         std::vector<const DIType *> fields = fieldTypes.at(base);
         assert(fields.size() > idx && "DCHG: idx into struct larger than # fields!");
-        return fields[idx];
+        return getCanonicalType(fields[idx]);
     }
 
 protected:

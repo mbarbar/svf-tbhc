@@ -62,6 +62,9 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
                 }
             }
         }
+
+        flatten(compositeType);
+
         break;
     case llvm::dwarf::DW_TAG_enumeration_type:
         // TODO: maybe just drop these to the base type?
@@ -236,7 +239,8 @@ std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstFie
 void DCHGraph::flatten(const DICompositeType *type) {
     assert(type != nullptr
            && (type->getTag() == dwarf::DW_TAG_class_type
-           || type->getTag() == dwarf::DW_TAG_structure_type)
+               || type->getTag() == dwarf::DW_TAG_structure_type
+               || type->getTag() == dwarf::DW_TAG_union_type)
            && "DCHG::flatten: expected a class/struct");
 
     std::vector<const DIType *> &flattenedComposite = fieldTypes[type];
@@ -256,6 +260,21 @@ void DCHGraph::flatten(const DICompositeType *type) {
                 flattenedComposite.insert(flattenedComposite.end(),
                                           fieldTypes.at(fieldType).begin(),
                                           fieldTypes.at(fieldType).end());
+            } else if (fieldType->getTag() == dwarf::DW_TAG_typedef) {
+                // stripQualifiers operates on typedefs too.
+                const DIType *underlyingType = stripQualifiers(fieldType);
+                // TODO: this is repetition.
+                if (underlyingType->getTag() == dwarf::DW_TAG_structure_type
+                    || underlyingType->getTag() == dwarf::DW_TAG_class_type
+                    || underlyingType->getTag() == dwarf::DW_TAG_union_type) {
+                    flatten(SVFUtil::dyn_cast<DICompositeType>(underlyingType));
+                    flattenedComposite.insert(flattenedComposite.end(),
+                                              fieldTypes.at(underlyingType).begin(),
+                                              fieldTypes.at(underlyingType).end());
+                } else {
+                    // Can't be a typedef, because stripQualifiers ensured it isn't.
+                    flattenedComposite.push_back(underlyingType);
+                }
             } else {
                 flattenedComposite.push_back(fieldType);
             }
