@@ -229,6 +229,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+    preparePtsFromIn(load, load->getPAGSrcNodeID());
     processDeref(load, load->getPAGSrcNodeID());
     return FlowSensitive::processLoad(load);
 }
@@ -236,6 +237,44 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     processDeref(store, store->getPAGDstNodeID());
     return FlowSensitive::processStore(store);
+}
+
+void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
+    PointsTo &pPt = getPts(pId);
+    PointsTo pNewPt;
+
+    // TODO: double check ternary.
+    const DIType *tildet = getTypeFromMetadata(stmt->getInst() ? stmt->getInst()
+                                                               : stmt->getPAGEdge()->getValue());
+
+    const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
+    for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
+        NodeID o = *oI;
+        NodeID originalO = isClone(o) ? cloneToOriginalObj[o] : o;
+        bool mergeO = false;
+        for (NodeID clone : objToClones[originalO]) {
+            if (ptsInMap.find(clone) != ptsInMap.end()) {
+                pNewPt.set(clone);
+
+                // If o is not a clone, and a clone is coming through of the same type,
+                // we can stop propagating the untyped object, because everything that
+                // points to the to-be clone will alias everything that points to the
+                // incoming clone.
+                if (!isClone(o) && tildet == objToType[clone]) {
+                    mergeO = true;
+                }
+            }
+        }
+
+        if (!mergeO) {
+            pNewPt.set(o);
+        }
+    }
+
+    if (pPt != pNewPt) {
+        pPt.clear();
+        unionPts(pId, pNewPt);
+    }
 }
 
 const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {

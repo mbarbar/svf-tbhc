@@ -47,6 +47,10 @@ public:
     virtual bool processStore(const StoreSVFGNode* store) override;
     virtual bool processDeref(const StmtSVFGNode *stmt, const NodeID ptrId);
 
+    /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
+    /// coming from the in set.
+    virtual void preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId);
+
 private:
     /// Returns the ctir type attached to the value, nullptr if non-existant.
     /// Not static because it needs to DCHG to return the canonical type.
