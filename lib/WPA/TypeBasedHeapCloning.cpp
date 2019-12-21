@@ -422,5 +422,6 @@ void TypeBasedHeapCloning::buildBackPropagationMap(void) {
         }
         llvm::outs() << " ]\n";
     }
+    */
 }
 
