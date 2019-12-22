@@ -250,6 +250,14 @@ void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
+
+        /*
+        if (isBlkObjOrConstantObj(o)) {
+            pNewPt.set(o);
+            continue;
+        }
+        */
+
         NodeID originalO = isClone(o) ? cloneToOriginalObj[o] : o;
         bool mergeO = false;
         for (NodeID clone : objToClones[originalO]) {
