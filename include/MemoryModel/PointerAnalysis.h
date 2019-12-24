@@ -234,7 +234,7 @@ public:
     inline bool containConstantNode(PointsTo& pts) {
         return pts.test(pag->getConstantNode());
     }
-    inline bool isBlkObjOrConstantObj(NodeID ptd) const {
+    inline virtual bool isBlkObjOrConstantObj(NodeID ptd) const {
         return pag->isBlkObjOrConstantObj(ptd);
     }
     inline bool isNonPointerObj(NodeID ptd) const {

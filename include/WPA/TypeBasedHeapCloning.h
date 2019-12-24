@@ -51,6 +51,13 @@ public:
     /// coming from the in set.
     virtual void preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId);
 
+    /// Check if a node is a black hole obj or a constant object. We override to
+    /// account for clones.
+    inline virtual bool isBlkObjOrConstantObj(NodeID o) const override {
+        if (isClone(o)) o = cloneToOriginalObj.at(o);
+        return pag->isBlkObjOrConstantObj(o);
+    }
+
 private:
     /// Returns the ctir type attached to the value, nullptr if non-existant.
     /// Not static because it needs to DCHG to return the canonical type.
