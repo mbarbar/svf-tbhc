@@ -231,12 +231,28 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
     preparePtsFromIn(load, load->getPAGSrcNodeID());
     processDeref(load, load->getPAGSrcNodeID());
-    return FlowSensitive::processLoad(load);
+
+    // We want to deref. for non-pointer nodes but not process the load.
+    if (!load->getPAGSrcNode()->isPointer()
+        || !load->getPAGDstNode()->isPointer()) {
+        return false;
+    }
+
+    bool changed = FlowSensitive::processLoad(load);
+    return changed;
 }
 
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     processDeref(store, store->getPAGDstNodeID());
-    return FlowSensitive::processStore(store);
+
+    // Like processLoad: we want to deref. for non-pointers but not the store.
+    if (!store->getPAGSrcNode()->isPointer()
+        || !store->getPAGDstNode()->isPointer()) {
+        return false;
+    }
+
+    bool changed = FlowSensitive::processStore(store);
+    return changed;
 }
 
 void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
