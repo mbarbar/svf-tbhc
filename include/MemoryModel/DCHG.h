@@ -274,6 +274,16 @@ public:
         return getCanonicalType(fields[idx]);
     }
 
+    /// Returns the type corresponding to constructor.
+    const DIType *getConstructorType(const Function *constructor) const {
+        if (constructorToType.find(constructor) == constructorToType.end()) {
+            return nullptr;
+        }
+
+        // constructorToType types are already the canonical type.
+        return constructorToType.at(constructor);
+    }
+
 protected:
     /// SVF Module this CHG is built from.
     SVFModule svfModule;
@@ -297,6 +307,8 @@ protected:
     std::set<const DIType *> canonicalTypes;
     /// Maps types to their flattened fields' types.
     std::map<const DIType *, std::vector<const DIType *>> fieldTypes;
+    /// Maps constructors to their (canonical) type.
+    std::map<const Function *, const DIType *> constructorToType;
 
 private:
     /// Construction helper to process DIBasicTypes.
