@@ -153,7 +153,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::initialise(const StmtSVFGNode *stmt, const NodeID pId, const DIType *tildet) {
+bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet) {
     bool changed = false;
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
@@ -167,7 +167,7 @@ bool TypeBasedHeapCloning::initialise(const StmtSVFGNode *stmt, const NodeID pId
         NodeID prop = 0;
         bool filter = false;
         if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
-            prop = cloneObject(o, stmt, tildet);
+            prop = cloneObject(o, svfgNode, tildet);
         } else {
             prop = o;
         }
