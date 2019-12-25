@@ -268,6 +268,23 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     return changed;
 }
 
+bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
+    // First argument and for a constructor? Clone.
+
+    if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
+        if (arg->getArgNo() == 0 && cppUtil::isConstructor(arg->getParent())) {
+            const DIType *constructorType = dchg->getConstructorType(arg->getParent());
+            for (PHISVFGNode::OPVers::const_iterator it = phi->opVerBegin(); it != phi->opVerEnd(); ++it) {
+                NodeID src = it->second->getId();
+                initialise(phi, src, constructorType);
+            }
+        }
+    }
+
+    bool changed = FlowSensitive::processPhi(phi);
+    return changed;
+}
+
 void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;

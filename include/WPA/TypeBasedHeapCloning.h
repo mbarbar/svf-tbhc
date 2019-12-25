@@ -45,6 +45,7 @@ public:
     virtual bool processGep(const GepSVFGNode* gep) override;
     virtual bool processLoad(const LoadSVFGNode* load) override;
     virtual bool processStore(const StoreSVFGNode* store) override;
+    virtual bool processPhi(const PHISVFGNode* phi) override;
     /// Initialise the pointees of ptrId (which is type tildet *).
     virtual bool initialise(const SVFGNode *svfgNode, const NodeID ptrId, const DIType *tildet);
 
