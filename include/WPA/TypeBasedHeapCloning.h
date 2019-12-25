@@ -42,10 +42,11 @@ public:
     virtual bool propAlongIndirectEdge(const IndirectSVFGEdge* edge) override;
 
     virtual bool processAddr(const AddrSVFGNode* addr) override;
-    virtual bool processGep(const GepSVFGNode* edge) override;
+    virtual bool processGep(const GepSVFGNode* gep) override;
     virtual bool processLoad(const LoadSVFGNode* load) override;
     virtual bool processStore(const StoreSVFGNode* store) override;
-    virtual bool processDeref(const StmtSVFGNode *stmt, const NodeID ptrId);
+    /// Initialise the pointees of ptrId (which is type tildet *).
+    virtual bool initialise(const StmtSVFGNode *stmt, const NodeID ptrId, const DIType *tildet);
 
     /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
     /// coming from the in set.

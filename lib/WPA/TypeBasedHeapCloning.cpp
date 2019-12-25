@@ -16,6 +16,7 @@
 #include <stack>
 #include <forward_list>
 
+#include "Util/CPPUtil.h"
 #include "WPA/TypeBasedHeapCloning.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
@@ -152,16 +153,12 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID pId) {
+bool TypeBasedHeapCloning::initialise(const StmtSVFGNode *stmt, const NodeID pId, const DIType *tildet) {
     bool changed = false;
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
     const PAGNode *pNode = pag->getPAGNode(pId);
     assert(pNode && "TBHC: dereferencing something not in PAG?");
-    // TODO: double check ternary.
-    const DIType *tildet = getTypeFromMetadata(stmt->getInst() ? stmt->getInst()
-                                                               : stmt->getPAGEdge()->getValue());
-    if (tildet == undefType) return false;
 
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
@@ -190,10 +187,17 @@ bool TypeBasedHeapCloning::processDeref(const StmtSVFGNode *stmt, const NodeID p
     return changed;
 }
 
-bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
+bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     // Copy of that in FlowSensitive.cpp + some changes.
-    NodeID q = edge->getPAGSrcNodeID();
-    bool qChanged = processDeref(edge, q);
+    NodeID q = gep->getPAGSrcNodeID();
+
+    const DIType *tildet = getTypeFromMetadata(gep->getInst() ? gep->getInst()
+                                                              : gep->getPAGEdge()->getValue());
+    // TODO: is qChanged necessary?
+    bool qChanged = false;
+    if (tildet != undefType) {
+        qChanged = initialise(gep, q, tildet);
+    }
     const PointsTo& qPts = getPts(q);
 
     PointsTo tmpDstPts;
@@ -205,18 +209,18 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
         } else {
             // Even though, in LLVM IR, oq was not loaded/stored, assumptions are
             // being made about its type based on q.
-            if (SVFUtil::isa<VariantGepPE>(edge->getPAGEdge())) {
+            if (SVFUtil::isa<VariantGepPE>(gep->getPAGEdge())) {
                 setObjFieldInsensitive(oq);
                 NodeID fiObj = getFIObjNode(oq);
                 tmpDstPts.set(fiObj);
 
                 // TODO: check type!
                 objToType[fiObj] = objToType.at(oq);
-            } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(edge->getPAGEdge())) {
+            } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
                 std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
                     NodeID fc = *fcI;
-                    gepToSVFGRetrievers[fc].insert(edge->getId());
+                    gepToSVFGRetrievers[fc].insert(gep->getId());
                     tmpDstPts.set(fc);
                 }
             } else {
@@ -225,12 +229,17 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* edge) {
         }
     }
 
-    return unionPts(edge->getPAGDstNodeID(), tmpDstPts) || qChanged;
+    return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || qChanged;
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
     preparePtsFromIn(load, load->getPAGSrcNodeID());
-    processDeref(load, load->getPAGSrcNodeID());
+
+    const DIType *tildet = getTypeFromMetadata(load->getInst() ? load->getInst()
+                                                               : load->getPAGEdge()->getValue());
+    if (tildet != undefType) {
+        initialise(load, load->getPAGSrcNodeID(), tildet);
+    }
 
     // We want to deref. for non-pointer nodes but not process the load.
     if (!load->getPAGSrcNode()->isPointer()
@@ -243,7 +252,11 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
 }
 
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
-    processDeref(store, store->getPAGDstNodeID());
+    const DIType *tildet = getTypeFromMetadata(store->getInst() ? store->getInst()
+                                                               : store->getPAGEdge()->getValue());
+    if (tildet != undefType) {
+        initialise(store, store->getPAGDstNodeID(), tildet);
+    }
 
     // Like processLoad: we want to deref. for non-pointers but not the store.
     if (!store->getPAGSrcNode()->isPointer()
