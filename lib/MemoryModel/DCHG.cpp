@@ -781,14 +781,14 @@ static std::string indent(size_t n) {
 
 void DCHGraph::print(void) const {
     static const std::string line = "-------------------------------------\n";
+    static const std::string thickLine = "=====================================\n";
     static const size_t singleIndent = 2;
 
     size_t currIndent = 0;
+    llvm::outs() << thickLine;
     for (DCHGraph::const_iterator it = begin(); it != end(); ++it) {
         const NodeID id = it->first;
         const DCHNode *node = it->second;
-
-        llvm::outs() << line;
 
         // TODO: need to properly name non-class nodes.
         llvm::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << " [" << node->getType() << "]" << "\n";
@@ -863,6 +863,20 @@ void DCHGraph::print(void) const {
         currIndent -= singleIndent;
 
         currIndent -= singleIndent;
+
+        if (std::next(it) != end()) {
+            llvm::outs() << line;
+        }
     }
+
+    llvm::outs() << thickLine;
+    llvm::outs() << "Constructor to type mapping\n";
+    llvm::outs() << line;
+    for (std::map<const Function *, const DIType *>::const_iterator ctI = constructorToType.begin(); ctI != constructorToType.end(); ++ctI) {
+        cppUtil::DemangledName dname = cppUtil::demangle(ctI->first->getName().str());
+        llvm::outs() << dname.className << "::" << dname.funcName << " : " << diTypeToStr(ctI->second) << "\n";
+    }
+
+    llvm::outs() << thickLine;
 }
 
