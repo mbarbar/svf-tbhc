@@ -39,7 +39,7 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
     dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
     assert(dchg != nullptr && "TBHC: requires DCHGraph");
 
-    buildBackPropagationMap();
+    //buildBackPropagationMap();
 }
 
 void TypeBasedHeapCloning::finalize(void) {
