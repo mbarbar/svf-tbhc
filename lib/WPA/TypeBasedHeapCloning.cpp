@@ -403,12 +403,19 @@ bool TypeBasedHeapCloning::isClone(NodeID o) const {
 }
 
 std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
+    std::set<NodeID> geps;
+
+    // First field? Just return the whole object; same thing.
+    if (ls.getOffset() == 0) {
+        geps.insert(base);
+        return geps;
+    }
+
     PAGNode *node = pag->getPAGNode(base);
     assert(node);
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
     assert(baseNode);
 
-    std::set<NodeID> geps;
     if (baseNode->getMemObj()->isFieldInsensitive()) {
         // If it's field-insensitive, well base represents everything.
         geps.insert(base);
