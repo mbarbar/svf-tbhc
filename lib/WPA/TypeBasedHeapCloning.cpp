@@ -242,8 +242,7 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
     }
 
     // We want to deref. for non-pointer nodes but not process the load.
-    if (!load->getPAGSrcNode()->isPointer()
-        || !load->getPAGDstNode()->isPointer()) {
+    if (!load->getPAGEdge()->isPTAEdge()) {
         return false;
     }
 
@@ -259,8 +258,7 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     }
 
     // Like processLoad: we want to deref. for non-pointers but not the store.
-    if (!store->getPAGSrcNode()->isPointer()
-        || !store->getPAGDstNode()->isPointer()) {
+    if (!store->getPAGEdge()->isPTAEdge()) {
         return false;
     }
 
