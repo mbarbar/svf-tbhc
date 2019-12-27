@@ -180,8 +180,10 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
         bool filter = false;
         if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
             prop = cloneObject(o, svfgNode, tildet);
-        } else {
+        } else if (isBase(tildet, tp)) {
             prop = o;
+        } else {
+            filter = true;
         }
 
         // TODO: filter unimplemented.
