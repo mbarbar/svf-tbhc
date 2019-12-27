@@ -291,8 +291,6 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
 }
 
 bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
-    double start = stat->getClk();
-
     if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
         // First argument and for a constructor? Clone.
         if (arg->getArgNo() == 0 && cppUtil::isConstructor(arg->getParent())) {
@@ -303,9 +301,6 @@ bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
             }
         }
     }
-
-    double end = stat->getClk();
-    phiTime += (end - start) / TIMEINTERVAL;
 
     bool changed = FlowSensitive::processPhi(phi);
     return changed;
