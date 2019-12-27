@@ -205,8 +205,12 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     if (tildet != undefType) {
         qChanged = initialise(gep, q, tildet);
     }
-    const PointsTo& qPts = getPts(q);
 
+    if (!gep->getPAGEdge()->isPTAEdge()) {
+        return false;
+    }
+
+    const PointsTo& qPts = getPts(q);
     PointsTo tmpDstPts;
     for (PointsTo::iterator oqi = qPts.begin(); oqi != qPts.end(); ++oqi) {
         NodeID oq = *oqi;
