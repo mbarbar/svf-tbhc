@@ -68,7 +68,7 @@ void TypeBasedHeapCloning::finalize(void) {
 
     llvm::outs() << "==================================\n";
 
-    getDFPTDataTy()->dumpPTData();
+    // getDFPTDataTy()->dumpPTData();
 }
 
 bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
