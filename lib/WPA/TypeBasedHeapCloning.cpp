@@ -122,6 +122,8 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     double end = stat->getClk();
     addrTime += (end - start) / TIMEINTERVAL;
 
+    if (!addr->getPAGEdge()->isPTAEdge()) return false;
+
     bool changed = FlowSensitive::processAddr(addr);
 
     start = stat->getClk();
@@ -296,6 +298,8 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
 }
 
 bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
+    if (!phi->isPTANode()) return false;
+
     if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
         // First argument and for a constructor? Clone.
         if (arg->getArgNo() == 0 && cppUtil::isConstructor(arg->getParent())) {
