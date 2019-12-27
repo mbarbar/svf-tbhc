@@ -46,6 +46,7 @@ void TypeBasedHeapCloning::finalize(void) {
     FlowSensitive::finalize();
 
     // Print clones with their types.
+    /*
     llvm::outs() << "=== Original objects to clones ===\n";
     for (std::map<NodeID, std::set<NodeID>>::iterator ocI = objToClones.begin(); ocI != objToClones.end(); ++ocI) {
         NodeID originalObjId = ocI->first;
@@ -67,6 +68,7 @@ void TypeBasedHeapCloning::finalize(void) {
     }
 
     llvm::outs() << "==================================\n";
+    */
 
     // getDFPTDataTy()->dumpPTData();
 }
