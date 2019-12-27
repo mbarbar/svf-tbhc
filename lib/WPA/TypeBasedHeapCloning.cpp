@@ -401,9 +401,13 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
         }
     } else if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
         clone = pag->addCloneFIObjNode(fiObj->getMemObj());
+        addrNodeToBPSet[objToAllocation[o]].insert(clone);
+        pushIntoWorklist(objToAllocation[o]);
     } else {
         // Could be a dummy object.
         clone = pag->addCloneObjNode();
+        addrNodeToBPSet[objToAllocation[o]].insert(clone);
+        pushIntoWorklist(objToAllocation[o]);
     }
 
     // Clone's attributes.
