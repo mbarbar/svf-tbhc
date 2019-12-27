@@ -255,7 +255,8 @@ void DCHGraph::flatten(const DICompositeType *type) {
             // Either we have a class, struct, or something not in need of flattening.
             const DIType *fieldType = mt->getBaseType();
             if (fieldType->getTag() == dwarf::DW_TAG_structure_type
-                || fieldType->getTag() == dwarf::DW_TAG_class_type) {
+                || fieldType->getTag() == dwarf::DW_TAG_class_type
+                || fieldType->getTag() == dwarf::DW_TAG_union_type) {
                 flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
                 flattenedComposite.insert(flattenedComposite.end(),
                                           fieldTypes.at(fieldType).begin(),
