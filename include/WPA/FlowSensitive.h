@@ -238,6 +238,7 @@ private:
 
     static FlowSensitive* fspta;
 
+protected:
     /// Statistics.
     //@{
     Size_t numOfProcessedAddr;	/// Number of processed Addr node

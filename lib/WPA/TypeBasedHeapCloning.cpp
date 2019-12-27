@@ -113,6 +113,8 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
 }
 
 bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
+    double start = stat->getClk();
+
     NodeID srcID = addr->getPAGSrcNodeID();
     NodeID dstID = addr->getPAGDstNodeID();
     PAGNode *srcNode = addr->getPAGSrcNode();
@@ -149,6 +151,9 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
         changed = addPts(addr->getPAGDstNodeID(), *oI) || changed;
         // No need for type stuff these are all clones; they are all typed.
     }
+
+    double end = stat->getClk();
+    addrTime += (end - start) / TIMEINTERVAL;
 
     return changed;
 }
@@ -188,6 +193,8 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
 }
 
 bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
+    double start = stat->getClk();
+
     // Copy of that in FlowSensitive.cpp + some changes.
     NodeID q = gep->getPAGSrcNodeID();
 
@@ -229,10 +236,15 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
         }
     }
 
+    double end = stat->getClk();
+    copyGepTime += (end - start) / TIMEINTERVAL;
+
     return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || qChanged;
 }
 
 bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+    double start = stat->getClk();
+
     preparePtsFromIn(load, load->getPAGSrcNodeID());
 
     const DIType *tildet = getTypeFromMetadata(load->getInst() ? load->getInst()
@@ -246,11 +258,16 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
         return false;
     }
 
+    double end = stat->getClk();
+    loadTime += (end - start) / TIMEINTERVAL;
+
     bool changed = FlowSensitive::processLoad(load);
     return changed;
 }
 
 bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
+    double start = stat->getClk();
+
     const DIType *tildet = getTypeFromMetadata(store->getInst() ? store->getInst()
                                                                : store->getPAGEdge()->getValue());
     if (tildet != undefType) {
@@ -262,14 +279,18 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
         return false;
     }
 
+    double end = stat->getClk();
+    storeTime += (end - start) / TIMEINTERVAL;
+
     bool changed = FlowSensitive::processStore(store);
     return changed;
 }
 
 bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
-    // First argument and for a constructor? Clone.
+    double start = stat->getClk();
 
     if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
+        // First argument and for a constructor? Clone.
         if (arg->getArgNo() == 0 && cppUtil::isConstructor(arg->getParent())) {
             const DIType *constructorType = dchg->getConstructorType(arg->getParent());
             for (PHISVFGNode::OPVers::const_iterator it = phi->opVerBegin(); it != phi->opVerEnd(); ++it) {
@@ -278,6 +299,9 @@ bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
             }
         }
     }
+
+    double end = stat->getClk();
+    phiTime += (end - start) / TIMEINTERVAL;
 
     bool changed = FlowSensitive::processPhi(phi);
     return changed;
