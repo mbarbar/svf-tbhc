@@ -119,7 +119,12 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     NodeID dstID = addr->getPAGDstNodeID();
     PAGNode *srcNode = addr->getPAGSrcNode();
 
+    double end = stat->getClk();
+    addrTime += (end - start) / TIMEINTERVAL;
+
     bool changed = FlowSensitive::processAddr(addr);
+
+    start = stat->getClk();
 
     // We should not have any type, not even undefined.
     // This all assumes that there is only one outgoing edge from each object.
@@ -152,7 +157,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
         // No need for type stuff these are all clones; they are all typed.
     }
 
-    double end = stat->getClk();
+    end = stat->getClk();
     addrTime += (end - start) / TIMEINTERVAL;
 
     return changed;
