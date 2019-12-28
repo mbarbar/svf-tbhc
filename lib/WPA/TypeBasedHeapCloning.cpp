@@ -194,7 +194,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet) {
+bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse) {
     bool changed = false;
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
@@ -208,14 +208,19 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
         NodeID prop = 0;
         bool filter = false;
         if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
+            // o is unitialised or this is some downcast.
             prop = cloneObject(o, svfgNode, tildet);
         } else if (isBase(tildet, tp)) {
+            // We have an upcast.
             prop = o;
+        } else if (tildet != tp && reuse) {
+            // We have a case of reuse.
+            prop = cloneObject(o, svfgNode, tildet);
         } else {
+            // Some spurious objects will be filtered.
             filter = true;
         }
 
-        // TODO: filter unimplemented.
         if (!filter) {
             pNewPt.set(prop);
         }
@@ -241,7 +246,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     // TODO: is qChanged necessary?
     bool qChanged = false;
     if (tildet != undefType) {
-        qChanged = initialise(gep, q, tildet);
+        qChanged = initialise(gep, q, tildet, true);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {
@@ -292,7 +297,7 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
     const DIType *tildet = getTypeFromMetadata(load->getInst() ? load->getInst()
                                                                : load->getPAGEdge()->getValue());
     if (tildet != undefType) {
-        initialise(load, load->getPAGSrcNodeID(), tildet);
+        initialise(load, load->getPAGSrcNodeID(), tildet, false);
     }
 
     // We want to deref. for non-pointer nodes but not process the load.
@@ -313,7 +318,7 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     const DIType *tildet = getTypeFromMetadata(store->getInst() ? store->getInst()
                                                                : store->getPAGEdge()->getValue());
     if (tildet != undefType) {
-        initialise(store, store->getPAGDstNodeID(), tildet);
+        initialise(store, store->getPAGDstNodeID(), tildet, true);
     }
 
     // Like processLoad: we want to deref. for non-pointers but not the store.
@@ -337,7 +342,7 @@ bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
             const DIType *constructorType = dchg->getConstructorType(arg->getParent());
             for (PHISVFGNode::OPVers::const_iterator it = phi->opVerBegin(); it != phi->opVerEnd(); ++it) {
                 NodeID src = it->second->getId();
-                initialise(phi, src, constructorType);
+                initialise(phi, src, constructorType, true);
             }
         }
     }
