@@ -425,7 +425,7 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     // Check the desired clone doesn't already exist.
     if (cloneSiteToClones[cloneSite->getId()].find(o) != cloneSiteToClones[cloneSite->getId()].end()) {
         // If found, it must be the correct type because everything made here is of one type.
-        cloneSiteToClones[cloneSite->getId()].at(o);
+        return cloneSiteToClones[cloneSite->getId()].at(o);
     }
 
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
