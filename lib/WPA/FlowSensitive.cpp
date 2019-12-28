@@ -224,13 +224,11 @@ bool FlowSensitive::propAlongDirectEdge(const DirectSVFGEdge* edge)
     SVFGNode* dst = edge->getDstNode();
     // If this is an actual-param or formal-ret, top-level pointer's pts must be
     // propagated from src to dst.
-    if (ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(src)) {
-        if (!ap->getParam()->isPointer()) return false;
+    if (ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(src))
         changed = propagateFromAPToFP(ap, dst);
-    } else if (FormalRetSVFGNode* fp = SVFUtil::dyn_cast<FormalRetSVFGNode>(src)) {
-        if (!fp->getRet()->isPointer()) return false;
+    else if (FormalRetSVFGNode* fp = SVFUtil::dyn_cast<FormalRetSVFGNode>(src))
         changed = propagateFromFRToAR(fp, dst);
-    } else {
+    else {
         // Direct SVFG edge links between def and use of a top-level pointer.
         // There's no points-to information propagated along direct edge.
         // Since the top-level pointer's value has been changed at src node,

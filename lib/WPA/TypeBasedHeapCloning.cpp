@@ -114,6 +114,33 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     return changed;
 }
 
+bool TypeBasedHeapCloning::propAlongDirectEdge(const DirectSVFGEdge* edge) {
+    double start = stat->getClk();
+    bool changed = false;
+
+    SVFGNode* src = edge->getSrcNode();
+    SVFGNode* dst = edge->getDstNode();
+    // If this is an actual-param or formal-ret, top-level pointer's pts must be
+    // propagated from src to dst.
+    if (ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(src)) {
+        if (!ap->getParam()->isPointer()) return false;
+        changed = propagateFromAPToFP(ap, dst);
+    } else if (FormalRetSVFGNode* fp = SVFUtil::dyn_cast<FormalRetSVFGNode>(src)) {
+        if (!fp->getRet()->isPointer()) return false;
+        changed = propagateFromFRToAR(fp, dst);
+    } else {
+        // Direct SVFG edge links between def and use of a top-level pointer.
+        // There's no points-to information propagated along direct edge.
+        // Since the top-level pointer's value has been changed at src node,
+        // return TRUE to put dst node into the work list.
+        changed = true;
+    }
+
+    double end = stat->getClk();
+    directPropaTime += (end - start) / TIMEINTERVAL;
+    return changed;
+}
+
 bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
 

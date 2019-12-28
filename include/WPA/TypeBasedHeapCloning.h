@@ -40,6 +40,7 @@ public:
     }
 
     virtual bool propAlongIndirectEdge(const IndirectSVFGEdge* edge) override;
+    virtual bool propAlongDirectEdge(const DirectSVFGEdge* edge) override;
 
     virtual bool processAddr(const AddrSVFGNode* addr) override;
     virtual bool processGep(const GepSVFGNode* gep) override;
