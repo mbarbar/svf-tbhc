@@ -95,8 +95,8 @@ private:
     std::map<NodeID, NodeID> objToAllocation;
     /// Object -> cloning site (SVFG node).
     std::map<NodeID, NodeID> objToCloneSite;
-    /// SVFG node -> clone (if one was made there)
-    std::map<NodeID, std::set<NodeID>> cloneSiteToClones;
+    /// SVFG node -> (orig. obj -> clone) (if one was made there)
+    std::map<NodeID, std::map<NodeID, NodeID>> cloneSiteToClones;
     /// (Original) object -> set of its clones.
     std::map<NodeID, std::set<NodeID>> objToClones;
     /// (Clone) object -> original object (opposite of obj to clones).
