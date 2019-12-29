@@ -248,7 +248,7 @@ void DCHGraph::flatten(const DICompositeType *type) {
     for (unsigned i = 0; i < fields.size(); ++i) {
         if (const DISubprogram *sp = SVFUtil::dyn_cast<DISubprogram>(fields[i])) {
             // sp->getType should be a SubroutineType. TODO: assert it?
-            flattenedComposite.push_back(sp->getType());
+            flattenedComposite.push_back(getCanonicalType(sp->getType()));
         } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
             assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
                    && "DCHG: expected member");
@@ -259,6 +259,7 @@ void DCHGraph::flatten(const DICompositeType *type) {
                 || fieldType->getTag() == dwarf::DW_TAG_union_type) {
                 flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
                 flattenedComposite.insert(flattenedComposite.end(),
+                                          // Must be canonical because that is what we inserted.
                                           fieldTypes.at(fieldType).begin(),
                                           fieldTypes.at(fieldType).end());
             } else if (fieldType->getTag() == dwarf::DW_TAG_typedef) {
@@ -270,14 +271,15 @@ void DCHGraph::flatten(const DICompositeType *type) {
                     || underlyingType->getTag() == dwarf::DW_TAG_union_type) {
                     flatten(SVFUtil::dyn_cast<DICompositeType>(underlyingType));
                     flattenedComposite.insert(flattenedComposite.end(),
+                                              // Must be canonical because that is what we inserted.
                                               fieldTypes.at(underlyingType).begin(),
                                               fieldTypes.at(underlyingType).end());
                 } else {
                     // Can't be a typedef, because stripQualifiers ensured it isn't.
-                    flattenedComposite.push_back(underlyingType);
+                    flattenedComposite.push_back(getCanonicalType(underlyingType));
                 }
             } else {
-                flattenedComposite.push_back(fieldType);
+                flattenedComposite.push_back(getCanonicalType(fieldType));
             }
         } else {
             assert(false && "DCHG: unexpected field type");

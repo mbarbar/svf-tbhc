@@ -274,6 +274,13 @@ public:
         return getCanonicalType(fields[idx]);
     }
 
+    /// Returns a vector of the types of all fields in base.
+    std::vector<const DIType *> getFieldTypes(const DIType *base) {
+        base = getCanonicalType(base);
+        assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
+        return fieldTypes.at(base);
+    }
+
     /// Returns the type corresponding to constructor.
     const DIType *getConstructorType(const Function *constructor) const {
         if (constructorToType.find(constructor) == constructorToType.end()) {

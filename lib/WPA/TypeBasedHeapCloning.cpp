@@ -207,9 +207,24 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp == t'
 
+        // Is this object field insensitive?
+        bool fieldInsensitive = false;
+        std::vector<const DIType *> fieldTypes;
+        if (ObjPN *obj = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(o))) {
+            fieldInsensitive = obj->getMemObj()->isFieldInsensitive();
+            if (tp != nullptr && (tp->getTag() == dwarf::DW_TAG_structure_type
+                                  || tp->getTag() == dwarf::DW_TAG_class_type
+                                  || tp->getTag() == dwarf::DW_TAG_union_type)) {
+                fieldTypes = dchg->getFieldTypes(tp);
+            }
+        }
+
         NodeID prop = 0;
         bool filter = false;
-        if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
+        if (fieldInsensitive && std::find(fieldTypes.begin(), fieldTypes.end(), tildet) != fieldTypes.end()) {
+            // Field-insensitive object but the instruction is operating on a field.
+            prop = o;
+        } else if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
             // o is unitialised or this is some downcast.
             prop = cloneObject(o, svfgNode, tildet);
         } else if (isBase(tildet, tp)) {
