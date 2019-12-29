@@ -45,6 +45,7 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
 
 void TypeBasedHeapCloning::finalize(void) {
     FlowSensitive::finalize();
+    // ^ Will print call graph stats.
 
     // Print clones with their types.
     /*

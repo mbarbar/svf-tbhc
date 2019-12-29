@@ -103,6 +103,7 @@ void FlowSensitive::finalize()
     }
 
     PointerAnalysis::finalize();
+    printCallGraphStats();
 }
 
 /*!

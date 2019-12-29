@@ -205,6 +205,39 @@ void PointerAnalysis::resetObjFieldSensitive()
     }
 }
 
+void PointerAnalysis::printCallGraphStats(void) {
+    FunctionSet uniqueFunctions;
+
+    std::set<CallSite> callsites;
+    const CallEdgeMap& callEdges = getIndCallMap();
+    for (CallEdgeMap::const_iterator ce = callEdges.begin(); ce != callEdges.end(); ++ce) {
+        callsites.insert(ce->first);
+        uniqueFunctions.insert(ce->second.begin(), ce->second.end());
+    }
+
+    const CallSiteToFunPtrMap& indCS = getIndirectCallsites();
+    for (CallSiteToFunPtrMap::const_iterator cs = indCS.begin(); cs != indCS.end(); ++cs) {
+        callsites.insert(cs->first);
+    }
+
+    SVFUtil::outs() << "eval-indirect-calls"
+                 << " "
+                 << uniqueFunctions.size()
+                 << " ";
+    for (std::set<CallSite>::iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
+        unsigned int n;
+        if (!hasIndCSCallees(*csI)) {
+            n = 0;
+        } else {
+            n = callEdges.at(*csI).size();
+            assert(n != 0);
+        }
+
+        SVFUtil::outs() << n << " ";
+    }
+    SVFUtil::outs() << "\n";
+}
+
 /*!
  * Flag in order to dump graph
  */
@@ -264,39 +297,6 @@ void PointerAnalysis::finalize() {
 
     if (!UsePreCompFieldSensitive)
         resetObjFieldSensitive();
-
-    // TODO! Temporary for evaluating TBHC.
-    // CALLGRAPH-EVALUATION
-    FunctionSet uniqueFunctions;
-
-    std::set<CallSite> callsites;
-    const CallEdgeMap& callEdges = getIndCallMap();
-    for (CallEdgeMap::const_iterator ce = callEdges.begin(); ce != callEdges.end(); ++ce) {
-        callsites.insert(ce->first);
-        uniqueFunctions.insert(ce->second.begin(), ce->second.end());
-    }
-
-    const CallSiteToFunPtrMap& indCS = getIndirectCallsites();
-    for (CallSiteToFunPtrMap::const_iterator cs = indCS.begin(); cs != indCS.end(); ++cs) {
-        callsites.insert(cs->first);
-    }
-
-    llvm::outs() << "eval-indirect-calls"
-                 << " "
-                 << uniqueFunctions.size()
-                 << " ";
-    for (std::set<CallSite>::iterator csI = callsites.begin(); csI != callsites.end(); ++csI) {
-        unsigned int n;
-        if (!hasIndCSCallees(*csI)) {
-            n = 0;
-        } else {
-            n = callEdges.at(*csI).size();
-            assert(n != 0);
-        }
-
-        llvm::outs() << n << " ";
-    }
-    llvm::outs() << "\n";
 }
 
 /*!
