@@ -266,6 +266,7 @@ void PointerAnalysis::finalize() {
         resetObjFieldSensitive();
 
     // TODO! Temporary for evaluating TBHC.
+    // CALLGRAPH-EVALUATION
     FunctionSet uniqueFunctions;
 
     std::set<CallSite> callsites;
