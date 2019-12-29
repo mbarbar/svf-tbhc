@@ -115,6 +115,8 @@ private:
     std::map<NodeID, std::set<NodeID>> addrNodeToBPSet;
     /// Maps whether a (SVFG) GEP node is a load or not.
     std::map<NodeID, bool> gepIsLoad;
+    /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
+    std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
 
     DCHGraph *dchg = nullptr;
 };

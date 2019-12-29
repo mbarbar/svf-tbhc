@@ -88,6 +88,13 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     for (PointsTo::iterator oI = pts.begin(), oEI = pts.end(); oI != oEI; ++oI) {
         edgePtsAndClones.insert(*oI);
         edgePtsAndClones.insert(objToClones[*oI].begin(), objToClones[*oI].end());
+        if (GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(*oI))) {
+            // Want the geps which are at the same "level" as this one (same mem obj, same offset).
+            const MemObj *memObj = gep->getMemObj();
+            unsigned offset = gep->getLocationSet().getOffset();
+            edgePtsAndClones.insert(memObjToGeps[memObj][offset].begin(),
+                                    memObjToGeps[memObj][offset].end());
+        }
     }
 
     for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
@@ -491,17 +498,18 @@ bool TypeBasedHeapCloning::isClone(NodeID o) const {
 
 std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
     std::set<NodeID> geps;
-
-    // First field? Just return the whole object; same thing.
-    if (ls.getOffset() == 0) {
-        geps.insert(base);
-        return geps;
-    }
-
     PAGNode *node = pag->getPAGNode(base);
     assert(node);
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
     assert(baseNode);
+
+    // First field? Just return the whole object; same thing.
+    if (ls.getOffset() == 0) {
+        geps.insert(base);
+        // The base object is the 0 gep object.
+        memObjToGeps[baseNode->getMemObj()][0].insert(base);
+        return geps;
+    }
 
     if (baseNode->getMemObj()->isFieldInsensitive()) {
         // If it's field-insensitive, well base represents everything.
@@ -539,6 +547,8 @@ std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const Locati
         objToGeps[base].insert(newGep);
         objToType[newGep] = dchg->getFieldType(objToType[base], ls.getOffset());
         objToAllocation[newGep] = objToAllocation[base];
+        memObjToGeps[baseNode->getMemObj()][ls.getOffset()].insert(newGep);
+
         geps.insert(newGep);
     }
 
