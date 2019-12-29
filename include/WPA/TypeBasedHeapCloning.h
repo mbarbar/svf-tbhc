@@ -83,6 +83,10 @@ private:
     ///   No edges to take? This is a back-propagation node for all the gathered nodes.
     void buildBackPropagationMap(void);
 
+    /// Determines whether each GEP is a load or not. Builds gepIsLoad map.
+    /// This is a quick heuristic; if all destination nodes are loads, it's a load.
+    void determineWhichGepsAreLoads(void);
+
     /// Returns the GEP object node(s) of base for ls. This may include clones.
     /// If there are no GEP objects, then getGepObjNode is called on the PAG
     /// (through base's getGepObjNode) which will create one.
@@ -109,6 +113,8 @@ private:
     std::map<NodeID, std::set<NodeID>> svfgNodeToBPNode;
     /// Maps Addr SVFG nodes to the objects which have been back-propagated to it.
     std::map<NodeID, std::set<NodeID>> addrNodeToBPSet;
+    /// Maps whether a (SVFG) GEP node is a load or not.
+    std::map<NodeID, bool> gepIsLoad;
 
     DCHGraph *dchg = nullptr;
 };

@@ -40,6 +40,7 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
     assert(dchg != nullptr && "TBHC: requires DCHGraph");
 
     //buildBackPropagationMap();
+    determineWhichGepsAreLoads();
 }
 
 void TypeBasedHeapCloning::finalize(void) {
@@ -246,7 +247,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     // TODO: is qChanged necessary?
     bool qChanged = false;
     if (tildet != undefType) {
-        qChanged = initialise(gep, q, tildet, true);
+        qChanged = initialise(gep, q, tildet, !gepIsLoad[gep->getId()]);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {
@@ -593,5 +594,32 @@ void TypeBasedHeapCloning::buildBackPropagationMap(void) {
         llvm::outs() << " ]\n";
     }
     */
+}
+
+void TypeBasedHeapCloning::determineWhichGepsAreLoads(void) {
+    for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
+        SVFGNode *svfgNode = nI->second;
+        if (StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
+            llvm::errs() << "GEP!\n";
+            if (getTypeFromMetadata(gep->getInst() ? gep->getInst()
+                                                   : gep->getPAGEdge()->getValue())) {
+                // Only care about ctir nodes - they have the reuse problem.
+                gepIsLoad[gep->getId()] = true;
+                for (auto eI = gep->getOutEdges().begin(); eI != gep->getOutEdges().end(); ++eI) {
+                    SVFGEdge *e = *eI;
+                    SVFGNode *dst = e->getDstNode();
+
+                    // TODO: loops don't count?
+                    if (gep == dst) continue;
+
+                    if (!SVFUtil::isa<LoadSVFGNode>(dst)) {
+                        gepIsLoad[gep->getId()] = false;
+            llvm::errs() << "STORE!\n";
+                        continue;
+                    }
+                }
+            }
+        }
+    }
 }
 
