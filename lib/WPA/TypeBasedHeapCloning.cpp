@@ -285,15 +285,10 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
             || (isClone(oq) && isBlkObjOrConstantObj(cloneToOriginalObj[oq]))) {
             tmpDstPts.set(oq);
         } else {
-            // Even though, in LLVM IR, oq was not loaded/stored, assumptions are
-            // being made about its type based on q.
             if (SVFUtil::isa<VariantGepPE>(gep->getPAGEdge())) {
                 setObjFieldInsensitive(oq);
-                NodeID fiObj = getFIObjNode(oq);
+                NodeID fiObj = oq;
                 tmpDstPts.set(fiObj);
-
-                // TODO: check type!
-                objToType[fiObj] = objToType.at(oq);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
                 std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
