@@ -99,13 +99,6 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
 
     for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
         NodeID o = *oI;
-        /* TODO
-        llvm::errs() << "  src: " << src->getId()
-                     << " dst: " << dst->getId()
-                     << " o: " << o
-                     << "\n";;
-        */
-
         if (propVarPtsFromSrcToDst(o, src, dst))
             changed = true;
 
@@ -621,7 +614,6 @@ void TypeBasedHeapCloning::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
-            llvm::errs() << "GEP!\n";
             if (getTypeFromMetadata(gep->getInst() ? gep->getInst()
                                                    : gep->getPAGEdge()->getValue())) {
                 // Only care about ctir nodes - they have the reuse problem.
@@ -635,7 +627,6 @@ void TypeBasedHeapCloning::determineWhichGepsAreLoads(void) {
 
                     if (!SVFUtil::isa<LoadSVFGNode>(dst)) {
                         gepIsLoad[gep->getId()] = false;
-            llvm::errs() << "STORE!\n";
                         continue;
                     }
                 }
