@@ -335,7 +335,10 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
 
     // Like processLoad: we want to deref. for non-pointers but not the store.
     if (!store->getPAGEdge()->isPTAEdge()) {
-        return false;
+        // Pass through and return because there may be some PTA nodes
+        // relying on this node's parents.
+        bool changed = getDFPTDataTy()->updateAllDFOutFromIn(store->getId(), 0, false);
+        return changed;
     }
 
     double end = stat->getClk();
