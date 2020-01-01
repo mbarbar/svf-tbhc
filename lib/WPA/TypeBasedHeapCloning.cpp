@@ -198,16 +198,16 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
 
 bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse) {
     bool changed = false;
+
     PointsTo &pPt = getPts(pId);
+    // The points-to set we will populate in the loop to fill pPt.
     PointsTo pNewPt;
-    const PAGNode *pNode = pag->getPAGNode(pId);
-    assert(pNode && "TBHC: dereferencing something not in PAG?");
 
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
-        const DIType *tp = objToType[o];  // tp == t'
+        const DIType *tp = objToType[o];  // tp is t'
 
-        // Is this object field insensitive?
+        // When an object is field-insensitive, we can't filter on any of the fields' types.
         bool fieldInsensitive = false;
         std::vector<const DIType *> fieldTypes;
         if (ObjPN *obj = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(o))) {
