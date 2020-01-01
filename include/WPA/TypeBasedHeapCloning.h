@@ -117,6 +117,8 @@ private:
     std::map<NodeID, bool> gepIsLoad;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
     std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
+    /// Maps SVFG nodes to their filter set.
+    std::map<NodeID, PointsTo> locToFilterSet;
 
     DCHGraph *dchg = nullptr;
 };

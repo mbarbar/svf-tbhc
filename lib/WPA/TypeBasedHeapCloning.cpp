@@ -97,8 +97,11 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
         }
     }
 
+    const PointsTo &filterSet = locToFilterSet[src->getId()];
     for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
         NodeID o = *oI;
+        if (filterSet.test(o)) continue;
+
         if (propVarPtsFromSrcToDst(o, src, dst))
             changed = true;
 
@@ -203,6 +206,7 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
     // The points-to set we will populate in the loop to fill pPt.
     PointsTo pNewPt;
 
+    PointsTo &filterSet = locToFilterSet[svfgNode->getId()];
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp is t'
@@ -236,10 +240,13 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
         } else {
             // Some spurious objects will be filtered.
             filter = true;
+            prop = o;
         }
 
-        if (!filter) {
-            pNewPt.set(prop);
+        pNewPt.set(prop);
+
+        if (filter) {
+            filterSet.set(o);
         }
     }
 
@@ -271,9 +278,12 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     }
 
     const PointsTo& qPts = getPts(q);
+    const PointsTo &filterSet = locToFilterSet[gep->getId()];
     PointsTo tmpDstPts;
     for (PointsTo::iterator oqi = qPts.begin(); oqi != qPts.end(); ++oqi) {
         NodeID oq = *oqi;
+        if (filterSet.test(oq)) continue;
+
         if (isBlkObjOrConstantObj(oq)
             || (isClone(oq) && isBlkObjOrConstantObj(cloneToOriginalObj[oq]))) {
             tmpDstPts.set(oq);
@@ -317,10 +327,36 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
         return false;
     }
 
+    bool changed = false;
+
+    NodeID dstVar = load->getPAGDstNodeID();
+
+    const PointsTo& srcPts = getPts(load->getPAGSrcNodeID());
+    const PointsTo &filterSet = locToFilterSet[load->getId()];
+    for (PointsTo::iterator ptdIt = srcPts.begin(); ptdIt != srcPts.end(); ++ptdIt) {
+        NodeID ptd = *ptdIt;
+        if (filterSet.test(ptd)) continue;
+
+        if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
+            continue;
+
+        if (unionPtsFromIn(load, ptd, dstVar))
+            changed = true;
+
+        if (isFIObjNode(ptd)) {
+            /// If the ptd is a field-insensitive node, we should also get all field nodes'
+            /// points-to sets and pass them to pagDst.
+            const NodeBS& allFields = getAllFieldsObjNode(ptd);
+            for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
+                    fieldIt != fieldEit; ++fieldIt) {
+                if (unionPtsFromIn(load, *fieldIt, dstVar))
+                    changed = true;
+            }
+        }
+    }
+
     double end = stat->getClk();
     loadTime += (end - start) / TIMEINTERVAL;
-
-    bool changed = FlowSensitive::processLoad(load);
     return changed;
 }
 
@@ -341,10 +377,53 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
         return changed;
     }
 
+    const PointsTo & dstPts = getPts(store->getPAGDstNodeID());
+
+    /// STORE statement can only be processed if the pointer on the LHS
+    /// points to something. If we handle STORE with an empty points-to
+    /// set, the OUT set will be updated from IN set. Then if LHS pointer
+    /// points-to one target and it has been identified as a strong
+    /// update, we can't remove those points-to information computed
+    /// before this strong update from the OUT set.
+    if (dstPts.empty())
+        return false;
+
+    bool changed = false;
+    const PointsTo &filterSet = locToFilterSet[store->getId()];
+    if(getPts(store->getPAGSrcNodeID()).empty() == false) {
+        for (PointsTo::iterator it = dstPts.begin(), eit = dstPts.end(); it != eit; ++it) {
+            NodeID ptd = *it;
+            if (filterSet.test(ptd)) continue;
+
+            if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
+                continue;
+
+            if (unionPtsFromTop(store, store->getPAGSrcNodeID(), ptd))
+                changed = true;
+        }
+    }
+
     double end = stat->getClk();
     storeTime += (end - start) / TIMEINTERVAL;
 
-    bool changed = FlowSensitive::processStore(store);
+    double updateStart = stat->getClk();
+    // also merge the DFInSet to DFOutSet.
+    /// check if this is a strong updates store
+    NodeID singleton;
+    bool isSU = isStrongUpdate(store, singleton);
+    if (isSU) {
+        svfgHasSU.set(store->getId());
+        if (strongUpdateOutFromIn(store, singleton))
+            changed = true;
+    }
+    else {
+        svfgHasSU.reset(store->getId());
+        if (weakUpdateOutFromIn(store))
+            changed = true;
+    }
+    double updateEnd = stat->getClk();
+    updateTime += (updateEnd - updateStart) / TIMEINTERVAL;
+
     return changed;
 }
 
