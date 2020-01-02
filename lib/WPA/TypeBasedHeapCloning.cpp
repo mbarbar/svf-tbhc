@@ -50,9 +50,11 @@ void TypeBasedHeapCloning::finalize(void) {
     // Print clones with their types.
     /*
     llvm::outs() << "=== Original objects to clones ===\n";
+    unsigned total = 0;
     for (std::map<NodeID, std::set<NodeID>>::iterator ocI = objToClones.begin(); ocI != objToClones.end(); ++ocI) {
         NodeID originalObjId = ocI->first;
         std::set<NodeID> clones = ocI->second;
+        total += clones.size();
         llvm::outs() << "  " << originalObjId << " : "
                      << "(" << clones.size() << ")"
                      << "[ ";
@@ -69,6 +71,7 @@ void TypeBasedHeapCloning::finalize(void) {
         llvm::outs() << " ]\n";
     }
 
+    llvm::outs() << "Total: " << total << "\n";
     llvm::outs() << "==================================\n";
     */
 
