@@ -39,7 +39,6 @@ void FlowSensitiveTypeFilter::initialize(SVFModule svfModule) {
     dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
     assert(dchg != nullptr && "FSTF: requires DCHGraph");
 
-    //buildBackPropagationMap();
     determineWhichGepsAreLoads();
 }
 
@@ -190,8 +189,9 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     objToType[srcID] = objType;
     objToAllocation[srcID] = addr->getId();
 
-    std::set<NodeID> bpClones = addrNodeToBPSet[addr->getId()];
-    for (std::set<NodeID>::iterator oI = bpClones.begin(); oI != bpClones.end(); ++oI) {
+    // All the typed versions of srcID.
+    std::set<NodeID> clones = objToClones[srcID];
+    for (std::set<NodeID>::iterator oI = clones.begin(); oI != clones.end(); ++oI) {
         changed = addPts(addr->getPAGDstNodeID(), *oI) || changed;
         // No need for type stuff these are all clones; they are all typed.
     }
@@ -519,11 +519,6 @@ const DIType *FlowSensitiveTypeFilter::getTypeFromMetadata(const Value *v) const
 
 NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
     if (isClone(o)) o = cloneToOriginalObj[o];
-    // Check the desired clone doesn't already exist.
-    if (cloneSiteToClones[cloneSite->getId()].find(o) != cloneSiteToClones[cloneSite->getId()].end()) {
-        // If found, it must be the correct type because everything made here is of one type.
-        return cloneSiteToClones[cloneSite->getId()].at(o);
-    }
 
     // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     const PAGNode *obj = pag->getPAGNode(o);
@@ -538,19 +533,15 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
         }
     } else if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
         clone = pag->addCloneFIObjNode(fiObj->getMemObj());
-        addrNodeToBPSet[objToAllocation[o]].insert(clone);
         pushIntoWorklist(objToAllocation[o]);
     } else {
         // Could be a dummy object.
         clone = pag->addCloneObjNode();
-        addrNodeToBPSet[objToAllocation[o]].insert(clone);
         pushIntoWorklist(objToAllocation[o]);
     }
 
     // Clone's attributes.
     objToType[clone] = type;
-    objToCloneSite[clone] = cloneSite->getId();
-    cloneSiteToClones[cloneSite->getId()][o] = clone;
     // Same allocation site as the original object.
     objToAllocation[clone] = objToAllocation[o];
 
@@ -626,73 +617,6 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
     }
 
     return geps;
-}
-
-/// Places all paths from initNode to wherever it may need to back-propagate in paths.
-static void getBackPropagationPaths(std::vector<std::vector<NodeID>> &paths,
-                                    std::forward_list<std::tuple<SVFGNode *, std::vector<NodeID>, std::set<NodeID>>> &todoList) {
-    while (!todoList.empty()) {
-        SVFGNode *currNode = std::get<0>(todoList.front());
-        std::vector<NodeID> currPath = std::get<1>(todoList.front());
-        std::set<NodeID> currSeen = std::get<2>(todoList.front());
-        todoList.pop_front();
-
-        currPath.push_back(currNode->getId());
-        currSeen.insert(currNode->getId());
-
-        std::set<SVFGNode *> nextNodes;
-        // Just because we didn't add any nodes doesn't mean we are at the end of a path. If we don't
-        // add any nodes because of a loop or GEP -> not path end; because of a ret edge -> path end.
-        // No nodes to follow anymore (should be at addr, TODO: what about CHI?) -> path end.
-        bool pathEnd = currNode->getInEdges().empty();
-        for (auto inEdgeI = currNode->getInEdges().begin(); inEdgeI != currNode->getInEdges().end(); ++inEdgeI) {
-            // Don't cross returns. Don't go through GEPs. Don't follow loops.
-            if (SVFUtil::isa<RetDirSVFGEdge>(*inEdgeI) || SVFUtil::isa<RetIndSVFGEdge>(*inEdgeI)) {
-                pathEnd = true;
-            } else if (!(SVFUtil::isa<GepSVFGNode>((*inEdgeI)->getSrcNode()))
-                       && currSeen.find((*inEdgeI)->getSrcNode()->getId()) == currSeen.end()) {
-                nextNodes.insert((*inEdgeI)->getSrcNode());
-            }
-        }
-
-        if (pathEnd) {
-            paths.push_back(currPath);
-        } else {
-            for (std::set<SVFGNode *>::iterator nextI = nextNodes.begin(); nextI != nextNodes.end(); ++nextI) {
-                todoList.push_front(std::make_tuple(*nextI, currPath, currSeen));
-            }
-        }
-    }
-}
-
-void FlowSensitiveTypeFilter::buildBackPropagationMap(void) {
-    std::vector<std::vector<NodeID>> paths;
-    for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
-        SVFGNode *svfgNode = nI->second;
-        if (StmtSVFGNode *stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(svfgNode)) {
-            if (SVFUtil::isa<LoadSVFGNode>(stmtNode) || SVFUtil::isa<StoreSVFGNode>(stmtNode)
-                || SVFUtil::isa<GepSVFGNode>(stmtNode)) {
-                if (getTypeFromMetadata(stmtNode->getInst() ? stmtNode->getInst()
-                                                            : stmtNode->getPAGEdge()->getValue())) {
-                    // Only nodes which have ctir metadata can possibly be used as
-                    // initialisation points.
-                    std::forward_list<std::tuple<SVFGNode *, std::vector<NodeID>, std::set<NodeID>>> todoList;
-                    todoList.push_front(std::make_tuple(stmtNode, std::vector<NodeID>(), std::set<NodeID>()));
-                    getBackPropagationPaths(paths, todoList);
-                }
-            }
-        }
-    }
-
-    /*
-    for (auto vv = paths.begin(); vv != paths.end(); ++vv) {
-        llvm::outs() << "[ ";
-        for (auto vi = vv->begin(); vi != vv->end(); ++vi) {
-            llvm::outs() << *vi << ", ";
-        }
-        llvm::outs() << " ]\n";
-    }
-    */
 }
 
 void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {

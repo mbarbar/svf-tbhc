@@ -76,13 +76,6 @@ private:
     /// Returns true if o is a clone.
     bool isClone(NodeID o) const;
 
-    /// Builds the 1-to-1 map of SVFG nodes to where they need to back-propagate to.
-    /// Algorithm in English:
-    ///   Iterate backwards, gathering nodes along the way. Never take a return edge.
-    ///   Don't follow through GEP nodes (we handle field objects differently).
-    ///   No edges to take? This is a back-propagation node for all the gathered nodes.
-    void buildBackPropagationMap(void);
-
     /// Determines whether each GEP is a load or not. Builds gepIsLoad map.
     /// This is a quick heuristic; if all destination nodes are loads, it's a load.
     void determineWhichGepsAreLoads(void);
@@ -97,22 +90,14 @@ private:
     std::map<NodeID, const DIType *> objToType;
     /// Object -> allocation site (SVFG node).
     std::map<NodeID, NodeID> objToAllocation;
-    /// Object -> cloning site (SVFG node).
-    std::map<NodeID, NodeID> objToCloneSite;
-    /// SVFG node -> (orig. obj -> clone) (if one was made there)
-    std::map<NodeID, std::map<NodeID, NodeID>> cloneSiteToClones;
     /// (Original) object -> set of its clones.
     std::map<NodeID, std::set<NodeID>> objToClones;
-    /// (Clone) object -> original object (opposite of obj to clones).
+    /// (Clone) object -> original object (opposite of objToclones).
     std::map<NodeID, NodeID> cloneToOriginalObj;
     /// Maps objects to the GEP nodes beneath them.
     std::map<NodeID, std::set<NodeID>> objToGeps;
     /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
     std::map<NodeID, std::set<NodeID>> gepToSVFGRetrievers;
-    /// Maps SVFG nodes to where back-propagation needs to go to.
-    std::map<NodeID, std::set<NodeID>> svfgNodeToBPNode;
-    /// Maps Addr SVFG nodes to the objects which have been back-propagated to it.
-    std::map<NodeID, std::set<NodeID>> addrNodeToBPSet;
     /// Maps whether a (SVFG) GEP node is a load or not.
     std::map<NodeID, bool> gepIsLoad;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
