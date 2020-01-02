@@ -1,7 +1,7 @@
-//===- TypeBasedHeapCloning.h -- type-based Flow-sensitive heap cloning----------------//
+//===- FlowSensitiveTypeFilter.h -- type-based Flow-sensitive heap cloning----------------//
 
 /*
- * TypeBasedHeapCloning.h
+ * FlowSensitiveTypeFilter.h
  *
  *  Created on: Oct 08, 2019
  *      Author: Mohamad Barbar
@@ -19,15 +19,15 @@ class SVFModule;
 /*!
  * Flow sensitive whole program pointer analysis with type-based heap cloning.
  */
-class TypeBasedHeapCloning : public FlowSensitive {
+class FlowSensitiveTypeFilter : public FlowSensitive {
 public:
     static const DIType *undefType;
 
     /// Constructor
-    TypeBasedHeapCloning(PTATY type = TBHC_WPA) : FlowSensitive(type) {
+    FlowSensitiveTypeFilter(PTATY type = FSTF_WPA) : FlowSensitive(type) {
     }
 
-    /// Flow sensitive analysis with TBHC.
+    /// Flow sensitive analysis with FSTF.
     virtual void analyze(SVFModule svfModule) override;
     /// Initialize analysis.
     virtual void initialize(SVFModule svfModule) override;
@@ -36,7 +36,7 @@ public:
 
     /// Get PTA name
     virtual const std::string PTAName() const override{
-        return "TBHC";
+        return "FSTF";
     }
 
     virtual bool propAlongIndirectEdge(const IndirectSVFGEdge* edge) override;

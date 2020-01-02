@@ -1,7 +1,7 @@
-//===- TypeBasedHeapCloning.cpp -- Type-based flow-sensitive heap cloning------------//
+//===- FlowSensitiveTypeFilter.cpp -- Type-based flow-sensitive heap cloning------------//
 
 /*
- * TypeBasedHeapCloning.cpp
+ * FlowSensitiveTypeFilter.cpp
  *
  *  Created on: Oct 08, 2019
  *      Author: Mohamad Barbar
@@ -17,19 +17,19 @@
 #include <forward_list>
 
 #include "Util/CPPUtil.h"
-#include "WPA/TypeBasedHeapCloning.h"
+#include "WPA/FlowSensitiveTypeFilter.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
 
 // TODO: maybe better to actually construct something.
-const DIType *TypeBasedHeapCloning::undefType = nullptr;
+const DIType *FlowSensitiveTypeFilter::undefType = nullptr;
 
-void TypeBasedHeapCloning::analyze(SVFModule svfModule) {
+void FlowSensitiveTypeFilter::analyze(SVFModule svfModule) {
     // TODO: unclear if this will need to change.
     FlowSensitive::analyze(svfModule);
 }
 
-void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
+void FlowSensitiveTypeFilter::initialize(SVFModule svfModule) {
     PointerAnalysis::initialize(svfModule);
     AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfModule);
     svfg = memSSA.buildFullSVFG(ander);
@@ -37,13 +37,13 @@ void TypeBasedHeapCloning::initialize(SVFModule svfModule) {
     stat = new FlowSensitiveStat(this);
 
     dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
-    assert(dchg != nullptr && "TBHC: requires DCHGraph");
+    assert(dchg != nullptr && "FSTF: requires DCHGraph");
 
     //buildBackPropagationMap();
     determineWhichGepsAreLoads();
 }
 
-void TypeBasedHeapCloning::finalize(void) {
+void FlowSensitiveTypeFilter::finalize(void) {
     FlowSensitive::finalize();
     // ^ Will print call graph stats.
 
@@ -78,7 +78,7 @@ void TypeBasedHeapCloning::finalize(void) {
     // getDFPTDataTy()->dumpPTData();
 }
 
-bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
+bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     SVFGNode* src = edge->getSrcNode();
     SVFGNode* dst = edge->getDstNode();
 
@@ -122,7 +122,7 @@ bool TypeBasedHeapCloning::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::propAlongDirectEdge(const DirectSVFGEdge* edge) {
+bool FlowSensitiveTypeFilter::propAlongDirectEdge(const DirectSVFGEdge* edge) {
     double start = stat->getClk();
     bool changed = false;
 
@@ -149,7 +149,7 @@ bool TypeBasedHeapCloning::propAlongDirectEdge(const DirectSVFGEdge* edge) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
+bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
 
     NodeID srcID = addr->getPAGSrcNodeID();
@@ -170,7 +170,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     // Some of the constant objects have more, so we make that exception.
     /* Can't have this because of back-propagation.
     assert((objToType.find(srcID) == objToType.end() || !SVFUtil::isa<DummyObjPN>(srcNode))
-           && "TBHC: addr: already has a type?");
+           && "FSTF: addr: already has a type?");
      */
 
     const DIType *objType;
@@ -202,7 +202,7 @@ bool TypeBasedHeapCloning::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse) {
+bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse) {
     bool changed = false;
 
     PointsTo &pPt = getPts(pId);
@@ -262,7 +262,7 @@ bool TypeBasedHeapCloning::initialise(const SVFGNode *svfgNode, const NodeID pId
     return changed;
 }
 
-bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
+bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     double start = stat->getClk();
 
     // Copy of that in FlowSensitive.cpp + some changes.
@@ -314,7 +314,7 @@ bool TypeBasedHeapCloning::processGep(const GepSVFGNode* gep) {
     return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || qChanged;
 }
 
-bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
+bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
     double start = stat->getClk();
 
     preparePtsFromIn(load, load->getPAGSrcNodeID());
@@ -363,7 +363,7 @@ bool TypeBasedHeapCloning::processLoad(const LoadSVFGNode* load) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
+bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
     double start = stat->getClk();
 
     const DIType *tildet = getTypeFromMetadata(store->getInst() ? store->getInst()
@@ -430,7 +430,7 @@ bool TypeBasedHeapCloning::processStore(const StoreSVFGNode* store) {
     return changed;
 }
 
-bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
+bool FlowSensitiveTypeFilter::processPhi(const PHISVFGNode* phi) {
     if (!phi->isPTANode()) return false;
 
     if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
@@ -448,7 +448,7 @@ bool TypeBasedHeapCloning::processPhi(const PHISVFGNode* phi) {
     return changed;
 }
 
-void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
+void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
 
@@ -494,8 +494,8 @@ void TypeBasedHeapCloning::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId
     }
 }
 
-const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
-    assert(v != nullptr && "TBHC: trying to get metadata from nullptr!");
+const DIType *FlowSensitiveTypeFilter::getTypeFromMetadata(const Value *v) const {
+    assert(v != nullptr && "FSTF: trying to get metadata from nullptr!");
 
     const MDNode *mdNode = nullptr;
     if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
@@ -510,14 +510,14 @@ const DIType *TypeBasedHeapCloning::getTypeFromMetadata(const Value *v) const {
 
     const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
     if (type == nullptr) {
-        llvm::errs() << "TBHC: bad ctir metadata type\n";
+        llvm::errs() << "FSTF: bad ctir metadata type\n";
         return nullptr;
     }
 
     return dchg->getCanonicalType(type);
 }
 
-NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
     if (isClone(o)) o = cloneToOriginalObj[o];
     // Check the desired clone doesn't already exist.
     if (cloneSiteToClones[cloneSite->getId()].find(o) != cloneSiteToClones[cloneSite->getId()].end()) {
@@ -561,15 +561,15 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const SVFGNode *cloneSite, co
     return clone;
 }
 
-bool TypeBasedHeapCloning::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
+bool FlowSensitiveTypeFilter::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
     return dchg->isBase(a, b, true);
 }
 
-bool TypeBasedHeapCloning::isClone(NodeID o) const {
+bool FlowSensitiveTypeFilter::isClone(NodeID o) const {
     return cloneToOriginalObj.find(o) != cloneToOriginalObj.end();
 }
 
-std::set<NodeID> TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
+std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
     std::set<NodeID> geps;
     PAGNode *node = pag->getPAGNode(base);
     assert(node);
@@ -665,7 +665,7 @@ static void getBackPropagationPaths(std::vector<std::vector<NodeID>> &paths,
     }
 }
 
-void TypeBasedHeapCloning::buildBackPropagationMap(void) {
+void FlowSensitiveTypeFilter::buildBackPropagationMap(void) {
     std::vector<std::vector<NodeID>> paths;
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
@@ -695,7 +695,7 @@ void TypeBasedHeapCloning::buildBackPropagationMap(void) {
     */
 }
 
-void TypeBasedHeapCloning::determineWhichGepsAreLoads(void) {
+void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
