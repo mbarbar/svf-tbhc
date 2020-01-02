@@ -1,4 +1,4 @@
-//===- FlowSensitiveTypeFilter.h -- type-based Flow-sensitive heap cloning----------------//
+//===- FlowSensitiveTypeFilter.h -- flow-sensitive type filter ----------------//
 
 /*
  * FlowSensitiveTypeFilter.h
@@ -7,8 +7,8 @@
  *      Author: Mohamad Barbar
  */
 
-#ifndef TYPEBASEDHEAPCLONING_H_
-#define TYPEBASEDHEAPCLONING_H_
+#ifndef FLOWSENSITIVETYPEFILTER_H_
+#define FLOWSENSITIVETYPEFILTER_H_
 
 #include "MemoryModel/DCHG.h"
 #include "MSSA/SVFGOPT.h"
@@ -123,4 +123,4 @@ private:
     DCHGraph *dchg = nullptr;
 };
 
-#endif /* TYPEBASEDHEAPCLONING_H_ */
+#endif /* FLOWSENSITIVETYPEFILTER_H_ */

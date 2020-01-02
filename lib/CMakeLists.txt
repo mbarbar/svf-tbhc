@@ -60,7 +60,7 @@ set(SOURCES
     WPA/FlowSensitiveStat.cpp
     WPA/TypeAnalysis.cpp
     WPA/WPAPass.cpp
-    WPA/TypeBasedHeapCloning.cpp
+    WPA/FlowSensitiveTypeFilter.cpp
 #    DDA/ContextDDA.cpp
 #    DDA/DDAClient.cpp
 #    DDA/DDAPass.cpp

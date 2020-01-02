@@ -1,4 +1,4 @@
-//===- FlowSensitiveTypeFilter.cpp -- Type-based flow-sensitive heap cloning------------//
+//===- FlowSensitiveTypeFilter.cpp -- flow-sensitive type filter ------------//
 
 /*
  * FlowSensitiveTypeFilter.cpp

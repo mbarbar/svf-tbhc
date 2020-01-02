@@ -40,7 +40,7 @@
 #include "WPA/AndersenSFR.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/TypeAnalysis.h"
-#include "WPA/TypeBasedHeapCloning.h"
+#include "WPA/FlowSensitiveTypeFilter.h"
 
 char WPAPass::ID = 0;
 
@@ -139,7 +139,7 @@ void WPAPass::runPointerAnalysis(SVFModule svfModule, u32_t kind)
             _pta = new FlowSensitive();
             break;
         case PointerAnalysis::FSTF_WPA:
-            _pta = new TypeBasedHeapCloning();
+            _pta = new FlowSensitiveTypeFilter();
             break;
         case PointerAnalysis::TypeCPP_WPA:
             _pta = new TypeAnalysis();
