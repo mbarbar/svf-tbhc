@@ -579,7 +579,7 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
             || tag == dwarf::DW_TAG_typedef) {
             // Qualifier - get underlying type.
             const DIDerivedType *dt = llvm::dyn_cast<DIDerivedType>(t);
-            assert(t && "TBHC: expected DerivedType");
+            assert(t && "DCHG: expected DerivedType");
             t = dt->getBaseType();
         } else if (   tag == dwarf::DW_TAG_array_type
                    || tag == dwarf::DW_TAG_class_type
@@ -596,9 +596,9 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
         } else if (   tag == dwarf::DW_TAG_inheritance
                    || tag == dwarf::DW_TAG_member
                    || tag == dwarf::DW_TAG_friend) {
-            assert(false && "TBHC: unexpected tag when stripping qualifiers");
+            assert(false && "DCHG: unexpected tag when stripping qualifiers");
         } else {
-            assert(false && "TBHC: unhandled tag when stripping qualifiers");
+            assert(false && "DCHG: unhandled tag when stripping qualifiers");
         }
     }
 
