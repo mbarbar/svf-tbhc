@@ -518,8 +518,42 @@ const DIType *FlowSensitiveTypeFilter::getTypeFromMetadata(const Value *v) const
 NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
     if (isClone(o)) o = cloneToOriginalObj[o];
 
-    // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     const PAGNode *obj = pag->getPAGNode(o);
+    NodeID clone = o;
+    if (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(obj)) {
+        clone = o;
+    } else if (SVFUtil::isa<FIObjPN>(obj) || SVFUtil::isa<DummyObjPN>(obj)) {
+        if (SVFUtil::isa<DummyObjPN>(obj)) return o;
+        // Check if a clone of the correct type exists.
+        std::set<NodeID> &clones = objToClones[o];
+        for (NodeID clone : clones) {
+            if (objToType[clone] == type) {
+                return clone;
+            }
+        }
+
+        // Otherwise, we create that clone.
+        if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
+            clone = pag->addCloneFIObjNode(fiObj->getMemObj());
+        } else {
+            clone = pag->addCloneObjNode();
+        }
+        objToType[clone] = type;
+        objToAllocation[clone] = objToAllocation[o];
+
+        // Tracking of object<->clone.
+        objToClones[o].insert(clone);
+        cloneToOriginalObj[clone] = o;
+
+        pushIntoWorklist(objToAllocation[o]);
+    } else {
+        assert(false && "FSTF: trying to clone unhandled object");
+    }
+
+    return clone;
+
+    /*
+    // CloneObjs for standard objects, CloneGepObjs for GepObjs, CloneFIObjs for FIObjs.
     NodeID clone;
     if (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(obj)) {
         clone = pag->addCloneGepObjNode(gepObj->getMemObj(), gepObj->getLocationSet());
@@ -530,24 +564,7 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
             pushIntoWorklist(*svfgNodeI);
         }
     } else if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
-        clone = pag->addCloneFIObjNode(fiObj->getMemObj());
-        pushIntoWorklist(objToAllocation[o]);
-    } else {
-        // Could be a dummy object.
-        clone = pag->addCloneObjNode();
-        pushIntoWorklist(objToAllocation[o]);
-    }
-
-    // Clone's attributes.
-    objToType[clone] = type;
-    // Same allocation site as the original object.
-    objToAllocation[clone] = objToAllocation[o];
-
-    // Tracking of object<->clone.
-    objToClones[o].insert(clone);
-    cloneToOriginalObj[clone] = o;
-
-    return clone;
+    */
 }
 
 bool FlowSensitiveTypeFilter::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
