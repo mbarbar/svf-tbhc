@@ -47,12 +47,13 @@ void FlowSensitiveTypeFilter::finalize(void) {
     // ^ Will print call graph stats.
 
     // Print clones with their types.
-    /*
     llvm::outs() << "=== Original objects to clones ===\n";
     unsigned total = 0;
     for (std::map<NodeID, std::set<NodeID>>::iterator ocI = objToClones.begin(); ocI != objToClones.end(); ++ocI) {
         NodeID originalObjId = ocI->first;
         std::set<NodeID> clones = ocI->second;
+        if (clones.size() == 0) continue;
+
         total += clones.size();
         llvm::outs() << "  " << originalObjId << " : "
                      << "(" << clones.size() << ")"
@@ -61,8 +62,6 @@ void FlowSensitiveTypeFilter::finalize(void) {
             llvm::outs() << *cloneI
                          << "{"
                          << dchg->diTypeToStr(objToType[*cloneI])
-                         << ":"
-                         << objToCloneSite[*cloneI]
                          << "}"
                          << (std::next(cloneI) == clones.end() ? "" : ", ");
         }
@@ -72,7 +71,6 @@ void FlowSensitiveTypeFilter::finalize(void) {
 
     llvm::outs() << "Total: " << total << "\n";
     llvm::outs() << "==================================\n";
-    */
 
     // getDFPTDataTy()->dumpPTData();
 }
