@@ -97,11 +97,8 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
         }
     }
 
-    const PointsTo &filterSet = locToFilterSet[src->getId()];
     for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
         NodeID o = *oI;
-        if (filterSet.test(o)) continue;
-
         if (propVarPtsFromSrcToDst(o, src, dst))
             changed = true;
 
@@ -207,7 +204,6 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
     // The points-to set we will populate in the loop to fill pPt.
     PointsTo pNewPt;
 
-    PointsTo &filterSet = locToFilterSet[svfgNode->getId()];
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
         const DIType *tp = objToType[o];  // tp is t'
@@ -244,10 +240,9 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
             prop = o;
         }
 
-        pNewPt.set(prop);
 
-        if (filter) {
-            filterSet.set(o);
+        if (!filter) {
+            pNewPt.set(prop);
         }
     }
 
@@ -279,12 +274,9 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     }
 
     const PointsTo& qPts = getPts(q);
-    const PointsTo &filterSet = locToFilterSet[gep->getId()];
     PointsTo tmpDstPts;
     for (PointsTo::iterator oqi = qPts.begin(); oqi != qPts.end(); ++oqi) {
         NodeID oq = *oqi;
-        if (filterSet.test(oq)) continue;
-
         if (isBlkObjOrConstantObj(oq)
             || (isClone(oq) && isBlkObjOrConstantObj(cloneToOriginalObj[oq]))) {
             tmpDstPts.set(oq);
@@ -333,11 +325,8 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
     NodeID dstVar = load->getPAGDstNodeID();
 
     const PointsTo& srcPts = getPts(load->getPAGSrcNodeID());
-    const PointsTo &filterSet = locToFilterSet[load->getId()];
     for (PointsTo::iterator ptdIt = srcPts.begin(); ptdIt != srcPts.end(); ++ptdIt) {
         NodeID ptd = *ptdIt;
-        if (filterSet.test(ptd)) continue;
-
         if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
             continue;
 
@@ -390,12 +379,9 @@ bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
         return false;
 
     bool changed = false;
-    const PointsTo &filterSet = locToFilterSet[store->getId()];
     if(getPts(store->getPAGSrcNodeID()).empty() == false) {
         for (PointsTo::iterator it = dstPts.begin(), eit = dstPts.end(); it != eit; ++it) {
             NodeID ptd = *it;
-            if (filterSet.test(ptd)) continue;
-
             if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
                 continue;
 
