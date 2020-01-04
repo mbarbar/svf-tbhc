@@ -237,6 +237,11 @@ std::set<const DCHNode *> &DCHGraph::cha(const llvm::DIType *type, bool firstFie
 }
 
 void DCHGraph::flatten(const DICompositeType *type) {
+    if (fieldTypes.find(type) != fieldTypes.end()) {
+        // Already done (necessary because of the recursion).
+        return;
+    }
+
     assert(type != nullptr
            && (type->getTag() == dwarf::DW_TAG_class_type
                || type->getTag() == dwarf::DW_TAG_structure_type
