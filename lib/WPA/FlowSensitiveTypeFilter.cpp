@@ -439,41 +439,19 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
     // TODO: double check ternary.
     const DIType *tildet = getTypeFromMetadata(stmt->getInst() ? stmt->getInst()
                                                                : stmt->getPAGEdge()->getValue());
-
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
-    for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
-        NodeID o = *oI;
-
-        /*
-        if (isBlkObjOrConstantObj(o)) {
+    for (PtsMap::value_type kv : ptsInMap) {
+        NodeID o = kv.first;
+        llvm::outs() << "o = " << o << "\n";
+        if (pPt.test(o)) {
             pNewPt.set(o);
-            continue;
-        }
-        */
-
-        NodeID originalO = isClone(o) ? cloneToOriginalObj[o] : o;
-        bool mergeO = false;
-        for (NodeID clone : objToClones[originalO]) {
-            if (ptsInMap.find(clone) != ptsInMap.end()) {
-                pNewPt.set(clone);
-
-                // If o is not a clone, and a clone is coming through of the same type,
-                // we can stop propagating the untyped object, because everything that
-                // points to the to-be clone will alias everything that points to the
-                // incoming clone.
-                if (!isClone(o) && tildet == objToType[clone]) {
-                    mergeO = true;
-                }
-            }
-        }
-
-        if (!mergeO) {
+        } else if (isClone(o) && pPt.test(cloneToOriginalObj[o])) {
             pNewPt.set(o);
         }
     }
 
     if (pPt != pNewPt) {
-        pPt.clear();
+        //pPt.clear();
         unionPts(pId, pNewPt);
     }
 }
