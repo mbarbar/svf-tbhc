@@ -104,6 +104,8 @@ private:
     std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
     /// Maps objects to the "lowest" possible type (through downcasts).
     std::map<NodeID, const DIType *> objToLowestType;
+    /// Maps SVFG nodes to their filter set.
+    std::map<NodeID, PointsTo> locToFilterSet;
 
     DCHGraph *dchg = nullptr;
 };
