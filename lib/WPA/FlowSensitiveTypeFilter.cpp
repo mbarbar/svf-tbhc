@@ -181,7 +181,7 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
         objType = undefType;
     } else {
         // Stack/global.
-        objType = getTypeFromMetadata(srcNode->getValue());
+        objType = dchg->getTypeFromCTirMetadata(srcNode->getValue());
     }
 
     objToType[srcID] = objType;
@@ -276,8 +276,8 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     // Copy of that in FlowSensitive.cpp + some changes.
     NodeID q = gep->getPAGSrcNodeID();
 
-    const DIType *tildet = getTypeFromMetadata(gep->getInst() ? gep->getInst()
-                                                              : gep->getPAGEdge()->getValue());
+    const DIType *tildet = dchg->getTypeFromCTirMetadata(gep->getInst() ? gep->getInst()
+                                                                        : gep->getPAGEdge()->getValue());
     // TODO: is qChanged necessary?
     bool qChanged = false;
     if (tildet != undefType) {
@@ -327,8 +327,8 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
 
     preparePtsFromIn(load, load->getPAGSrcNodeID());
 
-    const DIType *tildet = getTypeFromMetadata(load->getInst() ? load->getInst()
-                                                               : load->getPAGEdge()->getValue());
+    const DIType *tildet = dchg->getTypeFromCTirMetadata(load->getInst() ? load->getInst()
+                                                                         : load->getPAGEdge()->getValue());
     if (tildet != undefType) {
         initialise(load, load->getPAGSrcNodeID(), tildet, false);
     }
@@ -374,8 +374,8 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
 bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
     double start = stat->getClk();
 
-    const DIType *tildet = getTypeFromMetadata(store->getInst() ? store->getInst()
-                                                               : store->getPAGEdge()->getValue());
+    const DIType *tildet = dchg->getTypeFromCTirMetadata(store->getInst() ? store->getInst()
+                                                                          : store->getPAGEdge()->getValue());
     if (tildet != undefType) {
         initialise(store, store->getPAGDstNodeID(), tildet, true);
     }
@@ -461,8 +461,8 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
     PointsTo pNewPt;
 
     // TODO: double check ternary.
-    const DIType *tildet = getTypeFromMetadata(stmt->getInst() ? stmt->getInst()
-                                                               : stmt->getPAGEdge()->getValue());
+    const DIType *tildet = dchg->getTypeFromCTirMetadata(stmt->getInst() ? stmt->getInst()
+                                                                         : stmt->getPAGEdge()->getValue());
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
     for (PtsMap::value_type kv : ptsInMap) {
         NodeID o = kv.first;
@@ -477,29 +477,6 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
         //pPt.clear();
         unionPts(pId, pNewPt);
     }
-}
-
-const DIType *FlowSensitiveTypeFilter::getTypeFromMetadata(const Value *v) const {
-    assert(v != nullptr && "FSTF: trying to get metadata from nullptr!");
-
-    const MDNode *mdNode = nullptr;
-    if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
-        mdNode = inst->getMetadata(SVFModule::ctirMetadataName);
-    } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
-        mdNode = go->getMetadata(SVFModule::ctirMetadataName);
-    }
-
-    if (mdNode == nullptr) {
-        return nullptr;
-    }
-
-    const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
-    if (type == nullptr) {
-        llvm::errs() << "FSTF: bad ctir metadata type\n";
-        return nullptr;
-    }
-
-    return dchg->getCanonicalType(type);
 }
 
 NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
@@ -625,8 +602,8 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
-            if (getTypeFromMetadata(gep->getInst() ? gep->getInst()
-                                                   : gep->getPAGEdge()->getValue())) {
+            if (dchg->getTypeFromCTirMetadata(gep->getInst() ? gep->getInst()
+                                                             : gep->getPAGEdge()->getValue())) {
                 // Only care about ctir nodes - they have the reuse problem.
                 gepIsLoad[gep->getId()] = true;
                 for (auto eI = gep->getOutEdges().begin(); eI != gep->getOutEdges().end(); ++eI) {

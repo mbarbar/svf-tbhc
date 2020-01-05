@@ -301,6 +301,10 @@ public:
         return constructorToType.at(constructor);
     }
 
+    /// Returns the ctir type attached to the value, nullptr if non-existant.
+    /// Not static because it needs to DCHG to return the canonical type.
+    const DIType *getTypeFromCTirMetadata(const Value *);
+
 protected:
     /// SVF Module this CHG is built from.
     SVFModule svfModule;
