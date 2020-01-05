@@ -645,15 +645,16 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
                    || tag == dwarf::DW_TAG_structure_type
                    || tag == dwarf::DW_TAG_union_type
                    || tag == dwarf::DW_TAG_enumeration_type
+                   || tag == dwarf::DW_TAG_member
                    || tag == dwarf::DW_TAG_pointer_type
                    || tag == dwarf::DW_TAG_ptr_to_member_type
                    || tag == dwarf::DW_TAG_reference_type
                    || tag == dwarf::DW_TAG_rvalue_reference_type) {
             // TODO: check rvalue_reference_type.
+            // TODO: maybe this function should strip members too?
             // Hit a non-qualifier.
             break;
         } else if (   tag == dwarf::DW_TAG_inheritance
-                   || tag == dwarf::DW_TAG_member
                    || tag == dwarf::DW_TAG_friend) {
             assert(false && "DCHG: unexpected tag when stripping qualifiers");
         } else {
@@ -712,6 +713,7 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
 
     // Check, do we need to compare base types?
     // This makes pointers, references, and arrays equivalent.
+    // Will handle member types.
     if ((SVFUtil::isa<DIDerivedType>(t1) || t1->getTag() == dwarf::DW_TAG_array_type)
         && (SVFUtil::isa<DIDerivedType>(t2) || t2->getTag() == dwarf::DW_TAG_array_type)) {
         const DIType *base1, *base2;
@@ -737,11 +739,36 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return teq(base1, base2);
     }
 
+    if (SVFUtil::isa<DICompositeType>(t1) && SVFUtil::isa<DICompositeType>(t2)) {
+        const DICompositeType *ct1 = SVFUtil::dyn_cast<DICompositeType>(t1);
+        const DICompositeType *ct2 = SVFUtil::dyn_cast<DICompositeType>(t2);
+
+        if (ct1->getTag() != ct2->getTag()) return false;
+
+        // TODO: too coarse?
+        // Treat all enums the same for now.
+        if (ct1->getTag() == dwarf::DW_TAG_enumeration_type) {
+            return true;
+        }
+
+        // C++ classes? Check mangled name.
+        if (ct1->getTag() == dwarf::DW_TAG_class_type) {
+            return ct1->getIdentifier() == ct2->getIdentifier();
+        }
+
+        // Either union or struct, simply test all fields are equal.
+        // Seems like it is enough to check it was defined in the same place.
+        // The elements sometimes differ but are referring to the same fields.
+        return    ct1->getName() == ct2->getName()
+               && ct1->getFile() == ct2->getFile()
+               && ct1->getLine() == ct2->getLine();
+    }
+
     // TODO: do we need special handling of subroutine types?
 
     // They were not equal base types (discounting signedness), nor were they
-    // "equal" pointers/references/arrays, nor were they completely equal (and
-    // thus equal structs/classes).
+    // "equal" pointers/references/arrays, nor were they the structurally equivalent,
+    // nor were they completely equal.
     return false;
 }
 
