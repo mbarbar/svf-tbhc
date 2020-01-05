@@ -40,6 +40,7 @@
 #include "MemoryModel/DCHG.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
+#include "WPA/FlowSensitiveTypeFilter.h"
 #include <fstream>
 #include <sstream>
 
@@ -236,6 +237,48 @@ void PointerAnalysis::printCallGraphStats(void) {
         SVFUtil::outs() << n << " ";
     }
     SVFUtil::outs() << "\n";
+}
+
+void PointerAnalysis::printCTirAliasStats(void) {
+    DCHGraph *dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
+    if (dchg == nullptr) {
+    llvm::outs() << "eval-ctir-aliases needs DCHG.";
+    }
+
+    std::set<NodeID> cmpNodes;
+    for (PAG::iterator npair = pag->begin(); npair != pag->end(); ++npair) {
+        NodeID p = npair->first;
+        PAGNode *node = npair->second;
+
+        // Ignore anything without CTir.
+        if (node->hasValue() && dchg->getTypeFromCTirMetadata(node->getValue())
+                                != FlowSensitiveTypeFilter::undefType) {
+            cmpNodes.insert(p);
+        }
+    }
+
+    unsigned noAliases = 0, mayAliases = 0;
+    for (NodeID a : cmpNodes) {
+        const PointsTo &aPts = getPts(a);
+        for (NodeID b : cmpNodes) {
+            switch (alias(a, b)) {
+            case llvm::NoAlias:
+                ++noAliases;
+                break;
+            case llvm::MayAlias:
+                ++mayAliases;
+                break;
+            default:
+                assert("Not May/NoAlias?");
+            }
+        }
+    }
+
+    llvm::outs() << "eval-ctir-aliases "
+                 << noAliases + mayAliases << " "
+                 << mayAliases << " "
+                 << noAliases << " "
+                 << "\n";
 }
 
 /*!

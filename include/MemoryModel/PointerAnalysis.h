@@ -226,6 +226,10 @@ protected:
     /// Format: eval-indirect-calls #UNIQUE_TARGETS #TARGETS_FOR_CS_0 #TARGETS_FOR_CS_1 ...
     virtual void printCallGraphStats(void);
 
+    /// Prints some easily parseable stats on aliasing of relevant CTir TL PTS.
+    /// Format: eval-ctir-aliases #TOTAL_TESTS #MAY_ALIAS #NO_ALIAS
+    virtual void printCTirAliasStats(void);
+
 public:
     /// Dump the statistics
     void dumpStat();
