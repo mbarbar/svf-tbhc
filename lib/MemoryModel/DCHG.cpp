@@ -27,6 +27,7 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
     switch (compositeType->getTag()) {
     case llvm::dwarf::DW_TAG_array_type:
         if (extended) getOrCreateNode(compositeType);
+        gatherAggs(compositeType);
         break;
     case llvm::dwarf::DW_TAG_class_type:
     case llvm::dwarf::DW_TAG_structure_type:
@@ -46,6 +47,7 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
         }
 
         flatten(compositeType);
+        gatherAggs(compositeType);
 
         break;
     case llvm::dwarf::DW_TAG_union_type:
@@ -64,6 +66,7 @@ void DCHGraph::handleDICompositeType(const llvm::DICompositeType *compositeType)
         }
 
         flatten(compositeType);
+        gatherAggs(compositeType);
 
         break;
     case llvm::dwarf::DW_TAG_enumeration_type:
@@ -288,6 +291,57 @@ void DCHGraph::flatten(const DICompositeType *type) {
             }
         } else {
             assert(false && "DCHG: unexpected field type");
+        }
+    }
+}
+
+// Whether t is an array, a struct, a class, a union, or neither.
+static bool isAgg(const DIType *t) {
+    return    t->getTag() == dwarf::DW_TAG_array_type
+           || t->getTag() == dwarf::DW_TAG_structure_type
+           || t->getTag() == dwarf::DW_TAG_class_type
+           || t->getTag() == dwarf::DW_TAG_union_type;
+}
+
+void DCHGraph::gatherAggs(const DICompositeType *type) {
+    // A bit similar to flatten. TODO: probably merge the two?
+    if (containingAggs.find(getCanonicalType(type)) != containingAggs.end()) {
+        return;
+    }
+
+    std::set<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
+    if (type->getTag() == dwarf::DW_TAG_array_type) {
+        const DIType *bt = type->getBaseType();
+        if (bt->getTag() == dwarf::DW_TAG_typedef) {
+            bt = stripQualifiers(bt);
+        }
+
+        if (isAgg(bt)) {
+            const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(bt);
+            aggs.insert(getCanonicalType(cbt));
+            gatherAggs(cbt);
+            // These must be canonical already because of aggs.insert above/below.
+            aggs.insert(containingAggs[cbt].begin(),
+                        containingAggs[cbt].end());
+        }
+    } else {
+        llvm::DINodeArray fields = type->getElements();
+        for (unsigned i = 0; i < fields.size(); ++i) {
+            // Unwrap the member.
+            const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i]);
+            const DIType *ft = mt->getBaseType();
+            if (ft->getTag() == dwarf::DW_TAG_typedef) {
+                ft = stripQualifiers(ft);
+            }
+
+            if (isAgg(ft)) {
+                const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
+                aggs.insert(getCanonicalType(cft));
+                gatherAggs(cft);
+                // These must be canonical already because of aggs.insert above.
+                aggs.insert(containingAggs[cft].begin(),
+                            containingAggs[cft].end());
+            }
         }
     }
 }

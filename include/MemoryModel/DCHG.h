@@ -281,6 +281,13 @@ public:
         return fieldTypes.at(base);
     }
 
+    /// Returns all the aggregates contained (transitively) in base.
+    std::set<const DIType *> getAggs(const DIType *base) {
+        base = getCanonicalType(base);
+        assert(containingAggs.find(base) != containingAggs.end() && "DCHG: aggregates not gathered for base!");
+        return containingAggs.at(base);
+    }
+
     /// Returns the type corresponding to constructor.
     const DIType *getConstructorType(const Function *constructor) const {
         if (constructorToType.find(constructor) == constructorToType.end()) {
@@ -316,6 +323,8 @@ protected:
     std::map<const DIType *, std::vector<const DIType *>> fieldTypes;
     /// Maps constructors to their (canonical) type.
     std::map<const Function *, const DIType *> constructorToType;
+    /// Maps aggregate types to all the aggregate types it transitively contains.
+    std::map<const DIType *, std::set<const DIType *>> containingAggs;
 
 private:
     /// Construction helper to process DIBasicTypes.
@@ -338,6 +347,9 @@ private:
 
     /// Populates fieldTypes for type and all its elements.
     void flatten(const DICompositeType *type);
+
+    /// Populates containingAggs for type and all its elements.
+    void gatherAggs(const DICompositeType *type);
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.

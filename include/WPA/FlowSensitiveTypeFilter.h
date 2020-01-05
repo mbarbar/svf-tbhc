@@ -102,6 +102,8 @@ private:
     std::map<NodeID, bool> gepIsLoad;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
     std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
+    /// Maps objects to the "lowest" possible type (through downcasts).
+    std::map<NodeID, const DIType *> objToLowestType;
 
     DCHGraph *dchg = nullptr;
 };
