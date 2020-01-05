@@ -295,8 +295,8 @@ void DCHGraph::flatten(const DICompositeType *type) {
     }
 }
 
-// Whether t is an array, a struct, a class, a union, or neither.
-static bool isAgg(const DIType *t) {
+bool DCHGraph::isAgg(const DIType *t) {
+    if (t == nullptr) return false;
     return    t->getTag() == dwarf::DW_TAG_array_type
            || t->getTag() == dwarf::DW_TAG_structure_type
            || t->getTag() == dwarf::DW_TAG_class_type

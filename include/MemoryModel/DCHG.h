@@ -192,6 +192,9 @@ public:
         return md != nullptr;
     }
 
+    // Returns whether t is an array, a struct, a class, a union, or neither.
+    static bool isAgg(const DIType *t);
+
 public:
     DCHGraph(const SVFModule svfMod)
         : svfModule(svfMod), numTypes(0) { // vfID(0), buildingCHGTime(0) {
