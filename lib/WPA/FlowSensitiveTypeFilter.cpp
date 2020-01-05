@@ -200,7 +200,7 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse) {
+bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID pId, const DIType *tildet, bool reuse, bool gep) {
     bool changed = false;
 
     PointsTo &pPt = getPts(pId);
@@ -224,10 +224,14 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
             }
         }
 
+        std::set<const DIType *> aggs = dchg->isAgg(tp) ? dchg->getAggs(tp) : std::set<const DIType *>();
+
         NodeID prop = 0;
         bool filter = false;
         if (fieldInsensitive && std::find(fieldTypes.begin(), fieldTypes.end(), tildet) != fieldTypes.end()) {
             // Field-insensitive object but the instruction is operating on a field.
+            prop = o;
+        } else if (gep && aggs.find(tildet) != aggs.end()) {
             prop = o;
         } else if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
             // o is unitialised or this is some downcast.
@@ -277,7 +281,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     // TODO: is qChanged necessary?
     bool qChanged = false;
     if (tildet != undefType) {
-        qChanged = initialise(gep, q, tildet, !gepIsLoad[gep->getId()]);
+        qChanged = initialise(gep, q, tildet, !gepIsLoad[gep->getId()], true);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {

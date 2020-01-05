@@ -48,7 +48,7 @@ public:
     virtual bool processStore(const StoreSVFGNode* store) override;
     virtual bool processPhi(const PHISVFGNode* phi) override;
     /// Initialise the pointees of ptrId (which is type tildet *). reuse indicates whether we allow reuse.
-    virtual bool initialise(const SVFGNode *svfgNode, const NodeID ptrId, const DIType *tildet, bool reuse);
+    virtual bool initialise(const SVFGNode *svfgNode, const NodeID ptrId, const DIType *tildet, bool reuse, bool gep=false);
 
     /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
     /// coming from the in set.
