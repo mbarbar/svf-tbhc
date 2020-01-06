@@ -260,8 +260,9 @@ void DCHGraph::flatten(const DICompositeType *type) {
         } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
             assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
                    && "DCHG: expected member");
-            // Either we have a class, struct, or something not in need of flattening.
+            // Either we have a class, struct, union, array, or something not in need of flattening.
             const DIType *fieldType = mt->getBaseType();
+            fieldType = stripQualifiers(fieldType);
             if (fieldType->getTag() == dwarf::DW_TAG_structure_type
                 || fieldType->getTag() == dwarf::DW_TAG_class_type
                 || fieldType->getTag() == dwarf::DW_TAG_union_type) {
@@ -270,21 +271,18 @@ void DCHGraph::flatten(const DICompositeType *type) {
                                           // Must be canonical because that is what we inserted.
                                           fieldTypes.at(fieldType).begin(),
                                           fieldTypes.at(fieldType).end());
-            } else if (fieldType->getTag() == dwarf::DW_TAG_typedef) {
-                // stripQualifiers operates on typedefs too.
-                const DIType *underlyingType = stripQualifiers(fieldType);
-                // TODO: this is repetition.
-                if (underlyingType->getTag() == dwarf::DW_TAG_structure_type
-                    || underlyingType->getTag() == dwarf::DW_TAG_class_type
-                    || underlyingType->getTag() == dwarf::DW_TAG_union_type) {
-                    flatten(SVFUtil::dyn_cast<DICompositeType>(underlyingType));
+            } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
+                const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
+                const DIType *baseType = arrayType->getBaseType();
+                baseType = stripQualifiers(baseType);
+                if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
+                    flatten(cbt);
                     flattenedComposite.insert(flattenedComposite.end(),
                                               // Must be canonical because that is what we inserted.
-                                              fieldTypes.at(underlyingType).begin(),
-                                              fieldTypes.at(underlyingType).end());
+                                              fieldTypes.at(cbt).begin(),
+                                              fieldTypes.at(cbt).end());
                 } else {
-                    // Can't be a typedef, because stripQualifiers ensured it isn't.
-                    flattenedComposite.push_back(getCanonicalType(underlyingType));
+                    flattenedComposite.push_back(getCanonicalType(baseType));
                 }
             } else {
                 flattenedComposite.push_back(getCanonicalType(fieldType));
