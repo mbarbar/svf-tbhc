@@ -273,8 +273,9 @@ void DCHGraph::flatten(const DICompositeType *type) {
                                           fieldTypes.at(fieldType).end());
             } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
                 const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
+
                 const DIType *baseType = arrayType->getBaseType();
-                baseType = stripQualifiers(baseType);
+                baseType = stripArray(baseType);
                 if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
                     flatten(cbt);
                     flattenedComposite.insert(flattenedComposite.end(),
@@ -658,6 +659,16 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
         } else {
             assert(false && "DCHG: unhandled tag when stripping qualifiers");
         }
+    }
+
+    return t;
+}
+
+const DIType *DCHGraph::stripArray(const DIType *t) {
+    t = stripQualifiers(t);
+    if (t->getTag() == dwarf::DW_TAG_array_type) {
+        const DICompositeType *at = SVFUtil::dyn_cast<DICompositeType>(t);
+        return stripArray(at->getBaseType());
     }
 
     return t;

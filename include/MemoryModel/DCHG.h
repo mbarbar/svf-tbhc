@@ -173,6 +173,9 @@ public:
     /// Returns the DIType beneath the qualifiers.
     static const DIType *stripQualifiers(const DIType *);
 
+    /// Returns the DIType beneath all qualifiers and arrays.
+    static const DIType *stripArray(const DIType *);
+
     /// Returns true if t1 and t2 are equivalent, ignoring qualifiers.
     /// For equality...
     ///  Tags always need to be equal.
