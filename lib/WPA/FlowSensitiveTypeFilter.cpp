@@ -623,3 +623,39 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     }
 }
 
+void FlowSensitiveTypeFilter::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
+    std::map<std::pair<NodeID, NodeID>, PointsTo> filteredPts;
+    for (std::pair<NodeID, NodeID> locP : cmp) {
+        const PointsTo &filterSet = locToFilterSet[locP.first];
+        const PointsTo &pts = getPts(locP.second);
+        PointsTo &ptsFiltered = filteredPts[locP];
+
+        for (NodeID o : pts) {
+            if (filterSet.test(o)) continue;
+            ptsFiltered.set(o);
+        }
+    }
+
+    for (std::pair<NodeID, NodeID> locPA : cmp) {
+        NodeID locA = locPA.first;
+        NodeID a = locPA.second;
+
+        const PointsTo &aPts = filteredPts[locPA];
+        for (std::pair<NodeID, NodeID> locPB : cmp) {
+            if (locPB == locPA) continue;
+            const PointsTo &bPts = filteredPts[locPB];
+
+            switch (alias(aPts, bPts)) {
+            case llvm::NoAlias:
+                ++(*noAliases);
+                break;
+            case llvm::MayAlias:
+                ++(*mayAliases);
+                break;
+            default:
+                assert("Not May/NoAlias?");
+            }
+        }
+    }
+
+}

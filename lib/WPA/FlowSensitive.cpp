@@ -27,6 +27,7 @@
  *      Author: Yulei Sui
  */
 
+#include "MemoryModel/DCHG.h"
 #include "Util/SVFModule.h"
 #include "WPA/WPAStat.h"
 #include "WPA/FlowSensitive.h"
@@ -623,4 +624,79 @@ bool FlowSensitive::propVarPtsAfterCGUpdated(NodeID var, const SVFGNode* src, co
             return true;
     }
     return false;
+}
+
+void FlowSensitive::printCTirAliasStats(void) {
+    DCHGraph *dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
+    if (dchg == nullptr) {
+        llvm::outs() << "eval-ctir-aliases needs DCHG.";
+    }
+
+    // < SVFG node ID (loc), PAG node of interest (top-level pointer) >.
+    std::set<std::pair<NodeID, NodeID>> cmpLocs;
+    for (SVFG::iterator npair = svfg->begin(); npair != svfg->end(); ++npair) {
+        NodeID loc = npair->first;
+        SVFGNode *node = npair->second;
+
+        // Only care about loads, stores, and GEPs.
+        if (StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(node)) {
+            if (!SVFUtil::isa<LoadSVFGNode>(stmt) && !SVFUtil::isa<StoreSVFGNode>(stmt)
+                && !SVFUtil::isa<GepSVFGNode>(stmt)) {
+                continue;
+            }
+
+            if (!dchg->getTypeFromCTirMetadata(stmt->getInst() ? stmt->getInst()
+                                                               : stmt->getPAGEdge()->getValue())) {
+                continue;
+            }
+
+            NodeID p = 0;
+            if (SVFUtil::isa<LoadSVFGNode>(stmt)) {
+                p = stmt->getPAGSrcNodeID();
+            } else if (SVFUtil::isa<StoreSVFGNode>(stmt)) {
+                p = stmt->getPAGDstNodeID();
+            } else if (SVFUtil::isa<GepSVFGNode>(stmt)) {
+                p = stmt->getPAGSrcNodeID();
+            } else {
+                // Not interested.
+                // TODO: maybe interested in PHI's for constructors?
+                continue;
+            }
+
+            cmpLocs.insert(std::make_pair(loc, p));
+        }
+    }
+
+    unsigned mayAliases = 0, noAliases = 0;
+    countAliases(cmpLocs, &mayAliases, &noAliases);
+
+    llvm::outs() << "eval-ctir-aliases "
+                 << noAliases + mayAliases << " "
+                 << mayAliases << " "
+                 << noAliases << " "
+                 << "\n";
+}
+
+void FlowSensitive::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
+    for (std::pair<NodeID, NodeID> locPA : cmp) {
+        // loc doesn't make a difference for FSPTA.
+        NodeID p = locPA.second;
+        for (std::pair<NodeID, NodeID> locPB : cmp) {
+            if (locPB == locPA) continue;
+
+            NodeID q = locPB.second;
+
+            switch (alias(p, q)) {
+            case llvm::NoAlias:
+                ++(*noAliases);
+                break;
+            case llvm::MayAlias:
+                ++(*mayAliases);
+                break;
+            default:
+                assert("Not May/NoAlias?");
+            }
+        }
+    }
+
 }

@@ -61,6 +61,9 @@ public:
         return pag->isBlkObjOrConstantObj(o);
     }
 
+protected:
+    virtual void countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) override;
+
 private:
     /// Returns a clone of o created at cloneSite with type type.
     NodeID cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type);

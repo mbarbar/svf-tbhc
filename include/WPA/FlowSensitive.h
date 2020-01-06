@@ -121,6 +121,10 @@ public:
         return svfg;
     }
 
+    /// Prints some easily parseable stats on aliasing of relevant CTir TL PTS.
+    /// Format: eval-ctir-aliases #TOTAL_TESTS #MAY_ALIAS #NO_ALIAS
+    virtual void printCTirAliasStats(void);
+
 protected:
     /// SCC detection
     virtual NodeStack& SCCDetect();
@@ -224,6 +228,9 @@ protected:
         return getDFPTDataTy()->getDFOutPtsSet(stmt->getId(),node);
     }
     //@}
+
+    /// Fills may/noAliases for the location/pointer pairs in cmp.
+    virtual void countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases);
 
 private:
     ///Get IN/OUT data flow map;
