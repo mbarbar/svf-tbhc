@@ -271,7 +271,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     const DIType *tildet = dchg->getTypeFromCTirMetadata(gep->getInst() ? gep->getInst()
                                                                         : gep->getPAGEdge()->getValue());
     if (tildet != undefType) {
-        qChanged = initialise(gep, q, tildet, !gepIsLoad[gep->getId()], true);
+        initialise(gep, q, tildet, !gepIsLoad[gep->getId()], true);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {
@@ -309,7 +309,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     double end = stat->getClk();
     copyGepTime += (end - start) / TIMEINTERVAL;
 
-    return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || qChanged;
+    return unionPts(gep->getPAGDstNodeID(), tmpDstPts);
 }
 
 bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
