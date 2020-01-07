@@ -7,12 +7,6 @@
  *      Author: Mohamad Barbar
  */
 
-// TODO: rename CloneObjNode -> ConstantCloneNode
-// TODO: Deref function in rules
-// DONE: cloneObject, use original always
-// TODO: reference set for perf., not return set
-// TODO: back-propagating geps incorrectly.
-
 #include <stack>
 #include <forward_list>
 
@@ -21,11 +15,9 @@
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
 
-// TODO: maybe better to actually construct something.
 const DIType *FlowSensitiveTypeFilter::undefType = nullptr;
 
 void FlowSensitiveTypeFilter::analyze(SVFModule svfModule) {
-    // TODO: unclear if this will need to change.
     FlowSensitive::analyze(svfModule);
 }
 
@@ -278,8 +270,6 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
 
     const DIType *tildet = dchg->getTypeFromCTirMetadata(gep->getInst() ? gep->getInst()
                                                                         : gep->getPAGEdge()->getValue());
-    // TODO: is qChanged necessary?
-    bool qChanged = false;
     if (tildet != undefType) {
         qChanged = initialise(gep, q, tildet, !gepIsLoad[gep->getId()], true);
     }
@@ -460,7 +450,6 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
 
-    // TODO: double check ternary.
     const DIType *tildet = dchg->getTypeFromCTirMetadata(stmt->getInst() ? stmt->getInst()
                                                                          : stmt->getPAGEdge()->getValue());
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
@@ -568,7 +557,6 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
         assert(SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node));
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
-            // TODO: is it enough to just compare offsets?
             if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
                 geps.insert(gep);
             }
@@ -610,7 +598,6 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
                     SVFGEdge *e = *eI;
                     SVFGNode *dst = e->getDstNode();
 
-                    // TODO: loops don't count?
                     if (gep == dst) continue;
 
                     if (!SVFUtil::isa<LoadSVFGNode>(dst)) {
