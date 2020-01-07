@@ -300,7 +300,6 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                 //       A few other things here and there too.
                 // Drop down to field insensitive.
                 if (baseType == nullptr) {
-                    gep->getPAGEdge()->getValue()->dump();
                     setObjFieldInsensitive(oq);
                     NodeID fiObj = oq;
                     tmpDstPts.set(fiObj);
