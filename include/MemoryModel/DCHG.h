@@ -287,6 +287,13 @@ public:
         return fieldTypes.at(base);
     }
 
+    // Returns the number of fields in base (length of getFieldTypes).
+    unsigned getNumFields(const DIType *base) {
+        base = getCanonicalType(base);
+        assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
+        return fieldTypes.at(base).size();
+    }
+
     /// Returns all the aggregates contained (transitively) in base.
     std::set<const DIType *> getAggs(const DIType *base) {
         base = getCanonicalType(base);

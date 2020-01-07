@@ -279,7 +279,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     }
 
     const PointsTo& qPts = getPts(q);
-    const PointsTo &filterSet = locToFilterSet[gep->getId()];
+    PointsTo &filterSet = locToFilterSet[gep->getId()];
     PointsTo tmpDstPts;
     for (PointsTo::iterator oqi = qPts.begin(); oqi != qPts.end(); ++oqi) {
         NodeID oq = *oqi;
@@ -294,6 +294,33 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                 NodeID fiObj = oq;
                 tmpDstPts.set(fiObj);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
+                const DIType *baseType = objToType[oq];
+
+                // TODO: ctir annotations unavailable for field accesses turned into memcpys/memmoves.
+                //       A few other things here and there too.
+                // Drop down to field insensitive.
+                if (baseType == nullptr) {
+                    gep->getPAGEdge()->getValue()->dump();
+                    setObjFieldInsensitive(oq);
+                    NodeID fiObj = oq;
+                    tmpDstPts.set(fiObj);
+                    continue;
+                }
+
+                // If the field offset is too high for this object, it is killed. It seems that a
+                // clone was made on this GEP but this is not the base (e.g. base->f1->f2), and SVF
+                // expects to operate on the base (hence the large offset). The base will have been
+                // cloned at another GEP and back-propagated, thus it'll reach here safe and sound.
+                // We ignore arrays/pointers because those are array accesses/pointer arithmetic we
+                // assume are correct.
+                // Obviously, non-aggregates cannot have their fields taken so they are spurious.
+                if (!DCHGraph::isAgg(baseType)
+                    || (baseType->getTag() != dwarf::DW_TAG_array_type && baseType->getTag() != dwarf::DW_TAG_pointer_type
+                        && normalGep->getLocationSet().getOffset() >= dchg->getNumFields(baseType))) {
+                    filterSet.set(oq);
+                    continue;
+                }
+
                 std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
                     NodeID fc = *fcI;
@@ -572,7 +599,21 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
         gep->setBaseNode(base);
 
         objToGeps[base].insert(newGep);
-        objToType[newGep] = dchg->getFieldType(objToType[base], ls.getOffset());
+        const DIType *baseType = objToType[base];
+        const DIType *newGepType;
+        if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
+            // Array access.
+            if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
+                newGepType = arrayType->getBaseType();
+            } else if (const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(baseType)) {
+                newGepType = arrayType->getBaseType();
+            }
+        } else {
+            // Must be a struct/class.
+            newGepType = dchg->getFieldType(objToType[base], ls.getOffset());
+        }
+
+        objToType[newGep] = newGepType;
         objToAllocation[newGep] = objToAllocation[base];
         memObjToGeps[baseNode->getMemObj()][ls.getOffset()].insert(newGep);
 
