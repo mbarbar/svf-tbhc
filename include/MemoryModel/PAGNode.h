@@ -403,6 +403,7 @@ public:
 class GepObjPN: public ObjPN {
 private:
     LocationSet ls;
+    NodeID base;
 
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -432,6 +433,16 @@ public:
     /// offset of the mem object
     inline const LocationSet& getLocationSet() const {
         return ls;
+    }
+
+    /// Set the base object from which this GEP node came from.
+    inline void setBaseNode(NodeID base) {
+        this->base = base;
+    }
+
+    /// Return the base object from which this GEP node came from.
+    inline NodeID getBaseNode(void) const {
+        return base;
     }
 
     /// Return the type of this gep object
