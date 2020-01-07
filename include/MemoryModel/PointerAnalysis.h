@@ -38,7 +38,6 @@
 #include "Util/SCC.h"
 #include "Util/PathCondAllocator.h"
 #include "MemoryModel/PointsToDFDS.h"
-#include "WPA/CSC.h"
 
 class CommonCHGraph;
 
