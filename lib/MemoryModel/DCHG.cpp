@@ -326,20 +326,21 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
     } else {
         llvm::DINodeArray fields = type->getElements();
         for (unsigned i = 0; i < fields.size(); ++i) {
-            // Unwrap the member.
-            const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i]);
-            const DIType *ft = mt->getBaseType();
-            if (ft->getTag() == dwarf::DW_TAG_typedef) {
-                ft = stripQualifiers(ft);
-            }
+            // Unwrap the member (could be a subprogram, not type, so guard needed).
+            if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
+                const DIType *ft = mt->getBaseType();
+                if (ft->getTag() == dwarf::DW_TAG_typedef) {
+                    ft = stripQualifiers(ft);
+                }
 
-            if (isAgg(ft)) {
-                const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
-                aggs.insert(getCanonicalType(cft));
-                gatherAggs(cft);
-                // These must be canonical already because of aggs.insert above.
-                aggs.insert(containingAggs[cft].begin(),
-                            containingAggs[cft].end());
+                if (isAgg(ft)) {
+                    const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
+                    aggs.insert(getCanonicalType(cft));
+                    gatherAggs(cft);
+                    // These must be canonical already because of aggs.insert above.
+                    aggs.insert(containingAggs[cft].begin(),
+                                containingAggs[cft].end());
+                }
             }
         }
     }
