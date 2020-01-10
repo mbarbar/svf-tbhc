@@ -252,44 +252,52 @@ void DCHGraph::flatten(const DICompositeType *type) {
            && "DCHG::flatten: expected a class/struct");
 
     std::vector<const DIType *> &flattenedComposite = fieldTypes[type];
-    llvm::DINodeArray fields = type->getElements();
-    for (unsigned i = 0; i < fields.size(); ++i) {
-        if (const DISubprogram *sp = SVFUtil::dyn_cast<DISubprogram>(fields[i])) {
-            // sp->getType should be a SubroutineType. TODO: assert it?
-            flattenedComposite.push_back(getCanonicalType(sp->getType()));
-        } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
-            assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
-                   && "DCHG: expected member");
-            // Either we have a class, struct, union, array, or something not in need of flattening.
-            const DIType *fieldType = mt->getBaseType();
-            fieldType = stripQualifiers(fieldType);
-            if (fieldType->getTag() == dwarf::DW_TAG_structure_type
-                || fieldType->getTag() == dwarf::DW_TAG_class_type
-                || fieldType->getTag() == dwarf::DW_TAG_union_type) {
-                flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
+
+    // Sort the fields from getElements. Especially a problem for classes; it's all jumbled up.
+    std::vector<const DIDerivedType *> fields;
+    llvm::DINodeArray fieldsDINA = type->getElements();
+    for (unsigned i = 0; i < fieldsDINA.size(); ++i) {
+        if (const DIDerivedType *dt = SVFUtil::dyn_cast<DIDerivedType>(fieldsDINA[i])) {
+            // Don't care about subprograms, only member/inheritance.
+            fields.push_back(dt);
+        }
+    }
+
+    // TODO: virtual inheritance.
+    std::sort(fields.begin(), fields.end(),
+              [](const DIDerivedType *&a, const DIDerivedType *&b) -> bool
+                { return a->getOffsetInBits() < b->getOffsetInBits(); });
+
+    for (const DIDerivedType *mt : fields) {
+        assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
+               && "DCHG: expected member/inheritance");
+        // Either we have a class, struct, union, array, or something not in need of flattening.
+        const DIType *fieldType = mt->getBaseType();
+        fieldType = stripQualifiers(fieldType);
+        if (fieldType->getTag() == dwarf::DW_TAG_structure_type
+            || fieldType->getTag() == dwarf::DW_TAG_class_type
+            || fieldType->getTag() == dwarf::DW_TAG_union_type) {
+            flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
+            flattenedComposite.insert(flattenedComposite.end(),
+                                      // Must be canonical because that is what we inserted.
+                                      fieldTypes.at(fieldType).begin(),
+                                      fieldTypes.at(fieldType).end());
+        } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
+            const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
+
+            const DIType *baseType = arrayType->getBaseType();
+            baseType = stripArray(baseType);
+            if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
+                flatten(cbt);
                 flattenedComposite.insert(flattenedComposite.end(),
                                           // Must be canonical because that is what we inserted.
-                                          fieldTypes.at(fieldType).begin(),
-                                          fieldTypes.at(fieldType).end());
-            } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
-                const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
-
-                const DIType *baseType = arrayType->getBaseType();
-                baseType = stripArray(baseType);
-                if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
-                    flatten(cbt);
-                    flattenedComposite.insert(flattenedComposite.end(),
-                                              // Must be canonical because that is what we inserted.
-                                              fieldTypes.at(cbt).begin(),
-                                              fieldTypes.at(cbt).end());
-                } else {
-                    flattenedComposite.push_back(getCanonicalType(baseType));
-                }
+                                          fieldTypes.at(cbt).begin(),
+                                          fieldTypes.at(cbt).end());
             } else {
-                flattenedComposite.push_back(getCanonicalType(fieldType));
+                flattenedComposite.push_back(getCanonicalType(baseType));
             }
         } else {
-            assert(false && "DCHG: unexpected field type");
+            flattenedComposite.push_back(getCanonicalType(fieldType));
         }
     }
 }
@@ -326,20 +334,21 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
     } else {
         llvm::DINodeArray fields = type->getElements();
         for (unsigned i = 0; i < fields.size(); ++i) {
-            // Unwrap the member.
-            const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i]);
-            const DIType *ft = mt->getBaseType();
-            if (ft->getTag() == dwarf::DW_TAG_typedef) {
-                ft = stripQualifiers(ft);
-            }
+            // Unwrap the member (could be a subprogram, not type, so guard needed).
+            if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
+                const DIType *ft = mt->getBaseType();
+                if (ft->getTag() == dwarf::DW_TAG_typedef) {
+                    ft = stripQualifiers(ft);
+                }
 
-            if (isAgg(ft)) {
-                const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
-                aggs.insert(getCanonicalType(cft));
-                gatherAggs(cft);
-                // These must be canonical already because of aggs.insert above.
-                aggs.insert(containingAggs[cft].begin(),
-                            containingAggs[cft].end());
+                if (isAgg(ft)) {
+                    const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
+                    aggs.insert(getCanonicalType(cft));
+                    gatherAggs(cft);
+                    // These must be canonical already because of aggs.insert above.
+                    aggs.insert(containingAggs[cft].begin(),
+                                containingAggs[cft].end());
+                }
             }
         }
     }
