@@ -104,7 +104,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
         if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_rvalue_reference_type:
-        // TODO: are these just pointers?
+        if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_const_type:
         // TODO: need flags for qualifiers.
@@ -843,7 +843,7 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
             ss << diTypeToStr(dt->getBaseType()) << " &";
         } else if (dt->getTag() == dwarf::DW_TAG_rvalue_reference_type) {
             // TODO: double check
-            ss << diTypeToStr(dt->getBaseType()) << " &";
+            ss << diTypeToStr(dt->getBaseType()) << " &&";
         } else if (dt->getTag() == dwarf::DW_TAG_typedef) {
             ss << std::string(dt->getName()) << "->" << diTypeToStr(dt->getBaseType());
         }
