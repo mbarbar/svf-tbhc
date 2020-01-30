@@ -36,7 +36,7 @@ void FlowSensitiveTypeFilter::initialize(SVFModule svfModule) {
 
 void FlowSensitiveTypeFilter::finalize(void) {
     FlowSensitive::finalize();
-    // ^ Will print call graph stats.
+    // ^ Will print call graph and alias stats.
 
     // Print clones with their types.
     llvm::outs() << "=== Original objects to clones ===\n";
@@ -154,14 +154,6 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
 
     start = stat->getClk();
 
-    // We should not have any type, not even undefined.
-    // This all assumes that there is only one outgoing edge from each object.
-    // Some of the constant objects have more, so we make that exception.
-    /* Can't have this because of back-propagation.
-    assert((objToType.find(srcID) == objToType.end() || !SVFUtil::isa<DummyObjPN>(srcNode))
-           && "FSTF: addr: already has a type?");
-     */
-
     const DIType *objType;
     if (isHeapMemObj(srcID)) {
         objType = undefType;
@@ -179,11 +171,11 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     objToType[srcID] = objType;
     objToAllocation[srcID] = addr->getId();
 
-    // All the typed versions of srcID.
+    // All the typed versions of srcID. This handles back-propagation.
     std::set<NodeID> clones = objToClones[srcID];
     for (std::set<NodeID>::iterator oI = clones.begin(); oI != clones.end(); ++oI) {
         changed = addPts(addr->getPAGDstNodeID(), *oI) || changed;
-        // No need for type stuff these are all clones; they are all typed.
+        // No need for typing these are all clones; they are all typed.
     }
 
     end = stat->getClk();
@@ -205,6 +197,8 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
         const DIType *tp = objToType[o];  // tp is t'
 
         // When an object is field-insensitive, we can't filter on any of the fields' types.
+        // i.e. a pointer of the field type can safely access an object of the base/struct
+        // type if that object is field-insensitive.
         bool fieldInsensitive = false;
         std::vector<const DIType *> fieldTypes;
         if (ObjPN *obj = SVFUtil::dyn_cast<ObjPN>(pag->getPAGNode(o))) {
