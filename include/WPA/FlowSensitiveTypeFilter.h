@@ -58,7 +58,7 @@ public:
     /// account for clones.
     inline virtual bool isBlkObjOrConstantObj(NodeID o) const override {
         if (isClone(o)) o = cloneToOriginalObj.at(o);
-        return pag->isBlkObjOrConstantObj(o);
+        return SVFUtil::isa<ObjPN>(pag->getPAGNode(o)) && pag->isBlkObjOrConstantObj(o);
     }
 
 protected:
