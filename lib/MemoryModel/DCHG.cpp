@@ -842,7 +842,6 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
         } else if (dt->getTag() == dwarf::DW_TAG_reference_type) {
             ss << diTypeToStr(dt->getBaseType()) << " &";
         } else if (dt->getTag() == dwarf::DW_TAG_rvalue_reference_type) {
-            // TODO: double check
             ss << diTypeToStr(dt->getBaseType()) << " &&";
         } else if (dt->getTag() == dwarf::DW_TAG_typedef) {
             ss << std::string(dt->getName()) << "->" << diTypeToStr(dt->getBaseType());
