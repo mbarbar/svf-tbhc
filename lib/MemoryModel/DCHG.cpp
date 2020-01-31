@@ -104,7 +104,7 @@ void DCHGraph::handleDIDerivedType(const llvm::DIDerivedType *derivedType) {
         if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_rvalue_reference_type:
-        // TODO: are these just pointers?
+        if (extended) getOrCreateNode(derivedType);
         break;
     case llvm::dwarf::DW_TAG_const_type:
         // TODO: need flags for qualifiers.
@@ -658,7 +658,6 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
                    || tag == dwarf::DW_TAG_ptr_to_member_type
                    || tag == dwarf::DW_TAG_reference_type
                    || tag == dwarf::DW_TAG_rvalue_reference_type) {
-            // TODO: check rvalue_reference_type.
             // TODO: maybe this function should strip members too?
             // Hit a non-qualifier.
             break;
@@ -818,7 +817,7 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
     std::stringstream ss;
 
     if (t == nullptr) {
-        return "null (void)";
+        return "void";
     }
 
     if (const DIBasicType *bt = SVFUtil::dyn_cast<DIBasicType>(t)) {
@@ -838,12 +837,12 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
             ss << diTypeToStr(dt->getBaseType()) << " *";
         } else if (dt->getTag() == dwarf::DW_TAG_ptr_to_member_type) {
             // TODO: double check
-            ss << diTypeToStr(dt->getBaseType()) << " *";
+            ss << diTypeToStr(dt->getBaseType())
+               << " " << diTypeToStr(SVFUtil::dyn_cast<DIType>(dt->getExtraData())) << "::*";
         } else if (dt->getTag() == dwarf::DW_TAG_reference_type) {
             ss << diTypeToStr(dt->getBaseType()) << " &";
         } else if (dt->getTag() == dwarf::DW_TAG_rvalue_reference_type) {
-            // TODO: double check
-            ss << diTypeToStr(dt->getBaseType()) << " &";
+            ss << diTypeToStr(dt->getBaseType()) << " &&";
         } else if (dt->getTag() == dwarf::DW_TAG_typedef) {
             ss << std::string(dt->getName()) << "->" << diTypeToStr(dt->getBaseType());
         }
@@ -891,8 +890,12 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
             for (unsigned i = 0; i < sizes.size(); ++i) {
                 llvm::DISubrange *sr = SVFUtil::dyn_cast<llvm::DISubrange>(sizes[0]);
                 assert(sr != nullptr && "DCHG: non-subrange as array element?");
-                // TODO: use sr->getCount
-                ss << "[" << 123 << "]";
+                int64_t count = -1;
+                if (const ConstantInt *ci = sr->getCount().dyn_cast<ConstantInt *>()) {
+                    count = ci->getSExtValue();
+                }
+
+                ss << "[" << count << "]";
             }
         } else if (ct->getTag() == dwarf::DW_TAG_enumeration_type) {
             ss << "enum " << diTypeToStr(ct->getBaseType());
@@ -900,6 +903,23 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
 
         }
     } else if (const DISubroutineType *st = SVFUtil::dyn_cast<DISubroutineType>(t)) {
+        llvm::DITypeRefArray types = st->getTypeArray();
+        // Must have one element at least (the first type).
+        ss << diTypeToStr(types[0]) << " fn(";
+        if (types.size() == 1) {
+            ss << "void)";
+        } else {
+            for (unsigned i = 1; i < types.size(); ++i) {
+                ss << diTypeToStr(types[i]);
+                if (i + 1 != types.size()) {
+                    // There's another type.
+                    ss << ", ";
+                }
+            }
+
+            ss << ")";
+        }
+
         ss << std::string(st->getName());
     }
 
@@ -921,7 +941,6 @@ void DCHGraph::print(void) const {
         const NodeID id = it->first;
         const DCHNode *node = it->second;
 
-        // TODO: need to properly name non-class nodes.
         llvm::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << " [" << node->getType() << "]" << "\n";
 
         currIndent += singleIndent;
