@@ -53,7 +53,7 @@ void FlowSensitiveTypeFilter::finalize(void) {
         for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
             llvm::outs() << *cloneI
                          << "{"
-                         << dchg->diTypeToStr(objToType[*cloneI])
+                         << dchg->diTypeToStr(getType(*cloneI))
                          << "}"
                          << (std::next(cloneI) == clones.end() ? "" : ", ");
         }
@@ -168,7 +168,7 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
         objType = dchg->getTypeFromCTirMetadata(srcNode->getValue());
     }
 
-    objToType[srcID] = objType;
+    setType(srcID, objType);
     objToAllocation[srcID] = addr->getId();
 
     // All the typed versions of srcID. This handles back-propagation.
@@ -194,7 +194,7 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
     PointsTo &filterSet = locToFilterSet[svfgNode->getId()];
     for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
         NodeID o = *oI;
-        const DIType *tp = objToType[o];  // tp is t'
+        const DIType *tp = getType(o);  // tp is t'
 
         // When an object is field-insensitive, we can't filter on any of the fields' types.
         // i.e. a pointer of the field type can safely access an object of the base/struct
@@ -288,7 +288,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                 NodeID fiObj = oq;
                 tmpDstPts.set(fiObj);
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
-                const DIType *baseType = objToType[oq];
+                const DIType *baseType = getType(oq);
 
                 // TODO: ctir annotations unavailable for field accesses turned into memcpys/memmoves.
                 //       A few other things here and there too.
@@ -494,7 +494,7 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
     // Check if a clone of the correct type exists.
     std::set<NodeID> &clones = objToClones[o];
     for (NodeID clone : clones) {
-        if (objToType[clone] == type) {
+        if (getType(clone) == type) {
             return clone;
         }
     }
@@ -523,7 +523,7 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
         assert(false && "FSTF: trying to clone unhandled object");
     }
 
-    objToType[clone] = type;
+    setType(clone, type);
     objToAllocation[clone] = objToAllocation[o];
 
     // Tracking of object<->clone.
@@ -592,7 +592,7 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
         gep->setBaseNode(base);
 
         objToGeps[base].insert(newGep);
-        const DIType *baseType = objToType[base];
+        const DIType *baseType = getType(base);
         const DIType *newGepType;
         if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
             // Array access.
@@ -603,10 +603,10 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
             }
         } else {
             // Must be a struct/class.
-            newGepType = dchg->getFieldType(objToType[base], ls.getOffset());
+            newGepType = dchg->getFieldType(getType(base), ls.getOffset());
         }
 
-        objToType[newGep] = newGepType;
+        setType(newGep, newGepType);
         objToAllocation[newGep] = objToAllocation[base];
         memObjToGeps[baseNode->getMemObj()][ls.getOffset()].insert(newGep);
 
@@ -614,6 +614,21 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
     }
 
     return geps;
+}
+
+void FlowSensitiveTypeFilter::setType(NodeID o, const DIType *t) {
+    // Ensure we're not overwriting, if we are overwriting, something is weird.
+    if (objToType.find(o) != objToType.end()) {
+        const DIType *et = objToType.at(o);
+        assert((et == undefType || et == t) && "FSTF: overwriting object's type?");
+    }
+
+    objToType.insert({o, t});
+}
+
+const DIType *FlowSensitiveTypeFilter::getType(NodeID o) const {
+    assert(objToType.find(o) != objToType.end() && "FSTF: object has no type?");
+    return objToType.at(o);
 }
 
 void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {

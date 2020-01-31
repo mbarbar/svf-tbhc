@@ -84,6 +84,12 @@ private:
     /// (through base's getGepObjNode) which will create one.
     std::set<NodeID> getGepObjClones(NodeID base, const LocationSet& ls);
 
+    /// Sets the type (in objToType) of o. Asserts we aren't overwriting.
+    void setType(NodeID o, const DIType *t);
+
+    /// Returns the type (from objToType) of o. Asserts existence.
+    const DIType *getType(NodeID o) const;
+
     /// Object -> its type.
     /// undef type is TODO
     std::map<NodeID, const DIType *> objToType;
