@@ -104,8 +104,8 @@ void FlowSensitive::finalize()
     }
 
     PointerAnalysis::finalize();
-    printCallGraphStats();
-    printCTirAliasStats();
+    // printCallGraphStats();
+    // printCTirAliasStats();
 }
 
 /*!
