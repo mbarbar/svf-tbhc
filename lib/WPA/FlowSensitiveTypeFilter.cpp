@@ -218,15 +218,19 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
         } else if (gep && aggs.find(tildet) != aggs.end()) {
+            // SVF treats two consecutive GEPs as children to the same load/store.
             prop = o;
-        } else if (tp == undefType || (isBase(tp, tildet) && tp != tildet)) {
-            // o is unitialised or this is some downcast.
+        } else if (tp == undefType) {
+            // o is uninitialised.
+            prop = cloneObject(o, svfgNode, tildet);
+        } else if (isBase(tp, tildet) && tp != tildet) {
+            // Downcast.
             prop = cloneObject(o, svfgNode, tildet);
         } else if (isBase(tildet, tp)) {
-            // We have an upcast.
+            // Upcast.
             prop = o;
         } else if (tildet != tp && reuse) {
-            // We have a case of reuse.
+            // Reuse.
             prop = cloneObject(o, svfgNode, tildet);
         } else {
             // Some spurious objects will be filtered.
@@ -248,6 +252,7 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
     }
 
     if (pPt != pNewPt) {
+        // TODO: more performant way of doing this? Like move?
         pPt.clear();
         unionPts(pId, pNewPt);
         changed = true;
@@ -257,9 +262,9 @@ bool FlowSensitiveTypeFilter::initialise(const SVFGNode *svfgNode, const NodeID 
 }
 
 bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
+    // Copy of that in FlowSensitive.cpp + some changes.
     double start = stat->getClk();
 
-    // Copy of that in FlowSensitive.cpp + some changes.
     NodeID q = gep->getPAGSrcNodeID();
 
     const DIType *tildet = dchg->getTypeFromCTirMetadata(gep->getInst() ? gep->getInst()
@@ -279,8 +284,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
         NodeID oq = *oqi;
         if (filterSet.test(oq)) continue;
 
-        if (isBlkObjOrConstantObj(oq)
-            || (isClone(oq) && isBlkObjOrConstantObj(cloneToOriginalObj[oq]))) {
+        if (isBlkObjOrConstantObj(oq)) {
             tmpDstPts.set(oq);
         } else {
             if (SVFUtil::isa<VariantGepPE>(gep->getPAGEdge())) {
@@ -314,6 +318,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                     continue;
                 }
 
+                // Operate on the field and all its clones.
                 std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
                 for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
                     NodeID fc = *fcI;
@@ -321,7 +326,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                     tmpDstPts.set(fc);
                 }
             } else {
-                assert(false && "new gep edge?");
+                assert(false && "FSTF: new gep edge?");
             }
         }
     }
@@ -343,7 +348,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
         initialise(load, load->getPAGSrcNodeID(), tildet, false);
     }
 
-    // We want to deref. for non-pointer nodes but not process the load.
+    // We want to perform the initialisation for non-pointer nodes but not process the load.
     if (!load->getPAGEdge()->isPTAEdge()) {
         return false;
     }
@@ -367,6 +372,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
         if (isFIObjNode(ptd)) {
             /// If the ptd is a field-insensitive node, we should also get all field nodes'
             /// points-to sets and pass them to pagDst.
+            // TODO: get field clones?
             const NodeBS& allFields = getAllFieldsObjNode(ptd);
             for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
                     fieldIt != fieldEit; ++fieldIt) {
@@ -390,9 +396,9 @@ bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
         initialise(store, store->getPAGDstNodeID(), tildet, true);
     }
 
-    // Like processLoad: we want to deref. for non-pointers but not the store.
+    // Like processLoad: we want to perform initialisation for non-pointers but not the store.
     if (!store->getPAGEdge()->isPTAEdge()) {
-        // Pass through and return because there may be some PTA nodes
+        // Pass through and return because there may be some pointer nodes
         // relying on this node's parents.
         bool changed = getDFPTDataTy()->updateAllDFOutFromIn(store->getId(), 0, false);
         return changed;
@@ -476,19 +482,21 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
     for (PtsMap::value_type kv : ptsInMap) {
         NodeID o = kv.first;
         if (pPt.test(o)) {
+            // Exact match between object in in's set and p's set.
             pNewPt.set(o);
         } else if (isClone(o) && pPt.test(cloneToOriginalObj[o])) {
+            // Clone of an object in p's set is in in's set.
             pNewPt.set(o);
         }
     }
 
     if (pPt != pNewPt) {
-        //pPt.clear();
         unionPts(pId, pNewPt);
     }
 }
 
 NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite, const DIType *type) {
+    // Always operate on the original object.
     if (isClone(o)) o = cloneToOriginalObj[o];
 
     // Check if a clone of the correct type exists.
@@ -503,15 +511,14 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
     NodeID clone = o;
     if (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(obj)) {
         clone = pag->addCloneGepObjNode(gepObj->getMemObj(), gepObj->getLocationSet());
-        // The base needs to know about this guy.
+        // The base needs to know about the new clone.
         objToGeps[gepObj->getBaseNode()].insert(clone);
         memObjToGeps[gepObj->getMemObj()][gepObj->getLocationSet().getOffset()].insert(clone);
         // Since getGepObjClones is updated, some GEP nodes need to be redone.
-        for (std::set<NodeID>::iterator svfgNodeI = gepToSVFGRetrievers[o].begin(); svfgNodeI != gepToSVFGRetrievers[o].end(); ++svfgNodeI) {
-            pushIntoWorklist(*svfgNodeI);
+        for (std::set<NodeID>::iterator nI = gepToSVFGRetrievers[o].begin(); nI != gepToSVFGRetrievers[o].end(); ++nI) {
+            pushIntoWorklist(*nI);
         }
     } else if (SVFUtil::isa<FIObjPN>(obj) || SVFUtil::isa<DummyObjPN>(obj)) {
-        // Otherwise, we create that clone.
         if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
             clone = pag->addCloneFIObjNode(fiObj->getMemObj());
         } else {
@@ -523,10 +530,11 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
         assert(false && "FSTF: trying to clone unhandled object");
     }
 
+    // Clone's metadata.
     setType(clone, type);
     objToAllocation[clone] = objToAllocation[o];
 
-    // Tracking of object<->clone.
+    // Tracking object<->clone mappings.
     objToClones[o].insert(clone);
     cloneToOriginalObj[clone] = o;
 
@@ -542,11 +550,13 @@ bool FlowSensitiveTypeFilter::isClone(NodeID o) const {
 }
 
 std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
+    // Set of GEP objects we will return.
     std::set<NodeID> geps;
+
     PAGNode *node = pag->getPAGNode(base);
-    assert(node);
+    assert(node && "FSTF: base object node does not exist.");
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
-    assert(baseNode);
+    assert(baseNode && "FSTF: base \"object\" node is not an object.");
 
     // First field? Just return the whole object; same thing.
     if (ls.getOffset() == 0) {
@@ -557,24 +567,25 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
     }
 
     if (baseNode->getMemObj()->isFieldInsensitive()) {
-        // If it's field-insensitive, well base represents everything.
+        // If it's field-insensitive, the base represents everything.
         geps.insert(base);
         return geps;
     }
 
-    // TODO: might need to cache on ls for performance.
+    // TODO: caching on ls or offset will improve performance.
     for (std::set<NodeID>::iterator gepI = objToGeps[base].begin(); gepI != objToGeps[base].end(); ++gepI) {
         NodeID gep = *gepI;
         PAGNode *node = pag->getPAGNode(gep);
-        assert(node && "gep node doesn't exist?");
-        assert(SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node));
+        assert(node && "FSTF: expected gep node doesn't exist.");
+        assert((SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node))
+               && "FSTF: expected a GEP or FI object.");
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
             if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
                 geps.insert(gep);
             }
         } else {
-            // Definitely a FIObj.
+            // Definitely a FIObj (asserted).
             geps.insert(gep);
         }
     }
@@ -583,6 +594,8 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
         // No gep node has even be created, so create one.
         NodeID newGep;
         if (isClone(base)) {
+            // Don't use pag->getGepObjNode because base and it's original object
+            // have the same memory object which is the key PAG uses.
             newGep = pag->addCloneGepObjNode(baseNode->getMemObj(), ls);
         } else {
             newGep = pag->getGepObjNode(base, ls);
@@ -595,18 +608,23 @@ std::set<NodeID> FlowSensitiveTypeFilter::getGepObjClones(NodeID base, const Loc
         const DIType *baseType = getType(base);
         const DIType *newGepType;
         if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
-            // Array access.
             if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
+                // Array access.
                 newGepType = arrayType->getBaseType();
             } else if (const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(baseType)) {
-                newGepType = arrayType->getBaseType();
+                // Pointer access.
+                newGepType = ptrType->getBaseType();
             }
+
+            // Get the canonical type because we got the type from the DIType infrastructure directly.
+            newGepType = dchg->getCanonicalType(newGepType);
         } else {
             // Must be a struct/class.
             newGepType = dchg->getFieldType(getType(base), ls.getOffset());
         }
 
         setType(newGep, newGepType);
+        // TODO: "allocation" site does not make sense for GEP objects.
         objToAllocation[newGep] = objToAllocation[base];
         memObjToGeps[baseNode->getMemObj()][ls.getOffset()].insert(newGep);
 
@@ -643,6 +661,7 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
                     SVFGEdge *e = *eI;
                     SVFGNode *dst = e->getDstNode();
 
+                    // Loop on itself - don't care.
                     if (gep == dst) continue;
 
                     if (!SVFUtil::isa<LoadSVFGNode>(dst)) {
