@@ -7,9 +7,6 @@
  *      Author: Mohamad Barbar
  */
 
-#include <stack>
-#include <forward_list>
-
 #include "Util/CPPUtil.h"
 #include "WPA/FlowSensitiveTypeFilter.h"
 #include "WPA/WPAStat.h"
@@ -39,7 +36,7 @@ void FlowSensitiveTypeFilter::finalize(void) {
     // ^ Will print call graph and alias stats.
 
     // Print clones with their types.
-    llvm::outs() << "=== Original objects to clones ===\n";
+    SVFUtil::outs() << "=== Original objects to clones ===\n";
     unsigned total = 0;
     for (std::map<NodeID, std::set<NodeID>>::iterator ocI = objToClones.begin(); ocI != objToClones.end(); ++ocI) {
         NodeID originalObjId = ocI->first;
@@ -47,22 +44,22 @@ void FlowSensitiveTypeFilter::finalize(void) {
         if (clones.size() == 0) continue;
 
         total += clones.size();
-        llvm::outs() << "  " << originalObjId << " : "
-                     << "(" << clones.size() << ")"
-                     << "[ ";
+        SVFUtil::outs() << "  " << originalObjId << " : "
+                        << "(" << clones.size() << ")"
+                        << "[ ";
         for (std::set<NodeID>::iterator cloneI = clones.begin(); cloneI != clones.end(); ++cloneI) {
-            llvm::outs() << *cloneI
-                         << "{"
-                         << dchg->diTypeToStr(getType(*cloneI))
-                         << "}"
-                         << (std::next(cloneI) == clones.end() ? "" : ", ");
+            SVFUtil::outs() << *cloneI
+                            << "{"
+                            << dchg->diTypeToStr(getType(*cloneI))
+                            << "}"
+                            << (std::next(cloneI) == clones.end() ? "" : ", ");
         }
 
-        llvm::outs() << " ]\n";
+        SVFUtil::outs() << " ]\n";
     }
 
-    llvm::outs() << "Total: " << total << "\n";
-    llvm::outs() << "==================================\n";
+    SVFUtil::outs() << "Total: " << total << "\n";
+    SVFUtil::outs() << "==================================\n";
 
     // getDFPTDataTy()->dumpPTData();
 }
@@ -541,7 +538,7 @@ NodeID FlowSensitiveTypeFilter::cloneObject(NodeID o, const SVFGNode *cloneSite,
     return clone;
 }
 
-bool FlowSensitiveTypeFilter::isBase(const llvm::DIType *a, const llvm::DIType *b) const {
+bool FlowSensitiveTypeFilter::isBase(const DIType *a, const DIType *b) const {
     return dchg->isBase(a, b, true);
 }
 

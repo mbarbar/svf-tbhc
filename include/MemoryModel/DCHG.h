@@ -14,6 +14,7 @@
 #include "MemoryModel/GenericGraph.h"
 #include "MemoryModel/CHG.h"
 #include "Util/SVFModule.h"
+#include "Util/SVFUtil.h"
 #include "Util/WorkList.h"
 
 class SVFModule;
@@ -56,7 +57,7 @@ public:
 
     typedef std::vector<const Function*> FuncVector;
 
-    DCHNode(const llvm::DIType *diType, NodeID i = 0, GNodeK k = 0)
+    DCHNode(const DIType *diType, NodeID i = 0, GNodeK k = 0)
         : GenericNode<DCHNode, DCHEdge>(i, k), vtable(NULL), flags(0) {
         this->diType = diType;
         if (diType == NULL) {
@@ -72,7 +73,7 @@ public:
 
     ~DCHNode() { }
 
-    const llvm::DIType *getType(void) const {
+    const DIType *getType(void) const {
         return diType;
     }
 
@@ -118,11 +119,11 @@ public:
     }
     //@}
 
-    void addTypedef(const llvm::DIDerivedType *diTypedef) {
+    void addTypedef(const DIDerivedType *diTypedef) {
         typedefs.insert(diTypedef);
     }
 
-    const std::set<const llvm::DIDerivedType *> &getTypedefs(void) const {
+    const std::set<const DIDerivedType *> &getTypedefs(void) const {
         return typedefs;
     }
 
@@ -150,9 +151,9 @@ public:
 
 private:
     /// Type of this node.
-    const llvm::DIType *diType;
+    const DIType *diType;
     /// Typedefs which map to this type.
-    std::set<const llvm::DIDerivedType *> typedefs;
+    std::set<const DIDerivedType *> typedefs;
     const GlobalValue* vtable;
     std::string typeName;
     size_t flags;
@@ -191,7 +192,7 @@ public:
 
     /// TODO: temporary till isVirtualCall is worked out.
     static bool isVirtualCallSite(CallSite cs) {
-        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
+        MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
         return md != nullptr;
     }
 
@@ -211,7 +212,7 @@ public:
     virtual void buildCHG(bool extend);
 
     void dump(const std::string& filename) {
-        GraphPrinter::WriteGraphToFile(llvm::outs(), filename, this);
+        GraphPrinter::WriteGraphToFile(SVFUtil::outs(), filename, this);
     }
 
     void print(void) const;
@@ -223,7 +224,7 @@ public:
     virtual const VFunSet &getCSVFsBasedonCHA(CallSite cs) override;
 
     virtual const bool csHasVtblsBasedonCHA(CallSite cs) override {
-        const llvm::DIType *type = getCanonicalType(getCSStaticType(cs));
+        const DIType *type = getCanonicalType(getCSStaticType(cs));
         if (!hasNode(type)) {
             return false;
         }
@@ -236,7 +237,7 @@ public:
 
     /// Returns true if a is a transitive base of b. firstField determines
     /// whether to consider first-field edges.
-    virtual bool isBase(const llvm::DIType *a, const llvm::DIType *b, bool firstField);
+    virtual bool isBase(const DIType *a, const DIType *b, bool firstField);
 
     static inline bool classof(const CommonCHGraph *chg) {
         return chg->getKind() == DI;
@@ -321,15 +322,15 @@ protected:
     /// Whether this CHG is an extended CHG (first-field). Set by buildCHG.
     bool extended = false;
     /// Maps DITypes to their nodes.
-    std::map<const llvm::DIType *, DCHNode *> diTypeToNodeMap;
+    std::map<const DIType *, DCHNode *> diTypeToNodeMap;
     /// Maps VTables to the DIType associated with them.
-    std::map<const GlobalValue *, const llvm::DIType *> vtblToTypeMap;
+    std::map<const GlobalValue *, const DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
-    std::map<const llvm::DIType *, std::set<const DCHNode *>> chaMap;
+    std::map<const DIType *, std::set<const DCHNode *>> chaMap;
     /// Maps types to all children but also considering first field.
-    std::map<const llvm::DIType *, std::set<const DCHNode *>> chaFFMap;
+    std::map<const DIType *, std::set<const DCHNode *>> chaFFMap;
     /// Maps types to a set with their vtable and all their children's.
-    std::map<const llvm::DIType *, VTableSet> vtblCHAMap;
+    std::map<const DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
     std::map<CallSite, VFunSet> csCHAMap;
     /// Maps types to their canonical type (many-to-one).
@@ -345,22 +346,22 @@ protected:
 
 private:
     /// Construction helper to process DIBasicTypes.
-    void handleDIBasicType(const llvm::DIBasicType *basicType);
+    void handleDIBasicType(const DIBasicType *basicType);
     /// Construction helper to process DICompositeTypes.
-    void handleDICompositeType(const llvm::DICompositeType *compositeType);
+    void handleDICompositeType(const DICompositeType *compositeType);
     /// Construction helper to process DIDerivedTypes.
-    void handleDIDerivedType(const llvm::DIDerivedType *derivedType);
+    void handleDIDerivedType(const DIDerivedType *derivedType);
     /// Construction helper to process DISubroutineTypes.
-    void handleDISubroutineType(const llvm::DISubroutineType *subroutineType);
+    void handleDISubroutineType(const DISubroutineType *subroutineType);
 
     /// Finds all defined virtual functions and attaches them to nodes.
     void buildVTables(const Module &module);
 
     /// Returns a set of all children of type (CHA). Also gradually builds chaMap.
-    std::set<const DCHNode *> &cha(const llvm::DIType *type, bool firstField);
+    std::set<const DCHNode *> &cha(const DIType *type, bool firstField);
 
     /// Attaches the typedef(s) to the base node.
-    void handleTypedef(const llvm::DIType *typedefType);
+    void handleTypedef(const DIType *typedefType);
 
     /// Populates fieldTypes for type and all its elements.
     void flatten(const DICompositeType *type);
@@ -370,25 +371,25 @@ private:
 
     /// Creates a node from type, or returns it if it exists.
     /// Only suitable for TODO.
-    DCHNode *getOrCreateNode(const llvm::DIType *type);
+    DCHNode *getOrCreateNode(const DIType *type);
 
     /// Retrieves the metadata associated with a *virtual* callsite.
-    const llvm::DIType *getCSStaticType(CallSite cs) const {
-        llvm::MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
+    const DIType *getCSStaticType(CallSite cs) const {
+        MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
         assert(md != nullptr && "Missing type metadata at virtual callsite");
-        llvm::DIType *diType = llvm::dyn_cast<llvm::DIType>(md);
+        DIType *diType = SVFUtil::dyn_cast<DIType>(md);
         assert(diType != nullptr && "Incorrect metadata type at virtual callsite");
         return diType;
     }
 
     /// Checks if a node exists for type.
-    bool hasNode(const llvm::DIType *type) {
+    bool hasNode(const DIType *type) {
         type = getCanonicalType(type);
         return diTypeToNodeMap.find(type) != diTypeToNodeMap.end();
     }
 
     /// Returns the node for type (NULL if it doesn't exist).
-    DCHNode *getNode(const llvm::DIType *type) {
+    DCHNode *getNode(const DIType *type) {
         type = getCanonicalType(type);
         if (hasNode(type)) {
             return diTypeToNodeMap.at(type);
@@ -399,9 +400,9 @@ private:
 
 
     /// Creates an edge between from t1 to t2.
-    DCHEdge *addEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);
+    DCHEdge *addEdge(const DIType *t1, const DIType *t2, DCHEdge::GEdgeKind et);
     /// Returns the edge between t1 and t2 if it exists, returns NULL otherwise.
-    DCHEdge *hasEdge(const llvm::DIType *t1, const llvm::DIType *t2, DCHEdge::GEdgeKind et);
+    DCHEdge *hasEdge(const DIType *t1, const DIType *t2, DCHEdge::GEdgeKind et);
 
     /// Number of types (nodes) in the graph.
     NodeID numTypes;
