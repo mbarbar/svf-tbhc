@@ -872,6 +872,7 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
                         ss << std::string(sp->getName());
                     } else if (const DIDerivedType *mt = SVFUtil::dyn_cast<DIDerivedType>(fields[i])) {
                         assert(mt->getTag() == dwarf::DW_TAG_member && "DCHG: expected member");
+                        ss << diTypeToStr(mt->getBaseType());
                     }
 
                     if (i != fields.size() - 1) {
