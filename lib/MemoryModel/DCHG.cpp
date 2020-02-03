@@ -90,37 +90,23 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
         break;
     }
     case dwarf::DW_TAG_member:
-        // TODO: don't care it seems.
+    case dwarf::DW_TAG_friend:
+        // Don't care.
         break;
     case dwarf::DW_TAG_typedef:
         handleTypedef(derivedType);
         break;
     case dwarf::DW_TAG_pointer_type:
-        if (extended) getOrCreateNode(derivedType);
-        break;
     case dwarf::DW_TAG_ptr_to_member_type:
-        if (extended) getOrCreateNode(derivedType);
-        break;
     case dwarf::DW_TAG_reference_type:
-        if (extended) getOrCreateNode(derivedType);
-        break;
     case dwarf::DW_TAG_rvalue_reference_type:
         if (extended) getOrCreateNode(derivedType);
         break;
     case dwarf::DW_TAG_const_type:
-        // TODO: need flags for qualifiers.
-        break;
     case dwarf::DW_TAG_atomic_type:
-        // TODO: need flags for qualifiers.
-        break;
     case dwarf::DW_TAG_volatile_type:
-        // TODO: need flags for qualifiers.
-        break;
     case dwarf::DW_TAG_restrict_type:
-        // TODO: need flags for qualifiers.
-        break;
-    case dwarf::DW_TAG_friend:
-        // TODO: unsure.
+        // TODO: maybe flag for qualifiers.
         break;
     default:
         assert(false && "DCHGraph::buildCHG: unexpected DerivedType tag.");
@@ -363,7 +349,6 @@ DCHNode *DCHGraph::getOrCreateNode(const DIType *type) {
     addGNode(node->getId(), node);
     diTypeToNodeMap[type] = node;
     // TODO: name map, necessary?
-
     // TODO: handle templates.
 
     return node;
