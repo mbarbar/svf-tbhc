@@ -73,11 +73,28 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
     // Get points-to targets may be used by next SVFG node.
     // Propagate points-to set for node used in dst.
     const PointsTo& pts = edge->getPointsTo();
+
+    // Since the base Andersen's analysis does NOT perform type-based heap cloning,
+    // it uses only the base objects; we want to account for clones too.
     PointsTo edgePtsAndClones;
+
+    // TODO: the conditional bool may be unnecessary.
+    // Adding all clones is redundant, and introduces too many calls to propVarPts...
+    // This + preparePtsFromIn introduces performance and precision penalties.
+    // We should filter out according to src.
+    bool isStore = false;
+    const DIType *tildet = nullptr;
+    if (const StoreSVFGNode *store = SVFUtil::dyn_cast<StoreSVFGNode>(src)) {
+        tildet = dchg->getTypeFromCTirMetadata(store);
+        isStore = true;
+    }
+
     for (PointsTo::iterator oI = pts.begin(), oEI = pts.end(); oI != oEI; ++oI) {
         edgePtsAndClones.set(*oI);
         for (NodeID c : objToClones[*oI]) {
-            edgePtsAndClones.set(c);
+            if (!isStore || isBase(tildet, getType(c))) {
+                edgePtsAndClones.set(c);
+            }
         }
 
         if (GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(*oI))) {
@@ -85,7 +102,9 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
             const MemObj *memObj = gep->getMemObj();
             unsigned offset = gep->getLocationSet().getOffset();
             for (NodeID g : memObjToGeps[memObj][offset]) {
-                edgePtsAndClones.set(g);
+                if (!isStore || getType(g) == nullptr || isBase(tildet, getType(g))) {
+                    edgePtsAndClones.set(g);
+                }
             }
         }
     }
