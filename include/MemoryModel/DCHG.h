@@ -13,6 +13,7 @@
 
 #include "MemoryModel/GenericGraph.h"
 #include "MemoryModel/CHG.h"
+#include "MSSA/SVFG.h"
 #include "Util/SVFModule.h"
 #include "Util/SVFUtil.h"
 #include "Util/WorkList.h"
@@ -313,8 +314,11 @@ public:
     }
 
     /// Returns the ctir type attached to the value, nullptr if non-existant.
-    /// Not static because it needs to DCHG to return the canonical type.
+    /// Not static because it needs the DCHG to return the canonical type.
     const DIType *getTypeFromCTirMetadata(const Value *);
+    /// Extracts the value from SVFGNode (if it exists), and calls
+    /// getTypeFromCTirMetadata. If no value exists, returns null (void).
+    const DIType *getTypeFromCTirMetadata(const SVFGNode *);
 
 protected:
     /// SVF Module this CHG is built from.

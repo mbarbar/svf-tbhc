@@ -794,6 +794,17 @@ const DIType *DCHGraph::getTypeFromCTirMetadata(const Value *v) {
     return getCanonicalType(type);
 }
 
+const DIType *DCHGraph::getTypeFromCTirMetadata(const SVFGNode *s) {
+    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
+        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        if (v != nullptr) {
+            return getTypeFromCTirMetadata(v);
+        }
+    }
+
+    return nullptr;
+}
+
 
 std::string DCHGraph::diTypeToStr(const DIType *t) {
     std::stringstream ss;
