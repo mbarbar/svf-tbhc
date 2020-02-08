@@ -73,21 +73,25 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
     // Get points-to targets may be used by next SVFG node.
     // Propagate points-to set for node used in dst.
     const PointsTo& pts = edge->getPointsTo();
-    std::set<NodeID> edgePtsAndClones;
+    PointsTo edgePtsAndClones;
     for (PointsTo::iterator oI = pts.begin(), oEI = pts.end(); oI != oEI; ++oI) {
-        edgePtsAndClones.insert(*oI);
-        edgePtsAndClones.insert(objToClones[*oI].begin(), objToClones[*oI].end());
+        edgePtsAndClones.set(*oI);
+        for (NodeID c : objToClones[*oI]) {
+            edgePtsAndClones.set(c);
+        }
+
         if (GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(*oI))) {
             // Want the geps which are at the same "level" as this one (same mem obj, same offset).
             const MemObj *memObj = gep->getMemObj();
             unsigned offset = gep->getLocationSet().getOffset();
-            edgePtsAndClones.insert(memObjToGeps[memObj][offset].begin(),
-                                    memObjToGeps[memObj][offset].end());
+            for (NodeID g : memObjToGeps[memObj][offset]) {
+                edgePtsAndClones.set(g);
+            }
         }
     }
 
     const PointsTo &filterSet = locToFilterSet[src->getId()];
-    for (std::set<NodeID>::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
+    for (PointsTo::iterator oI = edgePtsAndClones.begin(), oEI = edgePtsAndClones.end(); oI != oEI; ++oI) {
         NodeID o = *oI;
         if (filterSet.test(o)) continue;
 
