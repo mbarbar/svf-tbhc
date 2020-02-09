@@ -771,41 +771,6 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
     return false;
 }
 
-const DIType *DCHGraph::getTypeFromCTirMetadata(const Value *v) {
-    assert(v != nullptr && "DCHG: trying to get metadata from nullptr!");
-
-    const MDNode *mdNode = nullptr;
-    if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
-        mdNode = inst->getMetadata(SVFModule::ctirMetadataName);
-    } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
-        mdNode = go->getMetadata(SVFModule::ctirMetadataName);
-    }
-
-    if (mdNode == nullptr) {
-        return nullptr;
-    }
-
-    const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
-    if (type == nullptr) {
-        SVFUtil::errs() << "FSTF: bad ctir metadata type\n";
-        return nullptr;
-    }
-
-    return getCanonicalType(type);
-}
-
-const DIType *DCHGraph::getTypeFromCTirMetadata(const SVFGNode *s) {
-    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
-        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
-        if (v != nullptr) {
-            return getTypeFromCTirMetadata(v);
-        }
-    }
-
-    return nullptr;
-}
-
-
 std::string DCHGraph::diTypeToStr(const DIType *t) {
     std::stringstream ss;
 

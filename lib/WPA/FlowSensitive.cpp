@@ -29,6 +29,7 @@
 
 #include "MemoryModel/DCHG.h"
 #include "Util/SVFModule.h"
+#include "Util/TypeFilter.h"
 #include "WPA/WPAStat.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/Andersen.h"
@@ -628,9 +629,7 @@ bool FlowSensitive::propVarPtsAfterCGUpdated(NodeID var, const SVFGNode* src, co
 
 void FlowSensitive::printCTirAliasStats(void) {
     DCHGraph *dchg = SVFUtil::dyn_cast<DCHGraph>(chgraph);
-    if (dchg == nullptr) {
-        llvm::outs() << "eval-ctir-aliases needs DCHG.";
-    }
+    assert(dchg && "eval-ctir-aliases needs DCHG.");
 
     // < SVFG node ID (loc), PAG node of interest (top-level pointer) >.
     std::set<std::pair<NodeID, NodeID>> cmpLocs;
@@ -645,8 +644,7 @@ void FlowSensitive::printCTirAliasStats(void) {
                 continue;
             }
 
-            if (!dchg->getTypeFromCTirMetadata(stmt->getInst() ? stmt->getInst()
-                                                               : stmt->getPAGEdge()->getValue())) {
+            if (!TypeFilter::getRawCTirMetadata(stmt)) {
                 continue;
             }
 

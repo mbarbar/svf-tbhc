@@ -322,3 +322,56 @@ NodeID TypeFilter::cloneObject(NodeID o, const DIType *type) {
     return clone;
 }
 
+const MDNode *TypeFilter::getRawCTirMetadata(const Value *v) {
+    assert(v != nullptr && "TF: trying to get metadata from nullptr!");
+
+    const MDNode *mdNode = nullptr;
+    if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
+        mdNode = inst->getMetadata(SVFModule::ctirMetadataName);
+    } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
+        mdNode = go->getMetadata(SVFModule::ctirMetadataName);
+    }
+
+    // Will be nullptr if metadata isn't there.
+    return mdNode;
+}
+
+const MDNode *TypeFilter::getRawCTirMetadata(const SVFGNode *s) {
+    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
+        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        if (v != nullptr) {
+            return getRawCTirMetadata(v);
+        }
+    }
+
+    return nullptr;
+}
+
+const DIType *TypeFilter::getTypeFromCTirMetadata(const Value *v) {
+    assert(v != nullptr && "TF: trying to get type from nullptr!");
+
+    const MDNode *mdNode = getRawCTirMetadata(v);
+    if (mdNode == nullptr) {
+        return nullptr;
+    }
+
+    const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
+    if (type == nullptr) {
+        SVFUtil::errs() << "TF: bad ctir metadata type\n";
+        return nullptr;
+    }
+
+    return dchg->getCanonicalType(type);
+}
+
+const DIType *TypeFilter::getTypeFromCTirMetadata(const SVFGNode *s) {
+    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
+        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        if (v != nullptr) {
+            return getTypeFromCTirMetadata(v);
+        }
+    }
+
+    return nullptr;
+}
+

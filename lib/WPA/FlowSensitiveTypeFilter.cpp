@@ -108,7 +108,7 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
     bool isStore = false;
     const DIType *tildet = nullptr;
     if (const StoreSVFGNode *store = SVFUtil::dyn_cast<StoreSVFGNode>(src)) {
-        tildet = dchg->getTypeFromCTirMetadata(store);
+        tildet = getTypeFromCTirMetadata(store);
         isStore = true;
     }
 
@@ -206,7 +206,7 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
         objType = undefType;
     } else {
         // Stack/global.
-        objType = dchg->getTypeFromCTirMetadata(addr);
+        objType = getTypeFromCTirMetadata(addr);
     }
 
     setType(srcID, objType);
@@ -231,7 +231,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
 
     NodeID q = gep->getPAGSrcNodeID();
 
-    const DIType *tildet = dchg->getTypeFromCTirMetadata(gep);
+    const DIType *tildet = getTypeFromCTirMetadata(gep);
     if (tildet != undefType) {
         init(gep->getId(), q, tildet, !gepIsLoad[gep->getId()], true);
     }
@@ -305,7 +305,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
 
     preparePtsFromIn(load, load->getPAGSrcNodeID());
 
-    const DIType *tildet = dchg->getTypeFromCTirMetadata(load);
+    const DIType *tildet = getTypeFromCTirMetadata(load);
     if (tildet != undefType) {
         init(load->getId(), load->getPAGSrcNodeID(), tildet, false);
     }
@@ -352,7 +352,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
 bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
     double start = stat->getClk();
 
-    const DIType *tildet = dchg->getTypeFromCTirMetadata(store);
+    const DIType *tildet = getTypeFromCTirMetadata(store);
     if (tildet != undefType) {
         init(store->getId(), store->getPAGDstNodeID(), tildet, true);
     }
@@ -437,7 +437,7 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
 
-    const DIType *tildet = dchg->getTypeFromCTirMetadata(stmt);
+    const DIType *tildet = getTypeFromCTirMetadata(stmt);
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
     for (PtsMap::value_type kv : ptsInMap) {
         NodeID o = kv.first;
@@ -460,7 +460,7 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (const StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
-            if (dchg->getTypeFromCTirMetadata(gep)) {
+            if (getTypeFromCTirMetadata(gep)) {
                 // Only care about ctir nodes - they have the reuse problem.
                 gepIsLoad[gep->getId()] = true;
                 for (auto eI = gep->getOutEdges().begin(); eI != gep->getOutEdges().end(); ++eI) {

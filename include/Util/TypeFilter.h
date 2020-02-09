@@ -15,6 +15,13 @@
 #include "Util/BasicTypes.h"
 
 class TypeFilter {
+public:
+    /// Returns raw ctir metadata of a Value. Returns null if it doesn't exist.
+    static const MDNode *getRawCTirMetadata(const Value *);
+    /// Returns raw ctir metadata of the instruction behind a SVFG node.
+    /// Wraps getRawCTirMetadata(const Value *). Returns null if it doesn't exist.
+    static const MDNode *getRawCTirMetadata(const SVFGNode *);
+
 protected:
     /// The undefined type (•); void.
     static const DIType *undefType;
@@ -90,6 +97,15 @@ protected:
 
     /// Returns a clone of o with type type.
     NodeID cloneObject(NodeID o, const DIType *type);
+
+    /// Returns the ctir type attached to the value, nullptr if non-existant.
+    /// Not static because it needs the DCHG to return the canonical type.
+    /// Not static because we need dchg's getCanonicalType.
+    const DIType *getTypeFromCTirMetadata(const Value *);
+    /// Extracts the value from SVFGNode (if it exists), and calls
+    /// getTypeFromCTirMetadata(const Value *).
+    /// If no ctir type exists, returns null (void).
+    const DIType *getTypeFromCTirMetadata(const SVFGNode *);
 
 private:
     /// PTA extending this class.
