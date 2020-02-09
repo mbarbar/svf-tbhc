@@ -426,8 +426,8 @@ public:
     //@}
 
     /// Constructor
-    GepObjPN(const MemObj* mem, NodeID i, const LocationSet& l) :
-        ObjPN(mem->getRefVal(), i, mem, GepObjNode), ls(l) {
+    GepObjPN(const MemObj* mem, NodeID i, const LocationSet& l, PNODEK ty = GepObjNode) :
+        ObjPN(mem->getRefVal(), i, mem, ty), ls(l) {
     }
 
     /// offset of the mem object
@@ -485,8 +485,8 @@ public:
     //@}
 
     /// Constructor
-    FIObjPN(const Value* val, NodeID i, const MemObj* mem) :
-        ObjPN(val, i, mem, FIObjNode) {
+    FIObjPN(const Value* val, NodeID i, const MemObj* mem, PNODEK ty = FIObjNode) :
+        ObjPN(val, i, mem, ty) {
     }
 
     /// Return name of a LLVM value
@@ -641,8 +641,8 @@ public:
     //@}
 
     /// Constructor
-    CloneObjPN(NodeID i, const MemObj* m)
-        : ObjPN(NULL, i, m, CloneObjNode) {
+    CloneObjPN(NodeID i, const MemObj* m, PNODEK ty = CloneObjNode)
+        : ObjPN(NULL, i, m, ty) {
     }
 
     /// Return name of this node
@@ -669,8 +669,8 @@ public:
     //@}
 
     /// Constructor
-    CloneGepObjPN(const MemObj* mem, NodeID i, const LocationSet& l) :
-        GepObjPN(mem, i, l) {
+    CloneGepObjPN(const MemObj* mem, NodeID i, const LocationSet& l, PNODEK ty = CloneGepObjNode) :
+        GepObjPN(mem, i, l, ty) {
     }
 
     /// Return name of this node
@@ -697,8 +697,8 @@ public:
     //@}
 
     /// Constructor
-    CloneFIObjPN(const Value* val, NodeID i, const MemObj* mem) :
-        FIObjPN(val, i, mem) {
+    CloneFIObjPN(const Value* val, NodeID i, const MemObj* mem, PNODEK ty = CloneFIObjNode) :
+        FIObjPN(val, i, mem, ty) {
     }
 
     /// Return name of this node
