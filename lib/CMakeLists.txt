@@ -17,6 +17,7 @@ set(SOURCES
     Util/PTAStat.cpp
     Util/ThreadAPI.cpp
     Util/SVFModule.cpp
+    Util/TypeFilter.cpp
     Util/ICFG.cpp
     Util/VFG.cpp
     MemoryModel/ConsG.cpp
