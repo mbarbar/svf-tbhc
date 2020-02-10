@@ -140,10 +140,9 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
 
         if (isFIObjNode(o)) {
             /// If this is a field-insensitive obj, propagate all field node's pts
-            const NodeBS& allFields = getAllFieldsObjNode(o);
-            for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
-                    fieldIt != fieldEit; ++fieldIt) {
-                if (propVarPtsFromSrcToDst(*fieldIt, src, dst))
+            std::set<NodeID> allFields = getGepObjs(o);
+            for (NodeID f : allFields) {
+                if (propVarPtsFromSrcToDst(f, src, dst))
                     changed = true;
             }
         }
@@ -334,11 +333,9 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
         if (isFIObjNode(ptd)) {
             /// If the ptd is a field-insensitive node, we should also get all field nodes'
             /// points-to sets and pass them to pagDst.
-            // TODO: get field clones?
-            const NodeBS& allFields = getAllFieldsObjNode(ptd);
-            for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end();
-                    fieldIt != fieldEit; ++fieldIt) {
-                if (unionPtsFromIn(load, *fieldIt, dstVar))
+            std::set<NodeID> allFields = getGepObjs(ptd);
+            for (NodeID f : allFields) {
+                if (unionPtsFromIn(load, f, dstVar))
                     changed = true;
             }
         }
