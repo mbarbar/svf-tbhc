@@ -136,9 +136,9 @@ void DCHGraph::handleTypedef(const DIType *typedefType) {
     const DIType *baseType = typedefType;
     DCHNode *baseTypeNode = getOrCreateNode(baseType);
 
-    for (std::vector<const DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
+    for (const DIDerivedType *tdef : typedefs) {
         // Base type needs to hold its typedefs.
-        baseTypeNode->addTypedef(*typedefI);
+        baseTypeNode->addTypedef(tdef);
     }
 }
 
@@ -199,15 +199,14 @@ std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
 
     // Check if we've already computed.
     if (cacheMap.find(type) != cacheMap.end()) {
-        return cacheMap[type];
+        return cacheMap.at(type);
     }
 
     std::set<const DCHNode *> children;
     const DCHNode *node = getOrCreateNode(type);
     // Consider oneself a child, otherwise the recursion will just come up with nothing.
     children.insert(node);
-    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->getInEdges().begin(); edgeI != node->getInEdges().end(); ++edgeI) {
-        DCHEdge *edge = *edgeI;
+    for (const DCHEdge *edge : node->getInEdges()) {
         // Don't care about anything but inheritance and first-field edges.
         if (edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
             if (!firstField) continue;
@@ -221,9 +220,9 @@ std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
     }
 
     // Cache results.
-    cacheMap[type] = children;
+    cacheMap.insert({type, children});
     // Return the permanent object; we're returning a reference.
-    return cacheMap[type];
+    return cacheMap.at(type);
 }
 
 void DCHGraph::flatten(const DICompositeType *type) {
@@ -342,7 +341,7 @@ DCHNode *DCHGraph::getOrCreateNode(const DIType *type) {
 
     // Check, does the node for type exist?
     if (diTypeToNodeMap[type] != NULL) {
-        return diTypeToNodeMap[type];
+        return diTypeToNodeMap.at(type);
     }
 
     DCHNode *node = new DCHNode(type, numTypes++);
@@ -373,12 +372,12 @@ DCHEdge *DCHGraph::hasEdge(const DIType *t1, const DIType *t2, DCHEdge::GEdgeKin
     DCHNode *src = getOrCreateNode(t1);
     DCHNode *dst = getOrCreateNode(t2);
 
-    for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = src->getOutEdges().begin(); edgeI != src->getOutEdges().end(); ++edgeI) {
-        DCHNode *node = (*edgeI)->getDstNode();
-        DCHEdge::GEdgeKind edgeType = (*edgeI)->getEdgeKind();
+    for (DCHEdge *edge : src->getOutEdges()) {
+        DCHNode *node = edge->getDstNode();
+        DCHEdge::GEdgeKind edgeType = edge->getEdgeKind();
         if (node == dst && edgeType == et) {
-            assert(SVFUtil::isa<DCHEdge>(*edgeI) && "Non-DCHEdge in DCHNode edge set.");
-            return *edgeI;
+            assert(SVFUtil::isa<DCHEdge>(edge) && "Non-DCHEdge in DCHNode edge set.");
+            return edge;
         }
     }
 
@@ -481,7 +480,7 @@ const VFunSet &DCHGraph::getCSVFsBasedonCHA(CallSite cs) {
     getVFnsFromVtbls(cs, vtbls, vfns);
 
     // Cache.
-    csCHAMap[cs] = vfns;
+    csCHAMap.insert({cs, vfns});
     // Return cached object, not the stack object.
     return csCHAMap.at(cs);
 }
@@ -495,8 +494,8 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
 
     VTableSet vtblSet;
     std::set<const DCHNode *> children = cha(type, false);
-    for (std::set<const DCHNode *>::const_iterator childI = children.begin(); childI != children.end(); ++childI) {
-        const GlobalValue *vtbl = (*childI)->getVTable();
+    for (const DCHNode *child : children) {
+        const GlobalValue *vtbl = child->getVTable();
         // TODO: what if it is null?
         if (vtbl != nullptr) {
             vtblSet.insert(vtbl);
@@ -504,7 +503,7 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
     }
 
     // Cache.
-    vtblCHAMap[type] = vtblSet;
+    vtblCHAMap.insert({type, vtblSet});
     // Return cached version - not the stack object.
     return vtblCHAMap.at(type);
 }
@@ -595,19 +594,19 @@ const DIType *DCHGraph::getCanonicalType(const DIType *t) {
     }
 
     // Canonical type for t is not cached, find one for it.
-    for (std::set<const DIType *>::iterator canonTypeI = canonicalTypes.begin(); canonTypeI != canonicalTypes.end(); ++canonTypeI) {
-        if (teq(t, *canonTypeI)) {
+    for (const DIType *canonType : canonicalTypes) {
+        if (teq(t, canonType)) {
             // Found a canonical type.
-            canonicalTypeMap[t] = *canonTypeI;
-            return canonicalTypeMap[t];
+            canonicalTypeMap[t] = canonType;
+            return canonicalTypeMap.at(t);
         }
     }
 
     // No canonical type found, so t will be a canonical type.
     canonicalTypes.insert(t);
-    canonicalTypeMap[t] = t;
+    canonicalTypeMap.insert({t, t});
 
-    return canonicalTypeMap[t];
+    return canonicalTypeMap.at(t);
 }
 
 const DIType *DCHGraph::stripQualifiers(const DIType *t) {
@@ -927,8 +926,7 @@ void DCHGraph::print(void) const {
 
         SVFUtil::outs() << indent(currIndent) << "Bases\n";
         currIndent += singleIndent;
-        for (DCHEdge::DCHEdgeSetTy::const_iterator edgeI = node->OutEdgeBegin(); edgeI != node->OutEdgeEnd(); ++edgeI) {
-            const DCHEdge *edge = *edgeI;
+        for (const DCHEdge *edge : node->getOutEdges()) {
             std::string arrow;
             if (edge->getEdgeKind() == DCHEdge::INHERITANCE) {
                 arrow = "--inheritance-->";
@@ -955,11 +953,10 @@ void DCHGraph::print(void) const {
         currIndent += singleIndent;
 
         const std::set<const DIDerivedType *> &typedefs = node->getTypedefs();
-        for (std::set<const DIDerivedType *>::iterator typedefI = typedefs.begin(); typedefI != typedefs.end(); ++typedefI) {
-            const DIDerivedType *typedefType = *typedefI;
+        for (const DIDerivedType *tdef : typedefs) {
             std::string typedefName = "void";
-            if (typedefType != NULL) {
-                typedefName = typedefType->getName();
+            if (tdef != NULL) {
+                typedefName = tdef->getName();
             }
 
             SVFUtil::outs() << indent(currIndent) << typedefName << "\n";
@@ -981,9 +978,9 @@ void DCHGraph::print(void) const {
     SVFUtil::outs() << thickLine;
     SVFUtil::outs() << "Constructor to type mapping\n";
     SVFUtil::outs() << line;
-    for (std::map<const Function *, const DIType *>::const_iterator ctI = constructorToType.begin(); ctI != constructorToType.end(); ++ctI) {
-        cppUtil::DemangledName dname = cppUtil::demangle(ctI->first->getName().str());
-        SVFUtil::outs() << dname.className << "::" << dname.funcName << " : " << diTypeToStr(ctI->second) << "\n";
+    for (std::map<const Function *, const DIType *>::value_type ct : constructorToType) {
+        cppUtil::DemangledName dname = cppUtil::demangle(ct.first->getName().str());
+        SVFUtil::outs() << dname.className << "::" << dname.funcName << " : " << diTypeToStr(ct.second) << "\n";
     }
 
     SVFUtil::outs() << thickLine;
