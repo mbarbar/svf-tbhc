@@ -274,7 +274,7 @@ public:
     inline NodeID getGepObjNode(NodeID id, const LocationSet& ls) {
         return pag->getGepObjNode(id,ls);
     }
-    inline const NodeBS& getAllFieldsObjNode(NodeID id) {
+    virtual inline const NodeBS& getAllFieldsObjNode(NodeID id) {
         return pag->getAllFieldsObjNode(id);
     }
     inline void setObjFieldInsensitive(NodeID id) {

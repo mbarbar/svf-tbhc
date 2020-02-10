@@ -96,7 +96,7 @@ PointsTo &TypeFilter::getFilterSet(NodeID loc) {
 }
 
 void TypeFilter::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
-    objToGeps[base].insert(gep);
+    objToGeps[base].set(gep);
     const PAGNode *baseNode = ppag->getPAGNode(base);
     assert(baseNode && "TF: given bad base node?");
     const ObjPN *baseObj = SVFUtil::dyn_cast<ObjPN>(baseNode);
@@ -104,7 +104,7 @@ void TypeFilter::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
     // We can use the base or the gep mem. obj.; should be identical.
     const MemObj *baseMemObj = baseObj->getMemObj();
 
-    objToGeps[base].insert(gep);
+    objToGeps[base].set(gep);
     memObjToGeps[baseMemObj][offset].insert(gep);
 }
 
@@ -112,7 +112,7 @@ std::set<NodeID> TypeFilter::getGepObjsFromMemObj(const MemObj *memObj, unsigned
     return memObjToGeps[memObj][offset];
 }
 
-std::set<NodeID> TypeFilter::getGepObjs(NodeID base) {
+const NodeBS &TypeFilter::getGepObjs(NodeID base) {
     return objToGeps[base];
 }
 
@@ -141,9 +141,8 @@ std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls)
     }
 
     // TODO: caching on ls or offset will improve performance.
-    std::set<NodeID> gepObjs = getGepObjs(base);
-    for (std::set<NodeID>::iterator gepI = gepObjs.begin(); gepI != gepObjs.end(); ++gepI) {
-        NodeID gep = *gepI;
+    const NodeBS &gepObjs = getGepObjs(base);
+    for (NodeID gep : gepObjs) {
         PAGNode *node = ppag->getPAGNode(gep);
         assert(node && "TF: expected gep node doesn't exist.");
         assert((SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node))

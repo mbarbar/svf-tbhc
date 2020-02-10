@@ -84,7 +84,7 @@ protected:
     std::set<NodeID> getGepObjsFromMemObj(const MemObj *memObj, unsigned offset);
     /// Returns all gep objects under an object.
     /// Not const; could create empty set.
-    std::set<NodeID> getGepObjs(NodeID base);
+    const NodeBS &getGepObjs(NodeID base);
 
     /// Returns the GEP object node(s) of base for ls. This may include clones.
     /// If there are no GEP objects, then getGepObjNode is called on the PAG
@@ -126,7 +126,7 @@ private:
     /// Maps nodes (a location like a PAG node or SVFG node) to their filter set.
     std::map<NodeID, PointsTo> locToFilterSet;
     /// Maps objects to the GEP nodes beneath them.
-    std::map<NodeID, std::set<NodeID>> objToGeps;
+    std::map<NodeID, NodeBS> objToGeps;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
     std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
 };

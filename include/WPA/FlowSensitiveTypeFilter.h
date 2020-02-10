@@ -50,6 +50,8 @@ public:
     virtual bool processStore(const StoreSVFGNode* store) override;
     virtual bool processPhi(const PHISVFGNode* phi) override;
 
+    virtual inline const NodeBS& getAllFieldsObjNode(NodeID id) override;
+
     /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
     /// coming from the in set.
     virtual void preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId);

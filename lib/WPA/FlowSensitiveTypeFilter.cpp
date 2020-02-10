@@ -140,7 +140,7 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
 
         if (isFIObjNode(o)) {
             /// If this is a field-insensitive obj, propagate all field node's pts
-            std::set<NodeID> allFields = getGepObjs(o);
+            const NodeBS &allFields = getAllFieldsObjNode(o);
             for (NodeID f : allFields) {
                 if (propVarPtsFromSrcToDst(f, src, dst))
                     changed = true;
@@ -333,7 +333,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
         if (isFIObjNode(ptd)) {
             /// If the ptd is a field-insensitive node, we should also get all field nodes'
             /// points-to sets and pass them to pagDst.
-            std::set<NodeID> allFields = getGepObjs(ptd);
+            const NodeBS &allFields = getAllFieldsObjNode(ptd);
             for (NodeID f : allFields) {
                 if (unionPtsFromIn(load, f, dstVar))
                     changed = true;
@@ -428,6 +428,10 @@ bool FlowSensitiveTypeFilter::processPhi(const PHISVFGNode* phi) {
 
     bool changed = FlowSensitive::processPhi(phi);
     return changed;
+}
+
+const NodeBS& FlowSensitiveTypeFilter::getAllFieldsObjNode(NodeID id) {
+    return getGepObjs(id);
 }
 
 void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
