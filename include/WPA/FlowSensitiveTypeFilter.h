@@ -67,7 +67,7 @@ private:
     void determineWhichGepsAreLoads(void);
 
     /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
-    std::map<NodeID, std::set<NodeID>> gepToSVFGRetrievers;
+    std::map<NodeID, NodeBS> gepToSVFGRetrievers;
     /// Maps whether a (SVFG) GEP node is a load or not.
     std::map<NodeID, bool> gepIsLoad;
 };

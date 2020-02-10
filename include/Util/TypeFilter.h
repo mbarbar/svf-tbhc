@@ -63,11 +63,11 @@ protected:
     NodeID getAllocationSite(NodeID o) const;
 
     /// Returns objects that have clones (any key in objToClones).
-    std::set<NodeID> getObjsWithClones(void);
+    const NodeBS getObjsWithClones(void);
     /// Add a clone c to object o.
     void addClone(NodeID o, NodeID c);
     /// Returns all the clones of o.
-    std::set<NodeID> getClones(NodeID o) const;
+    const NodeBS &getClones(NodeID o);
 
     // Set o as the original object of clone c.
     void setOriginalObj(NodeID c, NodeID o);
@@ -81,7 +81,7 @@ protected:
     void addGepToObj(NodeID gep, NodeID base, unsigned offset);
     /// Returns all gep objects at a particular offset for memory object.
     /// Not const; could create empty set.
-    std::set<NodeID> getGepObjsFromMemObj(const MemObj *memObj, unsigned offset);
+    const NodeBS &getGepObjsFromMemObj(const MemObj *memObj, unsigned offset);
     /// Returns all gep objects under an object.
     /// Not const; could create empty set.
     const NodeBS &getGepObjs(NodeID base);
@@ -89,7 +89,7 @@ protected:
     /// Returns the GEP object node(s) of base for ls. This may include clones.
     /// If there are no GEP objects, then getGepObjNode is called on the PAG
     /// (through base's getGepObjNode) which will create one.
-    std::set<NodeID> getGepObjClones(NodeID base, const LocationSet& ls);
+    const NodeBS getGepObjClones(NodeID base, const LocationSet& ls);
 
     /// Initialise the pointees of p at loc (which is type tildet *). reuse indicates
     /// whether we allow reuse. Returns whether p changed.
@@ -120,7 +120,7 @@ private:
     /// an SVFG node or PAG node for example).
     std::map<NodeID, NodeID> objToAllocation;
     /// (Original) object -> set of its clones.
-    std::map<NodeID, std::set<NodeID>> objToClones;
+    std::map<NodeID, NodeBS> objToClones;
     /// (Clone) object -> original object (opposite of objToclones).
     std::map<NodeID, NodeID> cloneToOriginalObj;
     /// Maps nodes (a location like a PAG node or SVFG node) to their filter set.
@@ -128,6 +128,6 @@ private:
     /// Maps objects to the GEP nodes beneath them.
     std::map<NodeID, NodeBS> objToGeps;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
-    std::map<const MemObj *, std::map<unsigned, std::set<NodeID>>> memObjToGeps;
+    std::map<const MemObj *, std::map<unsigned, NodeBS>> memObjToGeps;
 };
 

@@ -55,26 +55,21 @@ NodeID TypeFilter::getAllocationSite(NodeID o) const {
     return objToAllocation.at(o);
 }
 
-std::set<NodeID> TypeFilter::getObjsWithClones(void) {
-    std::set<NodeID> objs;
-    for (std::pair<NodeID, std::set<NodeID>> ocI : objToClones) {
-        objs.insert(ocI.first);
+const NodeBS TypeFilter::getObjsWithClones(void) {
+    NodeBS objs;
+    for (std::pair<NodeID, NodeBS> oc : objToClones) {
+        objs.set(oc.first);
     }
 
     return objs;
 }
 
 void TypeFilter::addClone(NodeID o, NodeID c) {
-    objToClones[o].insert(c);
+    objToClones[o].set(c);
 }
 
-std::set<NodeID> TypeFilter::getClones(NodeID o) const {
-    std::set<NodeID> clones;
-    if (objToClones.find(o) != objToClones.end()) {
-        clones = objToClones.at(o);
-    }
-
-    return clones;
+const NodeBS &TypeFilter::getClones(NodeID o) {
+    return objToClones[o];
 }
 
 void TypeFilter::setOriginalObj(NodeID c, NodeID o) {
@@ -105,10 +100,10 @@ void TypeFilter::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
     const MemObj *baseMemObj = baseObj->getMemObj();
 
     objToGeps[base].set(gep);
-    memObjToGeps[baseMemObj][offset].insert(gep);
+    memObjToGeps[baseMemObj][offset].set(gep);
 }
 
-std::set<NodeID> TypeFilter::getGepObjsFromMemObj(const MemObj *memObj, unsigned offset) {
+const NodeBS &TypeFilter::getGepObjsFromMemObj(const MemObj *memObj, unsigned offset) {
     return memObjToGeps[memObj][offset];
 }
 
@@ -116,10 +111,10 @@ const NodeBS &TypeFilter::getGepObjs(NodeID base) {
     return objToGeps[base];
 }
 
-std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
+const NodeBS TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
     assert(dchg && "TF: DCHG not set!");
     // Set of GEP objects we will return.
-    std::set<NodeID> geps;
+    NodeBS geps;
 
     PAGNode *node = ppag->getPAGNode(base);
     assert(node && "TF: base object node does not exist.");
@@ -130,13 +125,13 @@ std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls)
     if (ls.getOffset() == 0) {
         // The base object is the 0 gep object.
         addGepToObj(base, base, 0);
-        geps.insert(base);
+        geps.set(base);
         return geps;
     }
 
     if (baseNode->getMemObj()->isFieldInsensitive()) {
         // If it's field-insensitive, the base represents everything.
-        geps.insert(base);
+        geps.set(base);
         return geps;
     }
 
@@ -150,11 +145,11 @@ std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls)
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
             if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
-                geps.insert(gep);
+                geps.set(gep);
             }
         } else {
             // Definitely a FIObj (asserted).
-            geps.insert(gep);
+            geps.set(gep);
         }
     }
 
@@ -195,7 +190,7 @@ std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls)
         // TODO: "allocation" site does not make sense for GEP objects.
         setAllocationSite(newGep, getAllocationSite(base));
 
-        geps.insert(newGep);
+        geps.set(newGep);
     }
 
     return geps;
@@ -284,7 +279,7 @@ NodeID TypeFilter::cloneObject(NodeID o, const DIType *type) {
     if (isClone(o)) o = getOriginalObj(o);
 
     // Check if a clone of the correct type exists.
-    std::set<NodeID> clones = getClones(o);
+    const NodeBS &clones = getClones(o);
     for (NodeID clone : clones) {
         if (getType(clone) == type) {
             return clone;

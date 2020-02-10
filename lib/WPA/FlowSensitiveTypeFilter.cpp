@@ -40,14 +40,14 @@ void FlowSensitiveTypeFilter::finalize(void) {
     // Print clones with their types.
     SVFUtil::outs() << "=== Original objects to clones ===\n";
     unsigned total = 0;
-    std::set<NodeID> objs = getObjsWithClones();
+    const NodeBS objs = getObjsWithClones();
     for (NodeID o : objs) {
-        std::set<NodeID> clones = getClones(o);
-        if (clones.size() == 0) continue;
+        const NodeBS &clones = getClones(o);
+        if (clones.count() == 0) continue;
 
-        total += clones.size();
+        total += clones.count();
         SVFUtil::outs() << "  " << o << " : "
-                        << "(" << clones.size() << ")"
+                        << "(" << clones.count() << ")"
                         << "[ ";
         bool first = true;
         for (NodeID c : clones) {
@@ -78,7 +78,7 @@ void FlowSensitiveTypeFilter::backPropagate(NodeID clone) {
         pushIntoWorklist(getAllocationSite(getOriginalObj(clone)));
     } else if (SVFUtil::isa<CloneGepObjPN>(cloneObj)) {
         // Since getGepObjClones is updated, some GEP nodes need to be redone.
-        std::set<NodeID> retrievers = gepToSVFGRetrievers[getOriginalObj(clone)];
+        const NodeBS &retrievers = gepToSVFGRetrievers[getOriginalObj(clone)];
         for (NodeID r : retrievers) {
             pushIntoWorklist(r);
         }
@@ -122,7 +122,8 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
 
         if (GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(*oI))) {
             // Want the geps which are at the same "level" as this one (same mem obj, same offset).
-            for (NodeID g : getGepObjsFromMemObj(gep->getMemObj(), gep->getLocationSet().getOffset())) {
+            const NodeBS &geps = getGepObjsFromMemObj(gep->getMemObj(), gep->getLocationSet().getOffset());
+            for (NodeID g : geps) {
                 if (!isStore || getType(g) == nullptr || isBase(tildet, getType(g))) {
                     edgePtsAndClones.set(g);
                 }
@@ -212,9 +213,9 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     setAllocationSite(srcID, addr->getId());
 
     // All the typed versions of srcID. This handles back-propagation.
-    std::set<NodeID> clones = getClones(srcID);
-    for (std::set<NodeID>::iterator oI = clones.begin(); oI != clones.end(); ++oI) {
-        changed = addPts(addr->getPAGDstNodeID(), *oI) || changed;
+    const NodeBS &clones = getClones(srcID);
+    for (NodeID c : clones) {
+        changed = addPts(addr->getPAGDstNodeID(), c) || changed;
         // No need for typing these are all clones; they are all typed.
     }
 
@@ -279,10 +280,9 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                 }
 
                 // Operate on the field and all its clones.
-                std::set<NodeID> fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
-                for (std::set<NodeID>::iterator fcI = fieldClones.begin(); fcI != fieldClones.end(); ++fcI) {
-                    NodeID fc = *fcI;
-                    gepToSVFGRetrievers[getOriginalObj(fc)].insert(gep->getId());
+                const NodeBS fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
+                for (NodeID fc : fieldClones) {
+                    gepToSVFGRetrievers[getOriginalObj(fc)].set(gep->getId());
                     tmpDstPts.set(fc);
                 }
             } else {
