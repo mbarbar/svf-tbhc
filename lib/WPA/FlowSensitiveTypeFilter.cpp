@@ -256,8 +256,6 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
                 const DIType *baseType = getType(oq);
 
-                // TODO: ctir annotations unavailable for field accesses turned into memcpys/memmoves.
-                //       A few other things here and there too.
                 // Drop down to field insensitive.
                 if (baseType == nullptr) {
                     setObjFieldInsensitive(oq);

@@ -194,7 +194,6 @@ std::set<NodeID> TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls)
         setType(newGep, newGepType);
         // TODO: "allocation" site does not make sense for GEP objects.
         setAllocationSite(newGep, getAllocationSite(base));
-        addGepToObj(newGep, base, ls.getOffset());
 
         geps.insert(newGep);
     }
