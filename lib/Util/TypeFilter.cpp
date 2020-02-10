@@ -205,8 +205,7 @@ bool TypeFilter::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bo
     PointsTo pNewPt;
 
     PointsTo &filterSet = getFilterSet(loc);
-    for (PointsTo::iterator oI = pPt.begin(); oI != pPt.end(); ++oI) {
-        NodeID o = *oI;
+    for (NodeID o : pPt) {
         const DIType *tp = getType(o);  // tp is t'
 
         // When an object is field-insensitive, we can't filter on any of the fields' types.
