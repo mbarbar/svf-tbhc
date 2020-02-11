@@ -328,17 +328,6 @@ const MDNode *TypeFilter::getRawCTirMetadata(const Value *v) {
     return mdNode;
 }
 
-const MDNode *TypeFilter::getRawCTirMetadata(const SVFGNode *s) {
-    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
-        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
-        if (v != nullptr) {
-            return getRawCTirMetadata(v);
-        }
-    }
-
-    return nullptr;
-}
-
 const DIType *TypeFilter::getTypeFromCTirMetadata(const Value *v) {
     assert(v != nullptr && "TF: trying to get type from nullptr!");
 
@@ -354,16 +343,5 @@ const DIType *TypeFilter::getTypeFromCTirMetadata(const Value *v) {
     }
 
     return dchg->getCanonicalType(type);
-}
-
-const DIType *TypeFilter::getTypeFromCTirMetadata(const SVFGNode *s) {
-    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
-        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
-        if (v != nullptr) {
-            return getTypeFromCTirMetadata(v);
-        }
-    }
-
-    return nullptr;
 }
 

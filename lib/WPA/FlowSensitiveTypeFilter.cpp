@@ -475,6 +475,28 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     }
 }
 
+const MDNode *FlowSensitiveTypeFilter::getRawCTirMetadata(const SVFGNode *s) {
+    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
+        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        if (v != nullptr) {
+            return TypeFilter::getRawCTirMetadata(v);
+        }
+    }
+
+    return nullptr;
+}
+
+const DIType *FlowSensitiveTypeFilter::getTypeFromCTirMetadata(const SVFGNode *s) {
+    if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
+        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        if (v != nullptr) {
+            return TypeFilter::getTypeFromCTirMetadata(v);
+        }
+    }
+
+    return nullptr;
+}
+
 void FlowSensitiveTypeFilter::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
     std::map<std::pair<NodeID, NodeID>, PointsTo> filteredPts;
     for (std::pair<NodeID, NodeID> locP : cmp) {

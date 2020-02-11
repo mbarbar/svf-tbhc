@@ -644,7 +644,7 @@ void FlowSensitive::printCTirAliasStats(void) {
                 continue;
             }
 
-            if (!TypeFilter::getRawCTirMetadata(stmt)) {
+            if (!TypeFilter::getRawCTirMetadata(stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue())) {
                 continue;
             }
 

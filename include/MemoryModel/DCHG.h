@@ -13,7 +13,6 @@
 
 #include "MemoryModel/GenericGraph.h"
 #include "MemoryModel/CHG.h"
-#include "MSSA/SVFG.h"
 #include "Util/SVFModule.h"
 #include "Util/SVFUtil.h"
 #include "Util/WorkList.h"
