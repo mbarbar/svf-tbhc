@@ -203,14 +203,14 @@ std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
     children.insert(node);
     for (const DCHEdge *edge : node->getInEdges()) {
         // Don't care about anything but inheritance, first-field, and standard def. edges.
-        // We only care about first-field edges if the flag is on.
-        if (!firstField && edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
-            continue;
-        }
-
         if (   edge->getEdgeKind() != DCHEdge::INHERITANCE
             && edge->getEdgeKind() != DCHEdge::FIRST_FIELD
             && edge->getEdgeKind() != DCHEdge::STD_DEF) {
+            continue;
+        }
+
+        // We only care about first-field edges if the flag is on.
+        if (!firstField && edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
             continue;
         }
 
