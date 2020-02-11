@@ -17,9 +17,6 @@
 
 static llvm::cl::opt<bool> printDCHG("print-dchg", llvm::cl::init(false), llvm::cl::desc("print the DCHG if debug information is available"));
 
-// TODO: not used for ctir.
-const std::string DCHGraph::ctirInternalUntypedName = "__ctir_internal_untyped";
-
 void DCHGraph::handleDIBasicType(const DIBasicType *basicType) {
     getOrCreateNode(basicType);
 }
@@ -71,7 +68,6 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
 
         break;
     case dwarf::DW_TAG_enumeration_type:
-        // TODO: maybe just drop these to the base type?
         getOrCreateNode(compositeType);
         break;
     default:
@@ -106,7 +102,7 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
     case dwarf::DW_TAG_atomic_type:
     case dwarf::DW_TAG_volatile_type:
     case dwarf::DW_TAG_restrict_type:
-        // TODO: maybe flag for qualifiers.
+        // TODO: maybe we should add an optional flag for qualifiers.
         break;
     default:
         assert(false && "DCHGraph::buildCHG: unexpected DerivedType tag.");
@@ -194,8 +190,7 @@ void DCHGraph::buildVTables(const Module &module) {
 
 std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
     type = getCanonicalType(type);
-    std::map<const DIType *, std::set<const DCHNode *>> &cacheMap =
-        firstField ? chaFFMap : chaMap;
+    std::map<const DIType *, std::set<const DCHNode *>> &cacheMap = firstField ? chaFFMap : chaMap;
 
     // Check if we've already computed.
     if (cacheMap.find(type) != cacheMap.end()) {
@@ -207,10 +202,15 @@ std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
     // Consider oneself a child, otherwise the recursion will just come up with nothing.
     children.insert(node);
     for (const DCHEdge *edge : node->getInEdges()) {
-        // Don't care about anything but inheritance and first-field edges.
-        if (edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
-            if (!firstField) continue;
-        } else if (edge->getEdgeKind() != DCHEdge::INHERITANCE) {
+        // Don't care about anything but inheritance, first-field, and standard def. edges.
+        // We only care about first-field edges if the flag is on.
+        if (!firstField && edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
+            continue;
+        }
+
+        if (   edge->getEdgeKind() != DCHEdge::INHERITANCE
+            && edge->getEdgeKind() != DCHEdge::FIRST_FIELD
+            && edge->getEdgeKind() != DCHEdge::STD_DEF) {
             continue;
         }
 
@@ -428,16 +428,15 @@ void DCHGraph::buildCHG(bool extend) {
     }
 
     // Build the void/char/everything else relation.
-    // TODO: for cleanliness these should probably be some special edge, not FF/inheritance.
     if (extended && charType != nullptr) {
         // void <-- char
-        addEdge(charType, nullptr, DCHEdge::INHERITANCE);
+        addEdge(charType, nullptr, DCHEdge::STD_DEF);
         // char <-- x, char <-- y, ...
         for (iterator nodeI = begin(); nodeI != end(); ++nodeI) {
             // Everything without a parent gets char as a parent.
             if (nodeI->second->getType() != nullptr
                 && nodeI->second->getOutEdges().size() == 0) {
-                addEdge(nodeI->second->getType(), charType, DCHEdge::INHERITANCE);
+                addEdge(nodeI->second->getType(), charType, DCHEdge::STD_DEF);
             }
         }
     }
@@ -673,13 +672,6 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
         return true;
     }
 
-    if ((t1 == nullptr && t2 && t2->getName() == ctirInternalUntypedName)
-        || (t2 == nullptr && t1 && t1->getName() == ctirInternalUntypedName)) {
-        // We're treating the internal untyped from ctir as void (null).
-        return true;
-    }
-
-
     if (t1 == nullptr || t2 == nullptr) {
         // Since t1 != t2 and one of them is null, it is
         // impossible for them to be equal.
@@ -743,8 +735,7 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
 
         if (ct1->getTag() != ct2->getTag()) return false;
 
-        // TODO: too coarse?
-        // Treat all enums the same for now.
+        // Treat all enums the same.
         if (ct1->getTag() == dwarf::DW_TAG_enumeration_type) {
             return true;
         }
@@ -793,7 +784,6 @@ std::string DCHGraph::diTypeToStr(const DIType *t) {
         } else if (dt->getTag() == dwarf::DW_TAG_pointer_type) {
             ss << diTypeToStr(dt->getBaseType()) << " *";
         } else if (dt->getTag() == dwarf::DW_TAG_ptr_to_member_type) {
-            // TODO: double check
             ss << diTypeToStr(dt->getBaseType())
                << " " << diTypeToStr(SVFUtil::dyn_cast<DIType>(dt->getExtraData())) << "::*";
         } else if (dt->getTag() == dwarf::DW_TAG_reference_type) {

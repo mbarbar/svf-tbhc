@@ -24,9 +24,11 @@ class DCHNode;
 class DCHEdge : public GenericEdge<DCHNode> {
 public:
     enum {
-        INHERITANCE, // inheritance relation
-        INSTANCE,    // template-instance relation
-        FIRST_FIELD  // src -ff-> dst => dst is first field of src
+        INHERITANCE,  // inheritance relation
+        INSTANCE,     // template-instance relation
+        FIRST_FIELD,  // src -ff-> dst => dst is first field of src
+        STD_DEF       // Edges defined by the standard like (int -std-> char)
+                      // We also make the char --> void edge a STD_DEF edge.
     };
 
     typedef GenericNode<DCHNode, DCHEdge>::GEdgeSetTy DCHEdgeSetTy;
