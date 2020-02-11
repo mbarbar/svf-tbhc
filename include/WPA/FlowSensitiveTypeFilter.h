@@ -22,6 +22,10 @@ class SVFModule;
  */
 class FlowSensitiveTypeFilter : public FlowSensitive, public TypeFilter {
 public:
+    /// Returns raw ctir metadata of the instruction behind a SVFG node.
+    /// Wraps getRawCTirMetadata(const Value *). Returns null if it doesn't exist.
+    static const MDNode *getRawCTirMetadata(const SVFGNode *);
+
     /// Constructor
     FlowSensitiveTypeFilter(PTATY type = FSTF_WPA) : FlowSensitive(type), TypeFilter(this) {
         // Using `this` as the argument for TypeFilter is okay. As PointerAnalysis, it's
@@ -55,6 +59,11 @@ public:
     /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
     /// coming from the in set.
     virtual void preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId);
+
+    /// Extracts the value from SVFGNode (if it exists), and calls
+    /// getTypeFromCTirMetadata(const Value *).
+    /// If no ctir type exists, returns null (void).
+    const DIType *getTypeFromCTirMetadata(const SVFGNode *);
 
 protected:
     virtual void backPropagate(NodeID clone) override;
