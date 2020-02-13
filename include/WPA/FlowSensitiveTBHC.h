@@ -1,7 +1,7 @@
-//===- FlowSensitiveTypeFilter.h -- flow-sensitive type filter ----------------//
+//===- FlowSensitiveTBHC.h -- flow-sensitive type filter ----------------//
 
 /*
- * FlowSensitiveTypeFilter.h
+ * FlowSensitiveTBHC.h
  *
  *  Created on: Oct 08, 2019
  *      Author: Mohamad Barbar
@@ -13,27 +13,27 @@
 #include "MemoryModel/DCHG.h"
 #include "MSSA/SVFGOPT.h"
 #include "MSSA/SVFGBuilder.h"
-#include "Util/TypeFilter.h"
+#include "Util/TypeBasedHeapCloning.h"
 #include "WPA/FlowSensitive.h"
 class SVFModule;
 
 /*!
  * Flow sensitive whole program pointer analysis with type-based heap cloning.
  */
-class FlowSensitiveTypeFilter : public FlowSensitive, public TypeFilter {
+class FlowSensitiveTBHC : public FlowSensitive, public TypeBasedHeapCloning {
 public:
     /// Returns raw ctir metadata of the instruction behind a SVFG node.
     /// Wraps getRawCTirMetadata(const Value *). Returns null if it doesn't exist.
     static const MDNode *getRawCTirMetadata(const SVFGNode *);
 
     /// Constructor
-    FlowSensitiveTypeFilter(PTATY type = FSTF_WPA) : FlowSensitive(type), TypeFilter(this) {
-        // Using `this` as the argument for TypeFilter is okay. As PointerAnalysis, it's
-        // already constructed. TypeFilter also doesn't use pta in the constructor so it
+    FlowSensitiveTBHC(PTATY type = FSTBHC_WPA) : FlowSensitive(type), TypeBasedHeapCloning(this) {
+        // Using `this` as the argument for TypeBasedHeapCloning is okay. As PointerAnalysis, it's
+        // already constructed. TypeBasedHeapCloning also doesn't use pta in the constructor so it
         // just needs to be allocated, which it is.
     }
 
-    /// Flow sensitive analysis with FSTF.
+    /// Flow sensitive analysis with FSTBHC.
     virtual void analyze(SVFModule svfModule) override;
     /// Initialize analysis.
     virtual void initialize(SVFModule svfModule) override;
@@ -42,7 +42,7 @@ public:
 
     /// Get PTA name
     virtual const std::string PTAName() const override{
-        return "FSTF";
+        return "FSTBHC";
     }
 
     virtual bool propAlongIndirectEdge(const IndirectSVFGEdge* edge) override;

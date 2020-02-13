@@ -40,7 +40,7 @@
 #include "MemoryModel/DCHG.h"
 #include "MemoryModel/PTAType.h"
 #include "MemoryModel/ExternalPAG.h"
-#include "WPA/FlowSensitiveTypeFilter.h"
+#include "WPA/FlowSensitiveTBHC.h"
 #include <fstream>
 #include <sstream>
 
@@ -346,7 +346,7 @@ BVDataPTAImpl::BVDataPTAImpl(PointerAnalysis::PTATY type) :
         || type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA || type == AndersenWaveDiffWithType_WPA
         || type == AndersenSCD_WPA || type == AndersenSFR_WPA) {
 		ptD = new DiffPTDataTy();
-	} else if (type == FSSPARSE_WPA || type == FSTF_WPA) {
+	} else if (type == FSSPARSE_WPA || type == FSTBHC_WPA) {
 		if (INCDFPTData)
 			ptD = new IncDFPTDataTy();
 		else

@@ -29,7 +29,7 @@
 
 #include "MemoryModel/DCHG.h"
 #include "Util/SVFModule.h"
-#include "Util/TypeFilter.h"
+#include "Util/TypeBasedHeapCloning.h"
 #include "WPA/WPAStat.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/Andersen.h"
@@ -644,7 +644,7 @@ void FlowSensitive::printCTirAliasStats(void) {
                 continue;
             }
 
-            if (!TypeFilter::getRawCTirMetadata(stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue())) {
+            if (!TypeBasedHeapCloning::getRawCTirMetadata(stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue())) {
                 continue;
             }
 

@@ -1,7 +1,7 @@
-//===- TypeFilter.h -- Type filter/type-based heap cloning base ------------//
+//===- TypeBasedHeapCloning.h -- Type filter/type-based heap cloning base ------------//
 
 /*
- * TypeFilter.h
+ * TypeBasedHeapCloning.h
  *
  * Contains data structures and functions to extend a pointer analysis
  * with type-based heap cloning/type filtering.
@@ -14,7 +14,7 @@
 #include "MemoryModel/PAG.h"
 #include "Util/BasicTypes.h"
 
-class TypeFilter {
+class TypeBasedHeapCloning {
 public:
     /// Returns raw ctir metadata of a Value. Returns null if it doesn't exist.
     static const MDNode *getRawCTirMetadata(const Value *);
@@ -23,7 +23,7 @@ protected:
     /// The undefined type (•); void.
     static const DIType *undefType;
 
-    TypeFilter(PointerAnalysis *pta);
+    TypeBasedHeapCloning(PointerAnalysis *pta);
 
     /// Required by user. Handles back-propagation of newly created clone after all
     /// metadata has been set. Used by cloneObject.

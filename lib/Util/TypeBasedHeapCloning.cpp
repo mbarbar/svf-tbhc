@@ -1,61 +1,61 @@
-//===- TypeFilter.cpp -- Type filter/type-based heap cloning base ------------//
+//===- TypeBasedHeapCloning.cpp -- Type filter/type-based heap cloning base ------------//
 
 /*
- * TypeFilter.cpp
+ * TypeBasedHeapCloning.cpp
  *
  *  Created on: Feb 08, 2020
  *      Author: Mohamad Barbar
  */
 
-#include "Util/TypeFilter.h"
+#include "Util/TypeBasedHeapCloning.h"
 
-const DIType *TypeFilter::undefType = nullptr;
+const DIType *TypeBasedHeapCloning::undefType = nullptr;
 
-TypeFilter::TypeFilter(PointerAnalysis *pta) {
+TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta) {
     this->pta = pta;
 }
 
-void TypeFilter::setDCHG(DCHGraph *dchg) {
+void TypeBasedHeapCloning::setDCHG(DCHGraph *dchg) {
     this->dchg = dchg;
 }
 
-void TypeFilter::setPAG(PAG *pag) {
+void TypeBasedHeapCloning::setPAG(PAG *pag) {
     ppag = pag;
 }
 
-bool TypeFilter::isBlkObjOrConstantObj(NodeID o) const {
+bool TypeBasedHeapCloning::isBlkObjOrConstantObj(NodeID o) const {
     if (isClone(o)) o = cloneToOriginalObj.at(o);
     return SVFUtil::isa<ObjPN>(ppag->getPAGNode(o)) && ppag->isBlkObjOrConstantObj(o);
 }
 
-bool TypeFilter::isBase(const DIType *a, const DIType *b) const {
+bool TypeBasedHeapCloning::isBase(const DIType *a, const DIType *b) const {
     assert(dchg && "TF: DCHG not set!");
     return dchg->isBase(a, b, true);
 }
 
-bool TypeFilter::isClone(NodeID o) const {
+bool TypeBasedHeapCloning::isClone(NodeID o) const {
     return cloneToOriginalObj.find(o) != cloneToOriginalObj.end();
 }
 
-void TypeFilter::setType(NodeID o, const DIType *t) {
+void TypeBasedHeapCloning::setType(NodeID o, const DIType *t) {
     objToType.insert({o, t});
 }
 
-const DIType *TypeFilter::getType(NodeID o) const {
+const DIType *TypeBasedHeapCloning::getType(NodeID o) const {
     assert(objToType.find(o) != objToType.end() && "TF: object has no type?");
     return objToType.at(o);
 }
 
-void TypeFilter::setAllocationSite(NodeID o, NodeID site) {
+void TypeBasedHeapCloning::setAllocationSite(NodeID o, NodeID site) {
     objToAllocation.insert({o, site});
 }
 
-NodeID TypeFilter::getAllocationSite(NodeID o) const {
+NodeID TypeBasedHeapCloning::getAllocationSite(NodeID o) const {
     assert(objToAllocation.find(o) != objToAllocation.end() && "TF: object has no allocation site?");
     return objToAllocation.at(o);
 }
 
-const NodeBS TypeFilter::getObjsWithClones(void) {
+const NodeBS TypeBasedHeapCloning::getObjsWithClones(void) {
     NodeBS objs;
     for (std::pair<NodeID, NodeBS> oc : objToClones) {
         objs.set(oc.first);
@@ -64,19 +64,19 @@ const NodeBS TypeFilter::getObjsWithClones(void) {
     return objs;
 }
 
-void TypeFilter::addClone(NodeID o, NodeID c) {
+void TypeBasedHeapCloning::addClone(NodeID o, NodeID c) {
     objToClones[o].set(c);
 }
 
-const NodeBS &TypeFilter::getClones(NodeID o) {
+const NodeBS &TypeBasedHeapCloning::getClones(NodeID o) {
     return objToClones[o];
 }
 
-void TypeFilter::setOriginalObj(NodeID c, NodeID o) {
+void TypeBasedHeapCloning::setOriginalObj(NodeID c, NodeID o) {
     cloneToOriginalObj.insert({c, o});
 }
 
-NodeID TypeFilter::getOriginalObj(NodeID c) const {
+NodeID TypeBasedHeapCloning::getOriginalObj(NodeID c) const {
     if (isClone(c)) {
         assert(cloneToOriginalObj.find(c) != cloneToOriginalObj.end()
                && "TF: original object not set for clone?");
@@ -86,11 +86,11 @@ NodeID TypeFilter::getOriginalObj(NodeID c) const {
     return c;
 }
 
-PointsTo &TypeFilter::getFilterSet(NodeID loc) {
+PointsTo &TypeBasedHeapCloning::getFilterSet(NodeID loc) {
     return locToFilterSet[loc];
 }
 
-void TypeFilter::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
+void TypeBasedHeapCloning::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
     objToGeps[base].set(gep);
     const PAGNode *baseNode = ppag->getPAGNode(base);
     assert(baseNode && "TF: given bad base node?");
@@ -103,15 +103,15 @@ void TypeFilter::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
     memObjToGeps[baseMemObj][offset].set(gep);
 }
 
-const NodeBS &TypeFilter::getGepObjsFromMemObj(const MemObj *memObj, unsigned offset) {
+const NodeBS &TypeBasedHeapCloning::getGepObjsFromMemObj(const MemObj *memObj, unsigned offset) {
     return memObjToGeps[memObj][offset];
 }
 
-const NodeBS &TypeFilter::getGepObjs(NodeID base) {
+const NodeBS &TypeBasedHeapCloning::getGepObjs(NodeID base) {
     return objToGeps[base];
 }
 
-const NodeBS TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
+const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
     assert(dchg && "TF: DCHG not set!");
     // Set of GEP objects we will return.
     NodeBS geps;
@@ -196,7 +196,7 @@ const NodeBS TypeFilter::getGepObjClones(NodeID base, const LocationSet& ls) {
     return geps;
 }
 
-bool TypeFilter::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep) {
+bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep) {
     assert(dchg && "TF: DCHG not set!");
     bool changed = false;
 
@@ -273,7 +273,7 @@ bool TypeFilter::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bo
     return changed;
 }
 
-NodeID TypeFilter::cloneObject(NodeID o, const DIType *type) {
+NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type) {
     // Always operate on the original object.
     if (isClone(o)) o = getOriginalObj(o);
 
@@ -298,7 +298,7 @@ NodeID TypeFilter::cloneObject(NodeID o, const DIType *type) {
             clone = ppag->addCloneObjNode();
         }
     } else {
-        assert(false && "FSTF: trying to clone unhandled object");
+        assert(false && "FSTBHC: trying to clone unhandled object");
     }
 
     // Clone's metadata.
@@ -314,7 +314,7 @@ NodeID TypeFilter::cloneObject(NodeID o, const DIType *type) {
     return clone;
 }
 
-const MDNode *TypeFilter::getRawCTirMetadata(const Value *v) {
+const MDNode *TypeBasedHeapCloning::getRawCTirMetadata(const Value *v) {
     assert(v != nullptr && "TF: trying to get metadata from nullptr!");
 
     const MDNode *mdNode = nullptr;
@@ -328,7 +328,7 @@ const MDNode *TypeFilter::getRawCTirMetadata(const Value *v) {
     return mdNode;
 }
 
-const DIType *TypeFilter::getTypeFromCTirMetadata(const Value *v) {
+const DIType *TypeBasedHeapCloning::getTypeFromCTirMetadata(const Value *v) {
     assert(v != nullptr && "TF: trying to get type from nullptr!");
 
     const MDNode *mdNode = getRawCTirMetadata(v);

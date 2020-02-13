@@ -17,7 +17,7 @@ set(SOURCES
     Util/PTAStat.cpp
     Util/ThreadAPI.cpp
     Util/SVFModule.cpp
-    Util/TypeFilter.cpp
+    Util/TypeBasedHeapCloning.cpp
     Util/ICFG.cpp
     Util/VFG.cpp
     MemoryModel/ConsG.cpp
@@ -61,7 +61,7 @@ set(SOURCES
     WPA/FlowSensitiveStat.cpp
     WPA/TypeAnalysis.cpp
     WPA/WPAPass.cpp
-    WPA/FlowSensitiveTypeFilter.cpp
+    WPA/FlowSensitiveTBHC.cpp
 #    DDA/ContextDDA.cpp
 #    DDA/DDAClient.cpp
 #    DDA/DDAPass.cpp
