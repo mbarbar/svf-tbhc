@@ -1,7 +1,7 @@
-//===- FlowSensitiveTypeFilter.cpp -- flow-sensitive type filter ------------//
+//===- FlowSensitiveTBHC.cpp -- flow-sensitive type filter ------------//
 
 /*
- * FlowSensitiveTypeFilter.cpp
+ * FlowSensitiveTBHC.cpp
  *
  *  Created on: Oct 08, 2019
  *      Author: Mohamad Barbar
@@ -9,15 +9,15 @@
 
 #include "MemoryModel/DCHG.h"
 #include "Util/CPPUtil.h"
-#include "WPA/FlowSensitiveTypeFilter.h"
+#include "WPA/FlowSensitiveTBHC.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
 
-void FlowSensitiveTypeFilter::analyze(SVFModule svfModule) {
+void FlowSensitiveTBHC::analyze(SVFModule svfModule) {
     FlowSensitive::analyze(svfModule);
 }
 
-void FlowSensitiveTypeFilter::initialize(SVFModule svfModule) {
+void FlowSensitiveTBHC::initialize(SVFModule svfModule) {
     PointerAnalysis::initialize(svfModule);
     AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfModule);
     svfg = memSSA.buildFullSVFG(ander);
@@ -25,15 +25,15 @@ void FlowSensitiveTypeFilter::initialize(SVFModule svfModule) {
     stat = new FlowSensitiveStat(this);
 
     DCHGraph *dchg = SVFUtil::dyn_cast<DCHGraph>(getCHGraph());
-    assert(dchg != nullptr && "FSTF: DCHGraph required!");
+    assert(dchg != nullptr && "FSTBHC: DCHGraph required!");
 
-    TypeFilter::setDCHG(dchg);
-    TypeFilter::setPAG(pag);
+    TypeBasedHeapCloning::setDCHG(dchg);
+    TypeBasedHeapCloning::setPAG(pag);
 
     determineWhichGepsAreLoads();
 }
 
-void FlowSensitiveTypeFilter::finalize(void) {
+void FlowSensitiveTBHC::finalize(void) {
     FlowSensitive::finalize();
     // ^ Will print call graph and alias stats.
 
@@ -71,9 +71,9 @@ void FlowSensitiveTypeFilter::finalize(void) {
     // getDFPTDataTy()->dumpPTData();
 }
 
-void FlowSensitiveTypeFilter::backPropagate(NodeID clone) {
+void FlowSensitiveTBHC::backPropagate(NodeID clone) {
     PAGNode *cloneObj = pag->getPAGNode(clone);
-    assert(cloneObj && "FSTF: clone does not exist in PAG?");
+    assert(cloneObj && "FSTBHC: clone does not exist in PAG?");
     if (SVFUtil::isa<CloneFIObjPN>(cloneObj) || SVFUtil::isa<CloneObjPN>(cloneObj)) {
         pushIntoWorklist(getAllocationSite(getOriginalObj(clone)));
     } else if (SVFUtil::isa<CloneGepObjPN>(cloneObj)) {
@@ -83,11 +83,11 @@ void FlowSensitiveTypeFilter::backPropagate(NodeID clone) {
             pushIntoWorklist(r);
         }
     } else {
-        assert(false && "FSTF: unexpected object type?");
+        assert(false && "FSTBHC: unexpected object type?");
     }
 }
 
-bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
+bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     SVFGNode* src = edge->getSrcNode();
     SVFGNode* dst = edge->getDstNode();
 
@@ -151,7 +151,7 @@ bool FlowSensitiveTypeFilter::propAlongIndirectEdge(const IndirectSVFGEdge* edge
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::propAlongDirectEdge(const DirectSVFGEdge* edge) {
+bool FlowSensitiveTBHC::propAlongDirectEdge(const DirectSVFGEdge* edge) {
     double start = stat->getClk();
     bool changed = false;
 
@@ -178,7 +178,7 @@ bool FlowSensitiveTypeFilter::propAlongDirectEdge(const DirectSVFGEdge* edge) {
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
+bool FlowSensitiveTBHC::processAddr(const AddrSVFGNode* addr) {
     double start = stat->getClk();
 
     NodeID srcID = addr->getPAGSrcNodeID();
@@ -224,7 +224,7 @@ bool FlowSensitiveTypeFilter::processAddr(const AddrSVFGNode* addr) {
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
+bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
     // Copy of that in FlowSensitive.cpp + some changes.
     double start = stat->getClk();
 
@@ -245,7 +245,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     for (NodeID oq : qPts) {
         if (filterSet.test(oq)) continue;
 
-        if (TypeFilter::isBlkObjOrConstantObj(oq)) {
+        if (TypeBasedHeapCloning::isBlkObjOrConstantObj(oq)) {
             tmpDstPts.set(oq);
         } else {
             if (SVFUtil::isa<VariantGepPE>(gep->getPAGEdge())) {
@@ -284,7 +284,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
                     tmpDstPts.set(fc);
                 }
             } else {
-                assert(false && "FSTF: new gep edge?");
+                assert(false && "FSTBHC: new gep edge?");
             }
         }
     }
@@ -295,7 +295,7 @@ bool FlowSensitiveTypeFilter::processGep(const GepSVFGNode* gep) {
     return unionPts(gep->getPAGDstNodeID(), tmpDstPts);
 }
 
-bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
+bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
     double start = stat->getClk();
 
     preparePtsFromIn(load, load->getPAGSrcNodeID());
@@ -341,7 +341,7 @@ bool FlowSensitiveTypeFilter::processLoad(const LoadSVFGNode* load) {
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
+bool FlowSensitiveTBHC::processStore(const StoreSVFGNode* store) {
     double start = stat->getClk();
 
     const DIType *tildet = getTypeFromCTirMetadata(store);
@@ -406,7 +406,7 @@ bool FlowSensitiveTypeFilter::processStore(const StoreSVFGNode* store) {
     return changed;
 }
 
-bool FlowSensitiveTypeFilter::processPhi(const PHISVFGNode* phi) {
+bool FlowSensitiveTBHC::processPhi(const PHISVFGNode* phi) {
     if (!phi->isPTANode()) return false;
 
     if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
@@ -424,11 +424,11 @@ bool FlowSensitiveTypeFilter::processPhi(const PHISVFGNode* phi) {
     return changed;
 }
 
-const NodeBS& FlowSensitiveTypeFilter::getAllFieldsObjNode(NodeID id) {
+const NodeBS& FlowSensitiveTBHC::getAllFieldsObjNode(NodeID id) {
     return getGepObjs(id);
 }
 
-void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
+void FlowSensitiveTBHC::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     PointsTo &pPt = getPts(pId);
     PointsTo pNewPt;
 
@@ -451,7 +451,7 @@ void FlowSensitiveTypeFilter::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID 
 }
 
 
-void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
+void FlowSensitiveTBHC::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (const StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
@@ -475,29 +475,29 @@ void FlowSensitiveTypeFilter::determineWhichGepsAreLoads(void) {
     }
 }
 
-const MDNode *FlowSensitiveTypeFilter::getRawCTirMetadata(const SVFGNode *s) {
+const MDNode *FlowSensitiveTBHC::getRawCTirMetadata(const SVFGNode *s) {
     if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
         const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
         if (v != nullptr) {
-            return TypeFilter::getRawCTirMetadata(v);
+            return TypeBasedHeapCloning::getRawCTirMetadata(v);
         }
     }
 
     return nullptr;
 }
 
-const DIType *FlowSensitiveTypeFilter::getTypeFromCTirMetadata(const SVFGNode *s) {
+const DIType *FlowSensitiveTBHC::getTypeFromCTirMetadata(const SVFGNode *s) {
     if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
         const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
         if (v != nullptr) {
-            return TypeFilter::getTypeFromCTirMetadata(v);
+            return TypeBasedHeapCloning::getTypeFromCTirMetadata(v);
         }
     }
 
     return nullptr;
 }
 
-void FlowSensitiveTypeFilter::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
+void FlowSensitiveTBHC::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
     std::map<std::pair<NodeID, NodeID>, PointsTo> filteredPts;
     for (std::pair<NodeID, NodeID> locP : cmp) {
         const PointsTo &filterSet = getFilterSet(locP.first);
