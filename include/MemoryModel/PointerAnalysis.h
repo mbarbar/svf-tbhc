@@ -102,6 +102,19 @@ public:
     typedef std::set<const Function*> VFunSet;
     //@}
 
+    static const std::string aliasTestMayAlias;
+    static const std::string aliasTestMayAliasMangled;
+    static const std::string aliasTestNoAlias;
+    static const std::string aliasTestNoAliasMangled;
+    static const std::string aliasTestPartialAlias;
+    static const std::string aliasTestPartialAliasMangled;
+    static const std::string aliasTestMustAlias;
+    static const std::string aliasTestMustAliasMangled;
+    static const std::string aliasTestFailMayAlias;
+    static const std::string aliasTestFailMayAliasMangled;
+    static const std::string aliasTestFailNoAlias;
+    static const std::string aliasTestFailNoAliasMangled;
+
 private:
     /// Release the memory
     void destroy();
@@ -225,8 +238,8 @@ protected:
     /// Alias check functions to verify correctness of pointer analysis
     //@{
     virtual void validateTests();
-    virtual void validateSuccessTests(const char* fun);
-    virtual void validateExpectedFailureTests(const char* fun);
+    virtual void validateSuccessTests(const std::string fun);
+    virtual void validateExpectedFailureTests(const std::string fun);
     //@}
 
     /// Whether to dump the graph for debugging purpose
