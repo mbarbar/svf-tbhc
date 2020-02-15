@@ -99,6 +99,7 @@ PointerAnalysis::PointerAnalysis(PTATY ty) :
     ptaTy(ty),stat(NULL),ptaCallGraph(NULL),callGraphSCC(NULL),typeSystem(NULL), icfg(NULL) {
     OnTheFlyIterBudgetForStat = statBudget;
     print_stat = PStat;
+    ptaImplTy = BaseImpl;
 }
 
 /*!
@@ -353,6 +354,8 @@ BVDataPTAImpl::BVDataPTAImpl(PointerAnalysis::PTATY type) :
 			ptD = new DFPTDataTy();
 	} else
 		assert(false && "no points-to data available");
+
+    ptaImplTy = BVDataImpl;
 }
 
 /*!

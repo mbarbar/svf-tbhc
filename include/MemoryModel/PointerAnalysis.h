@@ -83,6 +83,13 @@ public:
         Default_PTA		///< default pta without any analysis
     };
 
+    /// Implementation type: BVDataPTAImpl or CondPTAImpl.
+    enum PTAImplTy {
+        BaseImpl,   ///< Represents PointerAnalaysis.
+        BVDataImpl, ///< Represents BVDataPTAImpl.
+        CondImpl,   ///< Represents CondPTAImpl.
+    };
+
     /// Indirect call edges type, map a callsite to a set of callees
     //@{
     typedef llvm::AliasAnalysis AliasAnalysis;
@@ -115,6 +122,8 @@ protected:
     SVFModule svfMod;
     /// Pointer analysis Type
     PTATY ptaTy;
+    /// PTA implementation type.
+    PTAImplTy ptaImplTy;
     /// Statistics
     PTAStat* stat;
     /// Call graph used for pointer analysis
@@ -148,6 +157,11 @@ public:
     /// Type of pointer analysis
     inline PTATY getAnalysisTy() const {
         return ptaTy;
+    }
+
+    /// Return implementation type of the pointer analysis.
+    inline PTAImplTy getImplTy() const {
+        return ptaImplTy;
     }
 
     /// Get/set PAG
@@ -416,6 +430,10 @@ public:
         destroy();
     }
 
+    static inline bool classof(const PointerAnalysis *pta) {
+        return pta->getImplTy() == BVDataImpl;
+    }
+
     /// Release memory
     inline void destroy() {
         delete ptD;
@@ -532,11 +550,17 @@ public:
             ptD = new PTDataTy();
         else
             assert(false && "no points-to data available");
+
+        ptaImplTy = CondImpl;
     }
 
     /// Destructor
     virtual ~CondPTAImpl() {
         destroy();
+    }
+
+    static inline bool classof(const PointerAnalysis *pta) {
+        return pta->getImplTy() == CondImpl;
     }
 
     /// Release memory
