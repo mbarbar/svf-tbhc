@@ -31,7 +31,7 @@ bool TypeBasedHeapCloning::isBlkObjOrConstantObj(NodeID o) const {
 }
 
 bool TypeBasedHeapCloning::isBase(const DIType *a, const DIType *b) const {
-    assert(dchg && "TF: DCHG not set!");
+    assert(dchg && "TBHC: DCHG not set!");
     return dchg->isBase(a, b, true);
 }
 
@@ -44,7 +44,7 @@ void TypeBasedHeapCloning::setType(NodeID o, const DIType *t) {
 }
 
 const DIType *TypeBasedHeapCloning::getType(NodeID o) const {
-    assert(objToType.find(o) != objToType.end() && "TF: object has no type?");
+    assert(objToType.find(o) != objToType.end() && "TBHC: object has no type?");
     return objToType.at(o);
 }
 
@@ -53,7 +53,7 @@ void TypeBasedHeapCloning::setAllocationSite(NodeID o, NodeID site) {
 }
 
 NodeID TypeBasedHeapCloning::getAllocationSite(NodeID o) const {
-    assert(objToAllocation.find(o) != objToAllocation.end() && "TF: object has no allocation site?");
+    assert(objToAllocation.find(o) != objToAllocation.end() && "TBHC: object has no allocation site?");
     return objToAllocation.at(o);
 }
 
@@ -81,7 +81,7 @@ void TypeBasedHeapCloning::setOriginalObj(NodeID c, NodeID o) {
 NodeID TypeBasedHeapCloning::getOriginalObj(NodeID c) const {
     if (isClone(c)) {
         assert(cloneToOriginalObj.find(c) != cloneToOriginalObj.end()
-               && "TF: original object not set for clone?");
+               && "TBHC: original object not set for clone?");
         return cloneToOriginalObj.at(c);
     }
 
@@ -95,9 +95,9 @@ PointsTo &TypeBasedHeapCloning::getFilterSet(NodeID loc) {
 void TypeBasedHeapCloning::addGepToObj(NodeID gep, NodeID base, unsigned offset) {
     objToGeps[base].set(gep);
     const PAGNode *baseNode = ppag->getPAGNode(base);
-    assert(baseNode && "TF: given bad base node?");
+    assert(baseNode && "TBHC: given bad base node?");
     const ObjPN *baseObj = SVFUtil::dyn_cast<ObjPN>(baseNode);
-    assert(baseObj && "TF: non-object given for base?");
+    assert(baseObj && "TBHC: non-object given for base?");
     // We can use the base or the gep mem. obj.; should be identical.
     const MemObj *baseMemObj = baseObj->getMemObj();
 
@@ -114,14 +114,14 @@ const NodeBS &TypeBasedHeapCloning::getGepObjs(NodeID base) {
 }
 
 const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
-    assert(dchg && "TF: DCHG not set!");
+    assert(dchg && "TBHC: DCHG not set!");
     // Set of GEP objects we will return.
     NodeBS geps;
 
     PAGNode *node = ppag->getPAGNode(base);
-    assert(node && "TF: base object node does not exist.");
+    assert(node && "TBHC: base object node does not exist.");
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
-    assert(baseNode && "TF: base \"object\" node is not an object.");
+    assert(baseNode && "TBHC: base \"object\" node is not an object.");
 
     // First field? Just return the whole object; same thing.
     if (ls.getOffset() == 0) {
@@ -141,9 +141,9 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
     const NodeBS &gepObjs = getGepObjs(base);
     for (NodeID gep : gepObjs) {
         PAGNode *node = ppag->getPAGNode(gep);
-        assert(node && "TF: expected gep node doesn't exist.");
+        assert(node && "TBHC: expected gep node doesn't exist.");
         assert((SVFUtil::isa<GepObjPN>(node) || SVFUtil::isa<FIObjPN>(node))
-               && "TF: expected a GEP or FI object.");
+               && "TBHC: expected a GEP or FI object.");
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
             if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
@@ -199,7 +199,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
 }
 
 bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep) {
-    assert(dchg && "TF: DCHG not set!");
+    assert(dchg && "TBHC: DCHG not set!");
     bool changed = false;
 
     PointsTo &pPt = pta->getPts(p);
@@ -317,7 +317,7 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type) {
 }
 
 const MDNode *TypeBasedHeapCloning::getRawCTirMetadata(const Value *v) {
-    assert(v != nullptr && "TF: trying to get metadata from nullptr!");
+    assert(v != nullptr && "TBHC: trying to get metadata from nullptr!");
 
     const MDNode *mdNode = nullptr;
     if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
@@ -331,7 +331,7 @@ const MDNode *TypeBasedHeapCloning::getRawCTirMetadata(const Value *v) {
 }
 
 const DIType *TypeBasedHeapCloning::getTypeFromCTirMetadata(const Value *v) {
-    assert(v != nullptr && "TF: trying to get type from nullptr!");
+    assert(v != nullptr && "TBHC: trying to get type from nullptr!");
 
     const MDNode *mdNode = getRawCTirMetadata(v);
     if (mdNode == nullptr) {
@@ -340,7 +340,7 @@ const DIType *TypeBasedHeapCloning::getTypeFromCTirMetadata(const Value *v) {
 
     const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
     if (type == nullptr) {
-        SVFUtil::errs() << "TF: bad ctir metadata type\n";
+        SVFUtil::errs() << "TBHC: bad ctir metadata type\n";
         return nullptr;
     }
 
