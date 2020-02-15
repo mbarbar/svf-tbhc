@@ -69,6 +69,8 @@ void FlowSensitiveTBHC::finalize(void) {
     SVFUtil::outs() << "==================================\n";
 
     // getDFPTDataTy()->dumpPTData();
+
+    validateTBHCTests(svfMod);
 }
 
 void FlowSensitiveTBHC::backPropagate(NodeID clone) {

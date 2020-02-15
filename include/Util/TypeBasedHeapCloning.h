@@ -24,6 +24,9 @@ protected:
     /// The undefined type (•); void.
     static const DIType *undefType;
 
+    /// deref function for TBHC alias tests.
+    static const std::string derefFnName;
+
     TypeBasedHeapCloning(PointerAnalysis *pta);
 
     /// Required by user. Handles back-propagation of newly created clone after all
@@ -101,7 +104,12 @@ protected:
     /// Not static because we need dchg's getCanonicalType.
     const DIType *getTypeFromCTirMetadata(const Value *);
 
+    /// Runs tests on MAYALIAS, NOALIAS, etc. built from TBHC_MAYALIAS,
+    /// TBHC_NOALIAS, etc. macros.
+    void validateTBHCTests(SVFModule &svfMod);
+
 private:
+
     /// PTA extending this class.
     PointerAnalysis *pta;
     /// PAG the PTA uses. Just a shortcut for getPAG().

@@ -11,6 +11,8 @@
 
 const DIType *TypeBasedHeapCloning::undefType = nullptr;
 
+const std::string TypeBasedHeapCloning::derefFnName = "deref";
+
 TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta) {
     this->pta = pta;
 }
@@ -343,5 +345,130 @@ const DIType *TypeBasedHeapCloning::getTypeFromCTirMetadata(const Value *v) {
     }
 
     return dchg->getCanonicalType(type);
+}
+
+/// Returns true if the function name matches MAYALIAS, NOALIAS, etc.
+static bool isAliasTestFunction(std::string name) {
+    return    name == PointerAnalysis::aliasTestMayAlias
+           || name == PointerAnalysis::aliasTestMayAliasMangled
+           || name == PointerAnalysis::aliasTestNoAlias
+           || name == PointerAnalysis::aliasTestNoAliasMangled
+           || name == PointerAnalysis::aliasTestPartialAlias
+           || name == PointerAnalysis::aliasTestPartialAliasMangled
+           || name == PointerAnalysis::aliasTestMustAlias
+           || name == PointerAnalysis::aliasTestMustAliasMangled
+           || name == PointerAnalysis::aliasTestFailMayAlias
+           || name == PointerAnalysis::aliasTestFailMayAliasMangled
+           || name == PointerAnalysis::aliasTestFailNoAlias
+           || name == PointerAnalysis::aliasTestFailNoAliasMangled;
+}
+
+void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
+    for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
+        Module *module = svfMod.getModule(i);
+        const PAG::CallSiteSet &callSites = ppag->getCallSiteSet();
+        for (const CallSite &cs : callSites) {
+            const Function *fn = cs.getCalledFunction();
+            if (!isAliasTestFunction(fn->getName())) {
+                continue;
+            }
+
+            // We have a test call,
+            // We want the load which loads the pointer in question (i.e. operand of the load is the
+            // pointer, and the load itself is the dereference).
+            const LoadInst *pl = nullptr, *ql = nullptr;
+            // Check: currInst is a deref call, so p/q is prevInst.
+            const Instruction *prevInst = nullptr;
+            const Instruction *currInst = cs.getInstruction();
+            // Find p.
+            while (currInst != nullptr) {
+                // Fine to not test the first currInst because we need two instructions (a load and a call).
+                prevInst = currInst;
+                currInst = currInst->getNextNonDebugInstruction();
+
+                if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
+                    if (ci->getCalledFunction()->getName() == derefFnName) {
+                        const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
+                        assert(li && "TBHC: validation macro not producing loads?");
+                        pl = li;
+                        break;
+                    }
+                }
+            }
+
+            // Repeat for q.
+            while (currInst != nullptr) {
+                // Fine to not test the first currInst because we need two instructions (a load and a call).
+                prevInst = currInst;
+                currInst = currInst->getNextNonDebugInstruction();
+
+                if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
+                    if (ci->getCalledFunction()->getName() == derefFnName) {
+                        const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
+                        assert(li && "TBHC: validation macro not producing loads?");
+                        ql = li;
+                        break;
+                    }
+                }
+            }
+
+            assert(pl != nullptr && ql != nullptr && "TBHC: malformed alias test?");
+            NodeID p = ppag->getValueNode(pl->getPointerOperand()), q = ppag->getValueNode(ql->getPointerOperand());
+            const DIType *pt = getTypeFromCTirMetadata(pl), *qt = getTypeFromCTirMetadata(ql);
+
+            // Now filter both points-to sets according to the type of the value.
+            const PointsTo &pPts = pta->getPts(p), &qPts = pta->getPts(q);
+            PointsTo pPtsFiltered, qPtsFiltered;
+            for (NodeID o : pPts) {
+                if (getType(o) != undefType && isBase(pt, getType(o))) {
+                    pPtsFiltered.set(o);
+                }
+            }
+
+            for (NodeID o : qPts) {
+                if (getType(o) != undefType && isBase(qt, getType(o))) {
+                    qPtsFiltered.set(o);
+                }
+            }
+
+            BVDataPTAImpl *bvpta = SVFUtil::dyn_cast<BVDataPTAImpl>(pta);
+            assert(bvpta && "TBHC: need a BVDataPTAImpl for TBHC alias testing.");
+            AliasResult res = bvpta->alias(pPtsFiltered, qPtsFiltered);
+
+            bool passed = false;
+            if (fn->getName() == PointerAnalysis::aliasTestMayAlias
+                || fn->getName() == PointerAnalysis::aliasTestMayAliasMangled) {
+                passed = res == llvm::MayAlias || res == llvm::MustAlias;
+            } else if (fn->getName() == PointerAnalysis::aliasTestNoAlias
+                       || fn->getName() == PointerAnalysis::aliasTestNoAliasMangled) {
+                passed = res == llvm::NoAlias;
+            } else if (fn->getName() == PointerAnalysis::aliasTestMustAlias
+                       || fn->getName() == PointerAnalysis::aliasTestMustAliasMangled) {
+                passed = res == llvm::MustAlias;
+            } else if (fn->getName() == PointerAnalysis::aliasTestPartialAlias
+                       || fn->getName() == PointerAnalysis::aliasTestPartialAliasMangled) {
+                passed = res == llvm::MayAlias || res == llvm::PartialAlias;
+            } else if (fn->getName() == PointerAnalysis::aliasTestFailMayAlias
+                       || fn->getName() == PointerAnalysis::aliasTestFailMayAliasMangled) {
+                passed = res != llvm::MayAlias && res != llvm::MustAlias && res != llvm::PartialAlias;
+            } else if (fn->getName() == PointerAnalysis::aliasTestFailNoAlias
+                       || fn->getName() == PointerAnalysis::aliasTestFailNoAliasMangled) {
+                passed = res != llvm::NoAlias;
+            }
+
+            SVFUtil::outs() << "[" << pta->PTAName() << "] Checking " << fn->getName() << "\n";
+            if (passed) {
+                SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS")
+                                << " : " << fn->getName()
+                                << " check <id:" << p << ", id:" << q << "> "
+                                << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
+            } else {
+                SVFUtil::errs() << SVFUtil::errMsg("\t FAILURE")
+                                << " : " << fn->getName()
+                                << " check <id:" << p << ", id:" << q << "> "
+                                << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
+            }
+        }
+    }
 }
 
