@@ -13,8 +13,9 @@ const DIType *TypeBasedHeapCloning::undefType = nullptr;
 
 const std::string TypeBasedHeapCloning::derefFnName = "deref";
 
-TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta) {
+TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta, bool reuse) {
     this->pta = pta;
+    this->reuse = reuse;
 }
 
 void TypeBasedHeapCloning::setDCHG(DCHGraph *dchg) {
@@ -198,8 +199,10 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
     return geps;
 }
 
-bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep) {
+bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reusePossible, bool gep) {
     assert(dchg && "TBHC: DCHG not set!");
+    // Ignore reusePossible if reuse is disabled.
+    reusePossible = reusePossible && reuse;
     bool changed = false;
 
     PointsTo &pPt = pta->getPts(p);
@@ -243,7 +246,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
         } else if (isBase(tildet, tp)) {
             // Upcast.
             prop = o;
-        } else if (tildet != tp && reuse) {
+        } else if (tildet != tp && reusePossible) {
             // Reuse.
             prop = cloneObject(o, tildet);
         } else {

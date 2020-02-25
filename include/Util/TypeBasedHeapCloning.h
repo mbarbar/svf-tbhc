@@ -27,7 +27,9 @@ protected:
     /// deref function for TBHC alias tests.
     static const std::string derefFnName;
 
-    TypeBasedHeapCloning(PointerAnalysis *pta);
+    /// Constructor. pta is the pointer analysis using this object (i.e. that which is extending).
+    /// reuse is whether object reuse is allowed or not.
+    TypeBasedHeapCloning(PointerAnalysis *pta, bool reuse);
 
     /// Required by user. Handles back-propagation of newly created clone after all
     /// metadata has been set. Used by cloneObject.
@@ -92,9 +94,9 @@ protected:
     /// (through base's getGepObjNode) which will create one.
     const NodeBS getGepObjClones(NodeID base, const LocationSet& ls);
 
-    /// Initialise the pointees of p at loc (which is type tildet *). reuse indicates
-    /// whether we allow reuse. Returns whether p changed.
-    bool init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep=false);
+    /// Initialise the pointees of p at loc (which is type tildet *). reusePossible indicates
+    /// whether reuse is a possibility for this initialisation. Returns whether p changed.
+    bool init(NodeID loc, NodeID p, const DIType *tildet, bool reusePossible, bool gep=false);
 
     /// Returns a clone of o with type type.
     NodeID cloneObject(NodeID o, const DIType *type);
@@ -126,6 +128,9 @@ private:
     PointerAnalysis *pta;
     /// PAG the PTA uses. Just a shortcut for getPAG().
     PAG *ppag = nullptr;
+
+    /// Whether we are allowing reuse.
+    bool reuse;
 
     /// Object -> its type.
     std::map<NodeID, const DIType *> objToType;

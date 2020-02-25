@@ -27,11 +27,7 @@ public:
     static const MDNode *getRawCTirMetadata(const SVFGNode *);
 
     /// Constructor
-    FlowSensitiveTBHC(PTATY type = FSTBHC_WPA) : FlowSensitive(type), TypeBasedHeapCloning(this) {
-        // Using `this` as the argument for TypeBasedHeapCloning is okay. As PointerAnalysis, it's
-        // already constructed. TypeBasedHeapCloning also doesn't use pta in the constructor so it
-        // just needs to be allocated, which it is.
-    }
+    FlowSensitiveTBHC(PTATY type = FSTBHC_WPA);
 
     /// Flow sensitive analysis with FSTBHC.
     virtual void analyze(SVFModule svfModule) override;

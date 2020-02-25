@@ -13,6 +13,15 @@
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
 
+/// Whether we allow reuse for TBHC.
+static llvm::cl::opt<bool> TBHCReuse("tbhc-reuse", llvm::cl::init(false), llvm::cl::desc("Allow for object reuse in TBHC"));
+
+FlowSensitiveTBHC::FlowSensitiveTBHC(PTATY type) : FlowSensitive(type), TypeBasedHeapCloning(this, TBHCReuse) {
+    // Using `this` as the argument for TypeBasedHeapCloning is okay. As PointerAnalysis, it's
+    // already constructed. TypeBasedHeapCloning also doesn't use pta in the constructor so it
+    // just needs to be allocated, which it is.
+}
+
 void FlowSensitiveTBHC::analyze(SVFModule svfModule) {
     FlowSensitive::analyze(svfModule);
 }
