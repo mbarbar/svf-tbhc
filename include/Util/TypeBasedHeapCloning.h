@@ -148,5 +148,8 @@ private:
     std::map<NodeID, NodeBS> objToGeps;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
     std::map<const MemObj *, std::map<unsigned, NodeBS>> memObjToGeps;
+
+    /// Test whether object is a GEP object. For convenience.
+    bool isGep(const PAGNode *n) const;
 };
 

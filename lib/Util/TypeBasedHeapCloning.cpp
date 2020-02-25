@@ -211,6 +211,8 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 
     PointsTo &filterSet = getFilterSet(loc);
     for (NodeID o : pPt) {
+        PAGNode *obj = ppag->getPAGNode(o);
+        assert(obj && "TBHC: pointee object does not exist in PAG?");
         const DIType *tp = getType(o);  // tp is t'
 
         // When an object is field-insensitive, we can't filter on any of the fields' types.
@@ -239,9 +241,13 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             prop = o;
         } else if (tp == undefType) {
             // o is uninitialised.
+            // GEP objects should never be uninitialised; type assigned at creation.
+            assert(!isGep(obj) && "TBHC: GEP object is untyped!");
             prop = cloneObject(o, tildet);
-        } else if (isBase(tp, tildet) && tp != tildet) {
+        } else if (isBase(tp, tildet) && tp != tildet
+                   && ((!reusePossible && !isGep(obj)) || reusePossible)) {
             // Downcast.
+            // !reuse && !gep because field types are static.
             prop = cloneObject(o, tildet);
         } else if (isBase(tildet, tp)) {
             // Upcast.
@@ -348,6 +354,11 @@ const DIType *TypeBasedHeapCloning::getTypeFromCTirMetadata(const Value *v) {
     }
 
     return dchg->getCanonicalType(type);
+}
+
+bool TypeBasedHeapCloning::isGep(const PAGNode *n) const {
+    assert(n != nullptr && "TBHC: testing if null is a GEP object!");
+    return SVFUtil::isa<GepObjPN>(n);
 }
 
 /// Returns true if the function name matches MAYALIAS, NOALIAS, etc.
