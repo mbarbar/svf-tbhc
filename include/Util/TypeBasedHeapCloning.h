@@ -123,7 +123,6 @@ protected:
     void validateTBHCTests(SVFModule &svfMod);
 
 private:
-
     /// PTA extending this class.
     PointerAnalysis *pta;
     /// PAG the PTA uses. Just a shortcut for getPAG().
