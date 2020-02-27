@@ -7,11 +7,13 @@
  *      Author: Mohamad Barbar
  */
 
+#include "Util/CPPUtil.h"
 #include "Util/TypeBasedHeapCloning.h"
 
 const DIType *TypeBasedHeapCloning::undefType = nullptr;
 
 const std::string TypeBasedHeapCloning::derefFnName = "deref";
+const std::string TypeBasedHeapCloning::mangledDerefFnName = "_Z5derefv";
 
 TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta, bool reuse) {
     this->pta = pta;
@@ -392,32 +394,35 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             // pointer, and the load itself is the dereference).
             const LoadInst *pl = nullptr, *ql = nullptr;
             // Check: currInst is a deref call, so p/q is prevInst.
+
+            // Find p.
             const Instruction *prevInst = nullptr;
             const Instruction *currInst = cs.getInstruction();
-            // Find p.
-            while (currInst != nullptr) {
-                // Fine to not test the first currInst because we need two instructions (a load and a call).
-                prevInst = currInst;
-                currInst = currInst->getNextNonDebugInstruction();
-
+            do {
                 if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
-                    if (ci->getCalledFunction()->getName() == derefFnName) {
+                    std::string calledFnName = ci->getCalledFunction()->getName().str();
+                    if (calledFnName == derefFnName || calledFnName == mangledDerefFnName) {
                         const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
                         assert(li && "TBHC: validation macro not producing loads?");
                         pl = li;
                         break;
                     }
                 }
-            }
+
+                prevInst = currInst;
+                currInst = currInst->getNextNonDebugInstruction();
+            } while (currInst != nullptr);
 
             // Repeat for q.
             while (currInst != nullptr) {
-                // Fine to not test the first currInst because we need two instructions (a load and a call).
+                // while loop, not do-while, because we need to the next instruction (current
+                // instruction is the first deref()).
                 prevInst = currInst;
                 currInst = currInst->getNextNonDebugInstruction();
 
                 if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
-                    if (ci->getCalledFunction()->getName() == derefFnName) {
+                    std::string calledFnName = ci->getCalledFunction()->getName().str();
+                    if (calledFnName == derefFnName || calledFnName == mangledDerefFnName) {
                         const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
                         assert(li && "TBHC: validation macro not producing loads?");
                         ql = li;
@@ -427,7 +432,7 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             }
 
             assert(pl != nullptr && ql != nullptr && "TBHC: malformed alias test?");
-            NodeID p = ppag->getValueNode(pl->getPointerOperand()), q = ppag->getValueNode(ql->getPointerOperand());
+            NodeID p = ppag->getValueNode(pl), q = ppag->getValueNode(ql);
             const DIType *pt = getTypeFromCTirMetadata(pl), *qt = getTypeFromCTirMetadata(ql);
 
             // Now filter both points-to sets according to the type of the value.

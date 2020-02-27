@@ -26,6 +26,8 @@ protected:
 
     /// deref function for TBHC alias tests.
     static const std::string derefFnName;
+    /// deref function (mangled) for TBHC alias tests.
+    static const std::string mangledDerefFnName;
 
     /// Constructor. pta is the pointer analysis using this object (i.e. that which is extending).
     /// reuse is whether object reuse is allowed or not.
