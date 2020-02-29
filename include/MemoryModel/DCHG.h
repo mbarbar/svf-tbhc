@@ -194,7 +194,7 @@ public:
 
     /// TODO: temporary till isVirtualCall is worked out.
     static bool isVirtualCallSite(CallSite cs) {
-        MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
+        MDNode *md = cs.getInstruction()->getMetadata(cppUtil::ctir::derefMDName);
         return md != nullptr;
     }
 
@@ -373,7 +373,7 @@ private:
 
     /// Retrieves the metadata associated with a *virtual* callsite.
     const DIType *getCSStaticType(CallSite cs) const {
-        MDNode *md = cs.getInstruction()->getMetadata(SVFModule::ctirMetadataName);
+        MDNode *md = cs.getInstruction()->getMetadata(cppUtil::ctir::derefMDName);
         assert(md != nullptr && "Missing type metadata at virtual callsite");
         DIType *diType = SVFUtil::dyn_cast<DIType>(md);
         assert(diType != nullptr && "Incorrect metadata type at virtual callsite");

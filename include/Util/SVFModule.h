@@ -31,6 +31,7 @@
 #define SVFMODULE_H_
 
 #include "Util/BasicTypes.h"
+#include "Util/CPPUtil.h"
 
 class LLVMModuleSet {
 public:
@@ -200,9 +201,6 @@ public:
     typedef AliasSetType::iterator alias_iterator;
     typedef AliasSetType::const_iterator const_alias_iterator;
 
-    static const std::string ctirMetadataName;
-    static const uint32_t ctirModuleFlagValue;
-
 private:
     static LLVMModuleSet *llvmModuleSet;
     static std::string pagReadFromTxt;
@@ -307,14 +305,14 @@ public:
         // Iterate over all modules. If a single module does not have the correct ctir module flag,
         // short-circuit and return false.
         for (u32_t i = 0; i < getModuleNum(); ++i) {
-            llvm::Metadata *ctirModuleFlag = getModule(i)->getModuleFlag(ctirMetadataName);
+            llvm::Metadata *ctirModuleFlag = getModule(i)->getModuleFlag(cppUtil::ctir::derefMDName);
             if (ctirModuleFlag == nullptr) {
                 return false;
             }
 
             llvm::ConstantAsMetadata *flagConstMetadata = SVFUtil::dyn_cast<llvm::ConstantAsMetadata>(ctirModuleFlag);
             ConstantInt *flagConstInt = SVFUtil::dyn_cast<ConstantInt>(flagConstMetadata->getValue());
-            if (flagConstInt->getZExtValue() != ctirModuleFlagValue) {
+            if (flagConstInt->getZExtValue() != cppUtil::ctir::moduleFlagValue) {
                 return false;
             }
         }

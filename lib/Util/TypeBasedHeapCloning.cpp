@@ -332,9 +332,9 @@ const MDNode *TypeBasedHeapCloning::getRawCTirMetadata(const Value *v) {
 
     const MDNode *mdNode = nullptr;
     if (const Instruction *inst = SVFUtil::dyn_cast<Instruction>(v)) {
-        mdNode = inst->getMetadata(SVFModule::ctirMetadataName);
+        mdNode = inst->getMetadata(cppUtil::ctir::derefMDName);
     } else if (const GlobalObject *go = SVFUtil::dyn_cast<GlobalObject>(v)) {
-        mdNode = go->getMetadata(SVFModule::ctirMetadataName);
+        mdNode = go->getMetadata(cppUtil::ctir::derefMDName);
     }
 
     // Will be nullptr if metadata isn't there.

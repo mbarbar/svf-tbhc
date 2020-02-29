@@ -143,9 +143,9 @@ void DCHGraph::buildVTables(const Module &module) {
         // Though this will return more than GlobalVariables, we only care about GlobalVariables (for the vtbls).
         const GlobalVariable *gv = SVFUtil::dyn_cast<const GlobalVariable>(&(*gvI));
         if (gv == nullptr) continue;
-        if (gv->hasMetadata("ctirvt") && gv->getNumOperands() > 0) {
-            DIType *type = SVFUtil::dyn_cast<DIType>(gv->getMetadata("ctirvt"));
-            assert(type && "Bad metadata for ctirvt");
+        if (gv->hasMetadata(cppUtil::ctir::vtMDName) && gv->getNumOperands() > 0) {
+            DIType *type = SVFUtil::dyn_cast<DIType>(gv->getMetadata(cppUtil::ctir::vtMDName));
+            assert(type && "DCHG::buildVTables: bad metadata for ctir.vt");
             DCHNode *node = getOrCreateNode(type);
             node->setVTable(gv);
             vtblToTypeMap[gv] = getCanonicalType(type);
