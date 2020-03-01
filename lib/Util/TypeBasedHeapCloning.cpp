@@ -390,9 +390,9 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             }
 
             // We have a test call,
-            // We want the load which loads the pointer in question (i.e. operand of the load is the
-            // pointer, and the load itself is the dereference).
-            const LoadInst *pl = nullptr, *ql = nullptr;
+            // We want the store which stores to the pointer in question (i.e. operand of the
+            // store is the pointer, and the store itself is the dereference).
+            const StoreInst *ps = nullptr, *qs = nullptr;
             // Check: currInst is a deref call, so p/q is prevInst.
 
             // Find p.
@@ -402,9 +402,9 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
                 if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
                     std::string calledFnName = ci->getCalledFunction()->getName().str();
                     if (calledFnName == derefFnName || calledFnName == mangledDerefFnName) {
-                        const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
-                        assert(li && "TBHC: validation macro not producing loads?");
-                        pl = li;
+                        const StoreInst *si = SVFUtil::dyn_cast<StoreInst>(prevInst);
+                        assert(si && "TBHC: validation macro not producing stores?");
+                        ps = si;
                         break;
                     }
                 }
@@ -423,17 +423,18 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
                 if (const CallInst *ci = SVFUtil::dyn_cast<CallInst>(currInst)) {
                     std::string calledFnName = ci->getCalledFunction()->getName().str();
                     if (calledFnName == derefFnName || calledFnName == mangledDerefFnName) {
-                        const LoadInst *li = SVFUtil::dyn_cast<LoadInst>(prevInst);
-                        assert(li && "TBHC: validation macro not producing loads?");
-                        ql = li;
+                        const StoreInst *si = SVFUtil::dyn_cast<StoreInst>(prevInst);
+                        assert(si && "TBHC: validation macro not producing stores?");
+                        qs = si;
                         break;
                     }
                 }
             }
 
-            assert(pl != nullptr && ql != nullptr && "TBHC: malformed alias test?");
-            NodeID p = ppag->getValueNode(pl), q = ppag->getValueNode(ql);
-            const DIType *pt = getTypeFromCTirMetadata(pl), *qt = getTypeFromCTirMetadata(ql);
+            assert(ps != nullptr && qs != nullptr && "TBHC: malformed alias test?");
+            NodeID p = ppag->getValueNode(ps->getPointerOperand()),
+                   q = ppag->getValueNode(qs->getPointerOperand());
+            const DIType *pt = getTypeFromCTirMetadata(ps), *qt = getTypeFromCTirMetadata(qs);
 
             // Now filter both points-to sets according to the type of the value.
             const PointsTo &pPts = pta->getPts(p), &qPts = pta->getPts(q);
@@ -476,16 +477,20 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             }
 
             SVFUtil::outs() << "[" << pta->PTAName() << "] Checking " << fn->getName() << "\n";
-            if (passed) {
-                SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS")
-                                << " : " << fn->getName()
-                                << " check <id:" << p << ", id:" << q << "> "
-                                << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
-            } else {
-                SVFUtil::errs() << SVFUtil::errMsg("\t FAILURE")
-                                << " : " << fn->getName()
-                                << " check <id:" << p << ", id:" << q << "> "
-                                << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
+            raw_ostream &msgStream = passed ? SVFUtil::outs() : SVFUtil::errs();
+            msgStream << (passed ? SVFUtil::sucMsg("\t SUCCESS") : SVFUtil::errMsg("\t FAILURE"))
+                      << " : " << fn->getName()
+                      << " check <id:" << p << ", id:" << q << "> "
+                      << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
+
+            if (pPtsFiltered.empty()) {
+                msgStream << SVFUtil::wrnMsg("\t WARNING")
+                          << " : pts(" << p << ") is empty\n";
+            }
+
+            if (qPtsFiltered.empty()) {
+                msgStream << SVFUtil::wrnMsg("\t WARNING")
+                          << " : pts(" << q << ") is empty\n";
             }
         }
     }

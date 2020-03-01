@@ -114,14 +114,16 @@ protected:
     ///   call XALIAS(...)
     ///   %1 = load ...
     ///   ...
-    ///   %n = load %n-1 !ctir !t1
+    ///   %n = load %p
+    ///   store ... %n-1, ...* %n !ctir !t1
     ///   call deref()
     ///   %n+1 = load ...
     ///   ...
-    ///   %n+n = load %n+n-1 !ctir !t2
+    ///   %n+n = load %q
+    ///   store ... %n+n-1, ...* %n+n !ctir !t2
     ///   call deref()
-    /// We want to test the points-to sets of %n-1 and
-    /// %n+n-1 after filtering with !t1 and !t2 respectively.
+    /// We want to test the points-to sets of %n and
+    /// %n+n after filtering with !t1 and !t2 respectively.
     void validateTBHCTests(SVFModule &svfMod);
 
 private:
