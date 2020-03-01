@@ -590,7 +590,10 @@ void dumpAliasSet(unsigned node, NodeBS To) ;
 std::string sucMsg(std::string msg);
 
 /// Print warning message by converting a string into yellow string output
-void wrnMsg(std::string msg);
+void writeWrnMsg(std::string msg);
+
+// Convert string into a yellow string.
+std::string wrnMsg(std::string msg);
 
 /// Print error message by converting a string into red string output
 //@{

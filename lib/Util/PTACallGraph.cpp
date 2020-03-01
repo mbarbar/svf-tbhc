@@ -249,7 +249,7 @@ void PTACallGraph::verifyCallGraph()
             CallSite cs = it->first;
             const Function* func = cs.getInstruction()->getParent()->getParent();
             if (getCallGraphNode(func)->isReachableFromProgEntry() == false)
-                wrnMsg(func->getName().str() + " has indirect call site but not reachable from main");
+                writeWrnMsg(func->getName().str() + " has indirect call site but not reachable from main");
         }
     }
 }

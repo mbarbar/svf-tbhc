@@ -127,7 +127,7 @@ bool SVFUtil::functionDoesNotRet (const Function * fun) {
         }
     }
     if(isProgEntryFunction(fun)==false) {
-        wrnMsg(fun->getName().str() + " does not have return");
+        writeWrnMsg(fun->getName().str() + " does not have return");
     }
     return true;
 }
@@ -413,9 +413,13 @@ std::string SVFUtil::sucMsg(std::string msg) {
 /*!
  * print warning message by converting a string into yellow string output
  */
-void SVFUtil::wrnMsg(std::string msg) {
+void SVFUtil::writeWrnMsg(std::string msg) {
     if(DisableWarn) return;
     outs() << KYEL + msg + KNRM << "\n";
+}
+
+std::string SVFUtil::wrnMsg(std::string msg) {
+    return KYEL + msg + KNRM;
 }
 
 /*!
