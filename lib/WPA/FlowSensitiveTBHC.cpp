@@ -419,20 +419,33 @@ bool FlowSensitiveTBHC::processStore(const StoreSVFGNode* store) {
 
 bool FlowSensitiveTBHC::processPhi(const PHISVFGNode* phi) {
     if (!phi->isPTANode()) return false;
-
-    if (const Argument *arg = SVFUtil::dyn_cast<Argument>(phi->getRes()->getValue())) {
-        // First argument and for a constructor? Clone.
-        if (arg->getArgNo() == 0 && cppUtil::isConstructor(arg->getParent())) {
-            const DIType *constructorType = dchg->getConstructorType(arg->getParent());
-            for (PHISVFGNode::OPVers::const_iterator it = phi->opVerBegin(); it != phi->opVerEnd(); ++it) {
-                NodeID src = it->second->getId();
-                init(phi->getId(), src, constructorType, true);
-            }
-        }
-    }
-
     bool changed = FlowSensitive::processPhi(phi);
     return changed;
+}
+
+/// Returns whether this instruction initialisates an object's
+/// vtable (metadata: ctir.vt.init). Returns the object's type,
+/// otherwise, nullptr.
+static const DIType *getVTInitType(const CopySVFGNode *copy, DCHGraph *dchg) {
+    if (copy->getInst() == nullptr) return nullptr;
+    const Instruction *inst = copy->getInst();
+
+    const MDNode *mdNode = inst->getMetadata(cppUtil::ctir::vtInitMDName);
+    if (mdNode == nullptr) return nullptr;
+
+    const DIType *type = SVFUtil::dyn_cast<DIType>(mdNode);
+    assert(type != nullptr && "TBHC: bad ctir.vt.init metadata");
+    return dchg->getCanonicalType(type);
+}
+
+bool FlowSensitiveTBHC::processCopy(const CopySVFGNode* copy) {
+    const DIType *vtInitType = getVTInitType(copy, dchg);
+    if (vtInitType != nullptr) {
+        // Setting the virtual table pointer.
+        init(copy->getId(), copy->getPAGSrcNodeID(), vtInitType, true);
+    }
+
+    return FlowSensitive::processCopy(copy);
 }
 
 const NodeBS& FlowSensitiveTBHC::getAllFieldsObjNode(NodeID id) {

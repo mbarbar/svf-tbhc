@@ -49,6 +49,7 @@ public:
     virtual bool processLoad(const LoadSVFGNode* load) override;
     virtual bool processStore(const StoreSVFGNode* store) override;
     virtual bool processPhi(const PHISVFGNode* phi) override;
+    virtual bool processCopy(const CopySVFGNode* copy) override;
 
     virtual inline const NodeBS& getAllFieldsObjNode(NodeID id) override;
 
