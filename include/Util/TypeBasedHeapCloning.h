@@ -126,6 +126,9 @@ protected:
     /// %n+n after filtering with !t1 and !t2 respectively.
     void validateTBHCTests(SVFModule &svfMod);
 
+    /// Dump some statistics we tracked.
+    void dumpStats(void);
+
 private:
     /// PTA extending this class.
     PointerAnalysis *pta;
@@ -154,5 +157,12 @@ private:
 
     /// Test whether object is a GEP object. For convenience.
     bool isGep(const PAGNode *n) const;
+
+    // Bunch of stats to keep track of. TODO: integrate into SVF's statistics.
+    unsigned numInit  = 0;
+    unsigned numTBWU  = 0;
+    unsigned numTBSSU = 0;
+    unsigned numTBSU  = 0;
+    unsigned numReuse = 0;
 };
 

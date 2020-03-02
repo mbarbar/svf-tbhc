@@ -46,37 +46,7 @@ void FlowSensitiveTBHC::finalize(void) {
     FlowSensitive::finalize();
     // ^ Will print call graph and alias stats.
 
-    // Print clones with their types.
-    SVFUtil::outs() << "=== Original objects to clones ===\n";
-    unsigned total = 0;
-    const NodeBS objs = getObjsWithClones();
-    for (NodeID o : objs) {
-        const NodeBS &clones = getClones(o);
-        if (clones.count() == 0) continue;
-
-        total += clones.count();
-        SVFUtil::outs() << "  " << o << " : "
-                        << "(" << clones.count() << ")"
-                        << "[ ";
-        bool first = true;
-        for (NodeID c : clones) {
-            if (!first) {
-                SVFUtil::outs() << ", ";
-            }
-
-            SVFUtil::outs() << c
-                            << "{"
-                            << dchg->diTypeToStr(getType(c))
-                            << "}";
-            first = false;
-        }
-
-        SVFUtil::outs() << " ]\n";
-    }
-
-    SVFUtil::outs() << "Total: " << total << "\n";
-    SVFUtil::outs() << "==================================\n";
-
+    dumpStats();
     // getDFPTDataTy()->dumpPTData();
 
     validateTBHCTests(svfMod);

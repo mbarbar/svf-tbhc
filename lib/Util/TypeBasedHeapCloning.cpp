@@ -238,29 +238,36 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
         if (fieldInsensitive && std::find(fieldTypes.begin(), fieldTypes.end(), tildet) != fieldTypes.end()) {
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
+            ++numTBWU;
         } else if (gep && aggs.find(tildet) != aggs.end()) {
             // SVF treats two consecutive GEPs as children to the same load/store.
             prop = o;
+            ++numTBWU;
         } else if (tp == undefType) {
             // o is uninitialised.
             // GEP objects should never be uninitialised; type assigned at creation.
             assert(!isGep(obj) && "TBHC: GEP object is untyped!");
             prop = cloneObject(o, tildet);
+            ++numInit;
         } else if (isBase(tp, tildet) && tp != tildet
                    && ((!reusePossible && !isGep(obj)) || reusePossible)) {
             // Downcast.
             // !reuse && !gep because field types are static.
             prop = cloneObject(o, tildet);
+            ++numTBSSU;
         } else if (isBase(tildet, tp)) {
             // Upcast.
             prop = o;
+            ++numTBWU;
         } else if (tildet != tp && reusePossible) {
             // Reuse.
             prop = cloneObject(o, tildet);
+            ++numReuse;
         } else {
             // Some spurious objects will be filtered.
             filter = true;
             prop = o;
+            ++numTBSU;
         }
 
         if (prop != o) {
@@ -494,5 +501,53 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             }
         }
     }
+}
+
+void TypeBasedHeapCloning::dumpStats(void) {
+    std::string indent = "";
+    SVFUtil::outs() << "@@@@@@@@@ TBHC STATISTICS @@@@@@@@@\n";
+    indent = "  ";
+
+    // Print clones with their types.
+    SVFUtil::outs() << indent << "=== Original objects to clones ===\n";
+    indent = "    ";
+    unsigned total = 0;
+    const NodeBS objs = getObjsWithClones();
+    for (NodeID o : objs) {
+        const NodeBS &clones = getClones(o);
+        if (clones.count() == 0) continue;
+
+        total += clones.count();
+        SVFUtil::outs() << indent
+                        << "  " << o << " : "
+                        << "(" << clones.count() << ")"
+                        << "[ ";
+        bool first = true;
+        for (NodeID c : clones) {
+            if (!first) {
+                SVFUtil::outs() << ", ";
+            }
+
+            SVFUtil::outs() << c
+                            << "{"
+                            << dchg->diTypeToStr(getType(c))
+                            << "}";
+            first = false;
+        }
+
+        SVFUtil::outs() << " ]\n";
+    }
+
+    indent = "  ";
+    SVFUtil::outs() << indent << "Total: " << total << "\n";
+    SVFUtil::outs() << indent << "==================================\n";
+
+    SVFUtil::outs() << indent << "INITIALISE : " << numInit  << "\n";
+    SVFUtil::outs() << indent << "TBWU       : " << numTBWU  << "\n";
+    SVFUtil::outs() << indent << "TBSSU      : " << numTBSSU << "\n";
+    SVFUtil::outs() << indent << "TBSU       : " << numTBSU  << "\n";
+    SVFUtil::outs() << indent << "REUSE      : " << numReuse << "\n";
+
+    SVFUtil::outs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
 }
 
