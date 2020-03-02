@@ -263,7 +263,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             prop = o;
         }
 
-        if (tp == undefType && prop != o) {
+        if (prop != o) {
             // If we cloned, we want to keep o in p's PTS but filter it (ignore it later).
             pNewPt.set(o);
             filterSet.set(o);
