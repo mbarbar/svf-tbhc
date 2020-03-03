@@ -249,25 +249,30 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             assert(!isGep(obj) && "TBHC: GEP object is untyped!");
             prop = cloneObject(o, tildet);
             ++numInit;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGInit;
         } else if (isBase(tp, tildet) && tp != tildet
                    && ((!reusePossible && !isGep(obj)) || reusePossible)) {
             // Downcast.
             // !reuse && !gep because field types are static.
             prop = cloneObject(o, tildet);
             ++numTBSSU;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBSSU;
         } else if (isBase(tildet, tp)) {
             // Upcast.
             prop = o;
             ++numTBWU;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBWU;
         } else if (tildet != tp && reusePossible) {
             // Reuse.
             prop = cloneObject(o, tildet);
             ++numReuse;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGReuse;
         } else {
             // Some spurious objects will be filtered.
             filter = true;
             prop = o;
             ++numTBSU;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBSU;
         }
 
         if (prop != o) {
@@ -547,6 +552,15 @@ void TypeBasedHeapCloning::dumpStats(void) {
     SVFUtil::outs() << indent << "TBSSU      : " << numTBSSU << "\n";
     SVFUtil::outs() << indent << "TBSU       : " << numTBSU  << "\n";
     SVFUtil::outs() << indent << "REUSE      : " << numReuse << "\n";
+
+    SVFUtil::outs() << "\n";
+    SVFUtil::outs() << indent << "STACK/GLOBAL OBJECTS\n";
+    indent = "    ";
+    SVFUtil::outs() << indent << "INITIALISE : " << numSGInit  << "\n";
+    SVFUtil::outs() << indent << "TBWU       : " << numSGTBWU  << "\n";
+    SVFUtil::outs() << indent << "TBSSU      : " << numSGTBSSU << "\n";
+    SVFUtil::outs() << indent << "TBSU       : " << numSGTBSU  << "\n";
+    SVFUtil::outs() << indent << "REUSE      : " << numSGReuse << "\n";
 
     SVFUtil::outs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
 }
