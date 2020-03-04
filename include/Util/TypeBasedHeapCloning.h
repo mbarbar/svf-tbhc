@@ -158,7 +158,7 @@ private:
     /// Test whether object is a GEP object. For convenience.
     bool isGep(const PAGNode *n) const;
 
-    // Bunch of stats to keep track of. TODO: integrate into SVF's statistics.
+    // Bunch of stats to keep track of.
     unsigned numInit  = 0;
     unsigned numTBWU  = 0;
     unsigned numTBSSU = 0;

@@ -173,7 +173,7 @@ public:
     // TODO: not used anymore in ctir.
     static const std::string ctirInternalUntypedName;
 
-    /// Returns the DIType beneath the qualifiers.
+    /// Returns the DIType beneath the qualifiers. Does not strip away "DW_TAG_members".
     static const DIType *stripQualifiers(const DIType *);
 
     /// Returns the DIType beneath all qualifiers and arrays.

@@ -56,10 +56,8 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
             for (DINode *field : fields) {
                 // fields[0] gives a type which is DW_TAG_member, we want the member's type (getBaseType).
                 DIDerivedType *firstMember = SVFUtil::dyn_cast<DIDerivedType>(field);
-                // Is this check necessary? TODO
-                if (firstMember != NULL) {
-                    addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
-                }
+                assert(firstMember != nullptr && "DCHG: expected member type");
+                addEdge(compositeType, firstMember->getBaseType(), DCHEdge::FIRST_FIELD);
             }
         }
 
@@ -347,7 +345,6 @@ DCHNode *DCHGraph::getOrCreateNode(const DIType *type) {
     DCHNode *node = new DCHNode(type, numTypes++);
     addGNode(node->getId(), node);
     diTypeToNodeMap[type] = node;
-    // TODO: name map, necessary?
     // TODO: handle templates.
 
     return node;
@@ -638,7 +635,6 @@ const DIType *DCHGraph::stripQualifiers(const DIType *t) {
                    || tag == dwarf::DW_TAG_ptr_to_member_type
                    || tag == dwarf::DW_TAG_reference_type
                    || tag == dwarf::DW_TAG_rvalue_reference_type) {
-            // TODO: maybe this function should strip members too?
             // Hit a non-qualifier.
             break;
         } else if (   tag == dwarf::DW_TAG_inheritance
@@ -663,12 +659,11 @@ const DIType *DCHGraph::stripArray(const DIType *t) {
 }
 
 bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
-    // TODO: semantics for pointer-to-member
     t1 = stripQualifiers(t1);
     t2 = stripQualifiers(t2);
 
     if (t1 == t2) {
-        // Trivial case.
+        // Trivial case. Handles SubRoutineTypes too.
         return true;
     }
 
@@ -726,6 +721,8 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
             base2 = c2->getBaseType();
         }
 
+        // For ptr-to-member, there is some imprecision (but soundness) in
+        // that we don't check the class type.
         return teq(base1, base2);
     }
 
@@ -752,8 +749,6 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
                && ct1->getFile() == ct2->getFile()
                && ct1->getLine() == ct2->getLine();
     }
-
-    // TODO: do we need special handling of subroutine types?
 
     // They were not equal base types (discounting signedness), nor were they
     // "equal" pointers/references/arrays, nor were they the structurally equivalent,
