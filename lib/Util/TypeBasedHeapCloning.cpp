@@ -192,8 +192,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
         }
 
         setType(newGep, newGepType);
-        // TODO: "allocation" site does not make sense for GEP objects.
-        setAllocationSite(newGep, getAllocationSite(base));
+        setAllocationSite(newGep, 0);
 
         geps.set(newGep);
     }
