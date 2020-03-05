@@ -288,7 +288,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
     }
 
     if (pPt != pNewPt) {
-        // TODO: more performant way of doing this? Like move?
+        // Seems fast enough to perform in the naive way.
         pPt.clear();
         pPt |= pNewPt;
         changed = true;
