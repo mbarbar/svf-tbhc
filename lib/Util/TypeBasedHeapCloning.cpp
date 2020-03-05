@@ -391,6 +391,7 @@ static bool isAliasTestFunction(std::string name) {
 }
 
 void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
+    SVFUtil::outs() << "!!!!!! VALIDATING TBHC TESTS !!!!!!\n";
     for (u32_t i = 0; i < svfMod.getModuleNum(); ++i) {
         Module *module = svfMod.getModule(i);
         const PAG::CallSiteSet &callSites = ppag->getCallSiteSet();
