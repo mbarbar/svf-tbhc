@@ -140,7 +140,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
         return geps;
     }
 
-    // TODO: caching on ls or offset will improve performance.
+    // Caching on ls or offset would improve performance but it seems minimal.
     const NodeBS &gepObjs = getGepObjs(base);
     for (NodeID gep : gepObjs) {
         PAGNode *node = ppag->getPAGNode(gep);
