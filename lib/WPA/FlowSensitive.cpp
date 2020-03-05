@@ -657,7 +657,6 @@ void FlowSensitive::printCTirAliasStats(void) {
                 p = stmt->getPAGSrcNodeID();
             } else {
                 // Not interested.
-                // TODO: maybe interested in PHI's for constructors?
                 continue;
             }
 
