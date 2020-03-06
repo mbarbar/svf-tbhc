@@ -910,12 +910,7 @@ AliasResult BVDataPTAImpl::alias(const PointsTo& p1, const PointsTo& p2) {
     PointsTo pts2;
     expandFIObjs(p2,pts2);
 
-    if (containBlackHoleNode(pts1) || containBlackHoleNode(pts2))
-        return llvm::MayAlias;
-    else if (pts1.intersects(pts2) && pts2.intersects(pts1) && pts1.count() == 1 && pts2.count() == 1)
-        // Under-approximation of must-alias relations.
-        return llvm::MustAlias;
-    else if (pts1.intersects(pts2))
+    if (containBlackHoleNode(pts1) || containBlackHoleNode(pts2) || pts1.intersects(pts2))
         return llvm::MayAlias;
     else
         return llvm::NoAlias;
