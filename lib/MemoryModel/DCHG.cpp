@@ -100,7 +100,6 @@ void DCHGraph::handleDIDerivedType(const DIDerivedType *derivedType) {
     case dwarf::DW_TAG_atomic_type:
     case dwarf::DW_TAG_volatile_type:
     case dwarf::DW_TAG_restrict_type:
-        // TODO: maybe we should add an optional flag for qualifiers.
         break;
     default:
         assert(false && "DCHGraph::buildCHG: unexpected DerivedType tag.");
@@ -247,7 +246,7 @@ void DCHGraph::flatten(const DICompositeType *type) {
         }
     }
 
-    // TODO: virtual inheritance.
+    // TODO: virtual inheritance is not handled at all!
     std::sort(fields.begin(), fields.end(),
               [](const DIDerivedType *&a, const DIDerivedType *&b) -> bool
                 { return a->getOffsetInBits() < b->getOffsetInBits(); });

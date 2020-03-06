@@ -8,6 +8,9 @@
  *      Author: Mohamad Barbar
  */
 
+// TODO: add a flag such that getCanonicalType returns its arg so
+//       that the impl. does not "node collapsing" based on teq.
+
 #ifndef DCHG_H_
 #define DCHG_H_
 
@@ -63,12 +66,10 @@ public:
         : GenericNode<DCHNode, DCHEdge>(i, k), vtable(NULL), flags(0) {
         this->diType = diType;
         if (diType == NULL) {
-            // TODO: this should not clash - needs some testing.
-            typeName = "void";
+            typeName = "null-void";
         } else if (diType->getRawName() != NULL) {
             typeName = diType->getName();
         } else {
-            // TODO: we can name this from the DIType properly.
             typeName = "unnamed!";
         }
     }
@@ -170,9 +171,6 @@ private:
 /// Dwarf based CHG.
 class DCHGraph : public CommonCHGraph, public GenericGraph<DCHNode, DCHEdge> {
 public:
-    // TODO: not used anymore in ctir.
-    static const std::string ctirInternalUntypedName;
-
     /// Returns the DIType beneath the qualifiers. Does not strip away "DW_TAG_members".
     static const DIType *stripQualifiers(const DIType *);
 
@@ -182,7 +180,6 @@ public:
     /// Returns true if t1 and t2 are equivalent, ignoring qualifiers.
     /// For equality...
     ///  Tags always need to be equal.
-    ///  TODO: should we equate pointers and references?
     ///   DIBasicType:      shallow pointer equality.
     ///   DIDerivedType:    base types (teq).
     ///   DICompositeType:  shallow pointer equality.
@@ -192,7 +189,6 @@ public:
     /// Returns a human-readable version of the DIType.
     static std::string diTypeToStr(const DIType *);
 
-    /// TODO: temporary till isVirtualCall is worked out.
     static bool isVirtualCallSite(CallSite cs) {
         MDNode *md = cs.getInstruction()->getMetadata(cppUtil::ctir::derefMDName);
         return md != nullptr;
@@ -264,15 +260,8 @@ public:
             return cbase->getBaseType();
         }
 
-        /* TODO: we want this, but untyped things mess it up.
-        assert((base->getTag() == dwarf::DW_TAG_class_type
-                || base->getTag() == dwarf::DW_TAG_structure_type)
-               && "DCHG: non-class/struct don't have fields?");
-        */
         if (!(base->getTag() == dwarf::DW_TAG_class_type
               || base->getTag() == dwarf::DW_TAG_structure_type)) {
-            // TODO: what if the inside is actually a pointer - we want
-            //       a void pointer.
             return nullptr;
         }
 
@@ -368,7 +357,6 @@ private:
     void gatherAggs(const DICompositeType *type);
 
     /// Creates a node from type, or returns it if it exists.
-    /// Only suitable for TODO.
     DCHNode *getOrCreateNode(const DIType *type);
 
     /// Retrieves the metadata associated with a *virtual* callsite.
