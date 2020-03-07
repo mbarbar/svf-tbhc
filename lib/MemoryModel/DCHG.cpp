@@ -168,17 +168,13 @@ void DCHGraph::buildVTables(const Module &module) {
 
                     ConstantExpr *ce = SVFUtil::dyn_cast<ConstantExpr>(c);
                     assert(ce && "non-ConstantExpr, non-ConstantPointerNull in vtable?");
-                    if (ce->getOpcode() != Instruction::BitCast) {
-                        continue;
+                    if (ce->getOpcode() == Instruction::BitCast) {
+                        // Could be a GlobalAlias which we don't care about, or a virtual/thunk function.
+                        const Function *vfn = SVFUtil::dyn_cast<Function>(ce->getOperand(0));
+                        if (vfn != nullptr) {
+                            vfns.push_back(vfn);
+                        }
                     }
-
-                    // Could be a GlobalAlias which we don't care about, or a virtual/thunk function.
-                    const Function *vfn = SVFUtil::dyn_cast<Function>(ce->getOperand(0));
-                    if (vfn == nullptr) {
-                        continue;
-                    }
-
-                    vfns.push_back(vfn);
                 }
             }
         }
@@ -390,7 +386,7 @@ void DCHGraph::buildCHG(bool extend) {
     // Create the void node regardless of whether it appears.
     getOrCreateNode(nullptr);
     // Find any char type.
-    DIType *charType = nullptr;
+    const DIType *charType = nullptr;
     // We want void at the top, char as a child, and everything is a child of char:
     //     void
     //      |
@@ -399,20 +395,19 @@ void DCHGraph::buildCHG(bool extend) {
     //   x  y  z
 
 
-    for (DebugInfoFinder::type_iterator diTypeI = finder.types().begin(); diTypeI != finder.types().end(); ++diTypeI) {
-        DIType *type = *diTypeI;
-        if (DIBasicType *basicType = SVFUtil::dyn_cast<DIBasicType>(type)) {
+    for (const DIType *type : finder.types()) {
+        if (const DIBasicType *basicType = SVFUtil::dyn_cast<DIBasicType>(type)) {
             if (basicType->getEncoding() == dwarf::DW_ATE_unsigned_char
                 || basicType->getEncoding() == dwarf::DW_ATE_signed_char) {
                 charType = type;
             }
 
             handleDIBasicType(basicType);
-        } else if (DICompositeType *compositeType = SVFUtil::dyn_cast<DICompositeType>(type)) {
+        } else if (const DICompositeType *compositeType = SVFUtil::dyn_cast<DICompositeType>(type)) {
             handleDICompositeType(compositeType);
-        } else if (DIDerivedType *derivedType = SVFUtil::dyn_cast<DIDerivedType>(type)) {
+        } else if (const DIDerivedType *derivedType = SVFUtil::dyn_cast<DIDerivedType>(type)) {
             handleDIDerivedType(derivedType);
-        } else if (DISubroutineType *subroutineType = SVFUtil::dyn_cast<DISubroutineType>(type)) {
+        } else if (const DISubroutineType *subroutineType = SVFUtil::dyn_cast<DISubroutineType>(type)) {
             handleDISubroutineType(subroutineType);
         } else {
             assert(false && "DCHGraph::buildCHG: unexpected DIType.");
@@ -438,8 +433,7 @@ void DCHGraph::buildCHG(bool extend) {
     }
 
     // Build the constructor to type map.
-    for (DebugInfoFinder::subprogram_iterator spI = finder.subprograms().begin(); spI != finder.subprograms().end(); ++spI) {
-        const DISubprogram *sp = *spI;
+    for (const DISubprogram *sp : finder.subprograms()) {
         // Use linkage type to ensure we have the "distinct" item.
         const Function *fn = svfModule.getFunction(sp->getLinkageName());
         if (fn != nullptr && cppUtil::isConstructor(fn)) {
@@ -512,13 +506,13 @@ void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &vi
         assert(hasNode(type) && "trying to get vtbl for type not in graph");
         const DCHNode *node = getNode(type);
         std::vector<std::vector<const Function *>> allVfns = node->getVfnVectors();
-        for (std::vector<std::vector<const Function *>>::const_iterator vfnVI = allVfns.begin(); vfnVI != allVfns.end(); ++vfnVI) {
+        for (std::vector<const Function *> vfnV : allVfns) {
             // We only care about any virtual function corresponding to idx.
-            if (idx >= vfnVI->size()) {
+            if (idx >= vfnV.size()) {
                 continue;
             }
 
-            const Function *callee = (*vfnVI)[idx];
+            const Function *callee = vfnV[idx];
             // Practically a copy of that in lib/MemoryModel/CHA.cpp
             if (cs.arg_size() == callee->arg_size() || (cs.getFunctionType()->isVarArg() && callee->isVarArg())) {
                 cppUtil::DemangledName dname = cppUtil::demangle(callee->getName().str());
