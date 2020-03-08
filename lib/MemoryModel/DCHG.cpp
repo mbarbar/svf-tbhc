@@ -500,9 +500,9 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
 void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) {
     size_t idx = cppUtil::getVCallIdx(cs);
     std::string funName = cppUtil::getFunNameOfVCallSite(cs);
-    for (VTableSet::const_iterator vtblI = vtbls.begin(); vtblI != vtbls.end(); ++vtblI) {
-        assert(vtblToTypeMap.find(*vtblI) != vtblToTypeMap.end() && "floating vtbl");
-        const DIType *type = vtblToTypeMap.at(*vtblI);
+    for (const GlobalValue *vtbl : vtbls) {
+        assert(vtblToTypeMap.find(vtbl) != vtblToTypeMap.end() && "floating vtbl");
+        const DIType *type = vtblToTypeMap.at(vtbl);
         assert(hasNode(type) && "trying to get vtbl for type not in graph");
         const DCHNode *node = getNode(type);
         std::vector<std::vector<const Function *>> allVfns = node->getVfnVectors();
