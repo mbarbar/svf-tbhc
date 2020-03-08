@@ -39,6 +39,7 @@ void FlowSensitiveTBHC::initialize(SVFModule svfModule) {
     TypeBasedHeapCloning::setDCHG(dchg);
     TypeBasedHeapCloning::setPAG(pag);
 
+    // Populates loadGeps.
     determineWhichGepsAreLoads();
 }
 
@@ -213,7 +214,7 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
 
     const DIType *tildet = getTypeFromCTirMetadata(gep);
     if (tildet != undefType) {
-        init(gep->getId(), q, tildet, !gepIsLoad[gep->getId()], true);
+        init(gep->getId(), q, tildet, !gepIsLoad(gep->getId()), true);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {
@@ -449,24 +450,32 @@ void FlowSensitiveTBHC::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
         SVFGNode *svfgNode = nI->second;
         if (const StmtSVFGNode *gep = SVFUtil::dyn_cast<GepSVFGNode>(svfgNode)) {
+            // Only care about ctir nodes - they have the reuse problem.
             if (getTypeFromCTirMetadata(gep)) {
-                // Only care about ctir nodes - they have the reuse problem.
-                gepIsLoad[gep->getId()] = true;
-                for (auto eI = gep->getOutEdges().begin(); eI != gep->getOutEdges().end(); ++eI) {
-                    SVFGEdge *e = *eI;
+                bool isLoad = true;
+                for (const SVFGEdge *e : gep->getOutEdges()) {
                     SVFGNode *dst = e->getDstNode();
 
                     // Loop on itself - don't care.
                     if (gep == dst) continue;
 
                     if (!SVFUtil::isa<LoadSVFGNode>(dst)) {
-                        gepIsLoad[gep->getId()] = false;
-                        continue;
+                        isLoad = false;
+                        break;
                     }
+                }
+
+                if (isLoad) {
+                    loadGeps.set(gep->getId());
                 }
             }
         }
     }
+}
+
+bool FlowSensitiveTBHC::gepIsLoad(NodeID gep) {
+    // Handles when gep is not even a GEP; loadGeps only contains GEPs.
+    return loadGeps.test(gep);
 }
 
 const MDNode *FlowSensitiveTBHC::getRawCTirMetadata(const SVFGNode *s) {

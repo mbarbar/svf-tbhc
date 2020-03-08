@@ -68,14 +68,18 @@ protected:
     virtual void countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) override;
 
 private:
-    /// Determines whether each GEP is a load or not. Builds gepIsLoad map.
+    /// Determines whether each GEP is for a load or not. Builds gepIsLoad map.
     /// This is a quick heuristic; if all destination nodes are loads, it's a load.
     void determineWhichGepsAreLoads(void);
+
+    /// Returns true if the given GEP is for loads, false otherwise. If the node ID
+    /// is not for a GEP SVFG node, returns false.
+    bool gepIsLoad(NodeID gep);
 
     /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
     std::map<NodeID, NodeBS> gepToSVFGRetrievers;
     /// Maps whether a (SVFG) GEP node is a load or not.
-    std::map<NodeID, bool> gepIsLoad;
+    NodeBS loadGeps;
 };
 
 #endif /* FLOWSENSITIVETYPEFILTER_H_ */
