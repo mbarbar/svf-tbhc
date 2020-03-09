@@ -254,6 +254,12 @@ public:
             return nullptr;
         }
 
+        // For TBHC this is conservative because the union type is lower in the DCHG
+        // than its fields. TODO: make more precise.
+        if (base->getTag() == dwarf::DW_TAG_union_type) {
+            return base;
+        }
+
         if (base->getTag() == dwarf::DW_TAG_array_type) {
             const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
             assert(cbase && "DCHG: bad DIComposite case");
