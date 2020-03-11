@@ -164,6 +164,7 @@ private:
     unsigned numTBSSU = 0;
     unsigned numTBSU  = 0;
     unsigned numReuse = 0;
+    unsigned numArray = 0;
 
     // Previous stats but only upon stack/global objects.
     unsigned numSGInit  = 0;
@@ -171,5 +172,6 @@ private:
     unsigned numSGTBSSU = 0;
     unsigned numSGTBSU  = 0;
     unsigned numSGReuse = 0;
+    unsigned numSGArray = 0;
 };
 
