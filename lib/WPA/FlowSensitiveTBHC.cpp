@@ -491,7 +491,7 @@ const MDNode *FlowSensitiveTBHC::getRawCTirMetadata(const SVFGNode *s) {
 
 const DIType *FlowSensitiveTBHC::getTypeFromCTirMetadata(const SVFGNode *s) {
     if (const StmtSVFGNode *stmt = SVFUtil::dyn_cast<StmtSVFGNode>(s)) {
-        const Value *v = stmt->getInst() ? stmt->getInst() : stmt->getPAGEdge()->getValue();
+        const Value *v = stmt->getInst();
         if (v != nullptr) {
             return TypeBasedHeapCloning::getTypeFromCTirMetadata(v);
         }
