@@ -480,7 +480,7 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
                 passed = res == llvm::NoAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestMustAlias
                        || fn->getName() == PointerAnalysis::aliasTestMustAliasMangled) {
-                passed = res == llvm::MustAlias;
+                passed = res == llvm::MustAlias || res == llvm::MayAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestPartialAlias
                        || fn->getName() == PointerAnalysis::aliasTestPartialAliasMangled) {
                 passed = res == llvm::MayAlias || res == llvm::PartialAlias;
@@ -508,6 +508,20 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
                 msgStream << SVFUtil::wrnMsg("\t WARNING")
                           << " : pts(" << q << ") is empty\n";
             }
+
+            if (fn->getName() == PointerAnalysis::aliasTestMustAlias
+                || fn->getName() == PointerAnalysis::aliasTestMustAliasMangled) {
+                msgStream << SVFUtil::wrnMsg("\t WARNING")
+                          << " : MUSTALIAS tests are actually MAYALIAS tests\n";
+            }
+
+            if (fn->getName() == PointerAnalysis::aliasTestPartialAlias
+                || fn->getName() == PointerAnalysis::aliasTestPartialAliasMangled) {
+                msgStream << SVFUtil::wrnMsg("\t WARNING")
+                          << " : PARTIALALIAS tests are actually MAYALIAS tests\n";
+            }
+
+            msgStream.flush();
         }
     }
 }
