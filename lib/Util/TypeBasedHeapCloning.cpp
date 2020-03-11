@@ -126,8 +126,12 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
     assert(baseNode && "TBHC: base \"object\" node is not an object.");
 
+    const DIType *baseType = getType(base);
+
     // First field? Just return the whole object; same thing.
-    if (ls.getOffset() == 0) {
+    // For arrays, we want things to work as normal because an array *object* is more
+    // like a pointer than a struct object.
+    if (ls.getOffset() == 0 && baseType->getTag() != dwarf::DW_TAG_array_type) {
         // The base object is the 0 gep object.
         addGepToObj(base, base, 0);
         geps.set(base);
@@ -177,7 +181,6 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
         gep->setBaseNode(base);
 
         addGepToObj(newGep, base, ls.getOffset());
-        const DIType *baseType = getType(base);
         const DIType *newGepType;
         if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
             if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
