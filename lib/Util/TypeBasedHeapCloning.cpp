@@ -153,8 +153,12 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
                 geps.set(gep);
             }
         } else {
-            // Definitely a FIObj (asserted).
-            geps.set(gep);
+            // Definitely a FIObj (asserted), but we don't want to add it if
+            // the object is field-sensitive because in that case it actually
+            // represents the 0th field, not the whole object.
+            if (baseNode->getMemObj()->isFieldInsensitive()) {
+                geps.set(gep);
+            }
         }
     }
 
