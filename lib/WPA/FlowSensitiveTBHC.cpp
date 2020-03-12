@@ -94,11 +94,17 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
         isStore = true;
     }
 
+    const PointsTo &filterSet = getFilterSet(src->getId());
     for (NodeID o : pts) {
-        edgePtsAndClones.set(o);
+        if (!filterSet.test(o)) {
+            edgePtsAndClones.set(o);
+        }
+
         for (NodeID c : getClones(o)) {
             if (!isStore || isBase(tildet, getType(c))) {
-                edgePtsAndClones.set(c);
+                if (!filterSet.test(c)) {
+                    edgePtsAndClones.set(c);
+                }
             }
         }
 
@@ -106,17 +112,17 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
             // Want the geps which are at the same "level" as this one (same mem obj, same offset).
             const NodeBS &geps = getGepObjsFromMemObj(gep->getMemObj(), gep->getLocationSet().getOffset());
             for (NodeID g : geps) {
-                if (!isStore || getType(g) == nullptr || isBase(tildet, getType(g))) {
-                    edgePtsAndClones.set(g);
+                const DIType *gepType = getType(g);
+                if (!isStore || gepType || isBase(tildet, gepType)) {
+                    if (!filterSet.test(g)) {
+                        edgePtsAndClones.set(g);
+                    }
                 }
             }
         }
     }
 
-    const PointsTo &filterSet = getFilterSet(src->getId());
     for (NodeID o : edgePtsAndClones) {
-        if (filterSet.test(o)) continue;
-
         if (propVarPtsFromSrcToDst(o, src, dst))
             changed = true;
 
