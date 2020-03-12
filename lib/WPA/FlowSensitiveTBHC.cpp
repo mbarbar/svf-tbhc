@@ -437,17 +437,10 @@ void FlowSensitiveTBHC::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
     for (PtsMap::value_type kv : ptsInMap) {
         NodeID o = kv.first;
-        if (pPt.test(o)) {
-            // Exact match between object in in's set and p's set.
-            pNewPt.set(o);
-        } else if (isClone(o) && pPt.test(getOriginalObj(o))) {
+        if (isClone(o) && pPt.test(getOriginalObj(o))) {
             // Clone of an object in p's set is in in's set.
-            pNewPt.set(o);
+            pPt.set(o);
         }
-    }
-
-    if (pPt != pNewPt) {
-        unionPts(pId, pNewPt);
     }
 }
 
