@@ -241,28 +241,21 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 
         NodeID prop;
         bool filter = false;
-        // We might need this if it's an array.
-        const DICompositeType *arrType = tp != undefType && tp->getTag() == dwarf::DW_TAG_array_type
-                                         ? SVFUtil::dyn_cast<DICompositeType>(tp) : nullptr;
         if (fieldInsensitive && std::find(fieldTypes.begin(), fieldTypes.end(), tildet) != fieldTypes.end()) {
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
             ++numTBWU;
-        } else if (gep && arrType != nullptr
-                   && dchg->getCanonicalType(arrType->getBaseType()) == tildet) {
-            // Special case for arrays of structs or other aggregates.
-            // SVF will transform 
+        } else if (gep && aggs.find(tildet) != aggs.end()) {
+            // SVF treats two consecutive GEPs as children to the same load/store.
+            // Special case for aggregates.
+            // SVF will transform (for example) 
             //    `1: s = get struct element X from array a; 2: f = get field of struct Y from s;`
             // to `1: s = get struct element X from array a; 2: f = get field of struct Y from a;`
             // so we want the second instruction to be operating on an object of type
             // 'Struct S', not 'Array of S'.
-            prop = cloneObject(o, dchg->getCanonicalType(arrType->getBaseType()));
-            ++numArray;
-            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGArray;
-        } else if (gep && aggs.find(tildet) != aggs.end()) {
-            // SVF treats two consecutive GEPs as children to the same load/store.
-            prop = o;
-            ++numTBWU;
+            prop = cloneObject(o, tildet);
+            ++numAgg;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGAgg;
         } else if (tp == undefType) {
             // o is uninitialised.
             // GEP objects should never be uninitialised; type assigned at creation.
@@ -587,7 +580,7 @@ void TypeBasedHeapCloning::dumpStats(void) {
     SVFUtil::outs() << indent << "TBSSU      : " << numTBSSU << "\n";
     SVFUtil::outs() << indent << "TBSU       : " << numTBSU  << "\n";
     SVFUtil::outs() << indent << "REUSE      : " << numReuse << "\n";
-    SVFUtil::outs() << indent << "ARRAY CASE : " << numArray << "\n";
+    SVFUtil::outs() << indent << "AGG CASE   : " << numAgg   << "\n";
 
     SVFUtil::outs() << "\n";
     SVFUtil::outs() << indent << "STACK/GLOBAL OBJECTS\n";
@@ -597,7 +590,7 @@ void TypeBasedHeapCloning::dumpStats(void) {
     SVFUtil::outs() << indent << "TBSSU      : " << numSGTBSSU << "\n";
     SVFUtil::outs() << indent << "TBSU       : " << numSGTBSU  << "\n";
     SVFUtil::outs() << indent << "REUSE      : " << numSGReuse << "\n";
-    SVFUtil::outs() << indent << "ARRAY CASE : " << numSGArray << "\n";
+    SVFUtil::outs() << indent << "AGG CASE   : " << numSGAgg   << "\n";
 
     SVFUtil::outs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
 }
