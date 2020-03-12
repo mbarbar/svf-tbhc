@@ -237,7 +237,8 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             }
         }
 
-        std::set<const DIType *> aggs = dchg->isAgg(tp) ? dchg->getAggs(tp) : std::set<const DIType *>();
+        const llvm::DenseSet<const DIType *> &aggs
+                = dchg->isAgg(tp) ? dchg->getAggs(tp) : llvm::DenseSet<const DIType *>();
 
         NodeID prop;
         bool filter = false;

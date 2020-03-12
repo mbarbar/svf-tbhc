@@ -126,7 +126,7 @@ public:
         typedefs.insert(diTypedef);
     }
 
-    const std::set<const DIDerivedType *> &getTypedefs(void) const {
+    const llvm::DenseSet<const DIDerivedType *> &getTypedefs(void) const {
         return typedefs;
     }
 
@@ -156,7 +156,7 @@ private:
     /// Type of this node.
     const DIType *diType;
     /// Typedefs which map to this type.
-    std::set<const DIDerivedType *> typedefs;
+    llvm::DenseSet<const DIDerivedType *> typedefs;
     const GlobalValue* vtable;
     std::string typeName;
     size_t flags;
@@ -273,30 +273,30 @@ public:
 
         const DICompositeType *cbase = SVFUtil::dyn_cast<DICompositeType>(base);
         assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
-        std::vector<const DIType *> fields = fieldTypes.at(base);
+        std::vector<const DIType *> &fields = fieldTypes[base];
         assert(fields.size() > idx && "DCHG: idx into struct larger than # fields!");
         return getCanonicalType(fields[idx]);
     }
 
     /// Returns a vector of the types of all fields in base.
-    std::vector<const DIType *> getFieldTypes(const DIType *base) {
+    const std::vector<const DIType *> &getFieldTypes(const DIType *base) {
         base = getCanonicalType(base);
         assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
-        return fieldTypes.at(base);
+        return fieldTypes[base];
     }
 
     // Returns the number of fields in base (length of getFieldTypes).
     unsigned getNumFields(const DIType *base) {
         base = getCanonicalType(base);
         assert(fieldTypes.find(base) != fieldTypes.end() && "DCHG: base not flattened!");
-        return fieldTypes.at(base).size();
+        return fieldTypes[base].size();
     }
 
     /// Returns all the aggregates contained (transitively) in base.
-    std::set<const DIType *> getAggs(const DIType *base) {
+    const llvm::DenseSet<const DIType *> &getAggs(const DIType *base) {
         base = getCanonicalType(base);
         assert(containingAggs.find(base) != containingAggs.end() && "DCHG: aggregates not gathered for base!");
-        return containingAggs.at(base);
+        return containingAggs[base];
     }
 
     /// Returns the type corresponding to constructor.
@@ -306,7 +306,7 @@ public:
         }
 
         // constructorToType types are already the canonical type.
-        return constructorToType.at(constructor);
+        return constructorToType.lookup(constructor);
     }
 
 protected:
@@ -315,27 +315,27 @@ protected:
     /// Whether this CHG is an extended CHG (first-field). Set by buildCHG.
     bool extended = false;
     /// Maps DITypes to their nodes.
-    std::map<const DIType *, DCHNode *> diTypeToNodeMap;
+    llvm::DenseMap<const DIType *, DCHNode *> diTypeToNodeMap;
     /// Maps VTables to the DIType associated with them.
-    std::map<const GlobalValue *, const DIType *> vtblToTypeMap;
+    llvm::DenseMap<const GlobalValue *, const DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
-    std::map<const DIType *, NodeBS> chaMap;
+    llvm::DenseMap<const DIType *, NodeBS> chaMap;
     /// Maps types to all children but also considering first field.
-    std::map<const DIType *, NodeBS> chaFFMap;
+    llvm::DenseMap<const DIType *, NodeBS> chaFFMap;
     /// Maps types to a set with their vtable and all their children's.
-    std::map<const DIType *, VTableSet> vtblCHAMap;
+    llvm::DenseMap<const DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
-    std::map<CallSite, VFunSet> csCHAMap;
+    llvm::DenseMap<CallSite, VFunSet> csCHAMap;
     /// Maps types to their canonical type (many-to-one).
-    std::map<const DIType *, const DIType *> canonicalTypeMap;
+    llvm::DenseMap<const DIType *, const DIType *> canonicalTypeMap;
     /// Set of all possible canonical types (i.e. values of canonicalTypeMap).
-    std::set<const DIType *> canonicalTypes;
+    llvm::DenseSet<const DIType *> canonicalTypes;
     /// Maps types to their flattened fields' types.
-    std::map<const DIType *, std::vector<const DIType *>> fieldTypes;
+    llvm::DenseMap<const DIType *, std::vector<const DIType *>> fieldTypes;
     /// Maps constructors to their (canonical) type.
-    std::map<const Function *, const DIType *> constructorToType;
+    llvm::DenseMap<const Function *, const DIType *> constructorToType;
     /// Maps aggregate types to all the aggregate types it transitively contains.
-    std::map<const DIType *, std::set<const DIType *>> containingAggs;
+    llvm::DenseMap<const DIType *, llvm::DenseSet<const DIType *>> containingAggs;
 
 private:
     /// Construction helper to process DIBasicTypes.
@@ -351,7 +351,7 @@ private:
     void buildVTables(const Module &module);
 
     /// Returns a set of all children of type (CHA). Also gradually builds chaMap.
-    NodeBS &cha(const DIType *type, bool firstField);
+    const NodeBS &cha(const DIType *type, bool firstField);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const DIType *typedefType);
@@ -384,7 +384,7 @@ private:
     DCHNode *getNode(const DIType *type) {
         type = getCanonicalType(type);
         if (hasNode(type)) {
-            return diTypeToNodeMap.at(type);
+            return diTypeToNodeMap.lookup(type);
         }
 
         return nullptr;

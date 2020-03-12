@@ -181,13 +181,13 @@ void DCHGraph::buildVTables(const Module &module) {
     }
 }
 
-NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
+const NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
     type = getCanonicalType(type);
-    std::map<const DIType *, NodeBS> &cacheMap = firstField ? chaFFMap : chaMap;
+    llvm::DenseMap<const DIType *, NodeBS> &cacheMap = firstField ? chaFFMap : chaMap;
 
     // Check if we've already computed.
     if (cacheMap.find(type) != cacheMap.end()) {
-        return cacheMap.at(type);
+        return cacheMap[type];
     }
 
     NodeBS children;
@@ -207,7 +207,7 @@ NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
             continue;
         }
 
-        NodeBS &cchildren = cha(edge->getSrcNode()->getType(), firstField);
+        const NodeBS &cchildren = cha(edge->getSrcNode()->getType(), firstField);
         // Children's children are my children.
         for (NodeID cchild : cchildren) {
             children.set(cchild);
@@ -217,7 +217,7 @@ NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
     // Cache results.
     cacheMap.insert({type, children});
     // Return the permanent object; we're returning a reference.
-    return cacheMap.at(type);
+    return cacheMap[type];
 }
 
 void DCHGraph::flatten(const DICompositeType *type) {
@@ -261,8 +261,8 @@ void DCHGraph::flatten(const DICompositeType *type) {
             flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
             flattenedComposite.insert(flattenedComposite.end(),
                                       // Must be canonical because that is what we inserted.
-                                      fieldTypes.at(fieldType).begin(),
-                                      fieldTypes.at(fieldType).end());
+                                      fieldTypes[fieldType].begin(),
+                                      fieldTypes[fieldType].end());
         } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
             const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
 
@@ -272,8 +272,8 @@ void DCHGraph::flatten(const DICompositeType *type) {
                 flatten(cbt);
                 flattenedComposite.insert(flattenedComposite.end(),
                                           // Must be canonical because that is what we inserted.
-                                          fieldTypes.at(cbt).begin(),
-                                          fieldTypes.at(cbt).end());
+                                          fieldTypes[cbt].begin(),
+                                          fieldTypes[cbt].end());
             } else {
                 flattenedComposite.push_back(getCanonicalType(baseType));
             }
@@ -297,7 +297,7 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
         return;
     }
 
-    std::set<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
+    llvm::DenseSet<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
     if (type->getTag() == dwarf::DW_TAG_array_type) {
         const DIType *bt = type->getBaseType();
         bt = stripQualifiers(bt);
@@ -336,7 +336,7 @@ DCHNode *DCHGraph::getOrCreateNode(const DIType *type) {
 
     // Check, does the node for type exist?
     if (diTypeToNodeMap[type] != NULL) {
-        return diTypeToNodeMap.at(type);
+        return diTypeToNodeMap[type];
     }
 
     DCHNode *node = new DCHNode(type, numTypes++);
@@ -463,7 +463,7 @@ void DCHGraph::buildCHG(bool extend) {
 
 const VFunSet &DCHGraph::getCSVFsBasedonCHA(CallSite cs) {
     if (csCHAMap.find(cs) != csCHAMap.end()) {
-        return csCHAMap.at(cs);
+        return csCHAMap[cs];
     }
 
     VFunSet vfns;
@@ -473,18 +473,18 @@ const VFunSet &DCHGraph::getCSVFsBasedonCHA(CallSite cs) {
     // Cache.
     csCHAMap.insert({cs, vfns});
     // Return cached object, not the stack object.
-    return csCHAMap.at(cs);
+    return csCHAMap[cs];
 }
 
 const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
     const DIType *type = getCanonicalType(getCSStaticType(cs));
     // Check if we've already computed.
     if (vtblCHAMap.find(type) != vtblCHAMap.end()) {
-        return vtblCHAMap.at(type);
+        return vtblCHAMap[type];
     }
 
     VTableSet vtblSet;
-    NodeBS &children = cha(type, false);
+    const NodeBS &children = cha(type, false);
     for (NodeID childId : children) {
         DCHNode *child = getGNode(childId);
         const GlobalValue *vtbl = child->getVTable();
@@ -497,7 +497,7 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
     // Cache.
     vtblCHAMap.insert({type, vtblSet});
     // Return cached version - not the stack object.
-    return vtblCHAMap.at(type);
+    return vtblCHAMap[type];
 }
 
 void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &virtualFunctions) {
@@ -505,7 +505,7 @@ void DCHGraph::getVFnsFromVtbls(CallSite cs, const VTableSet &vtbls, VFunSet &vi
     std::string funName = cppUtil::getFunNameOfVCallSite(cs);
     for (const GlobalValue *vtbl : vtbls) {
         assert(vtblToTypeMap.find(vtbl) != vtblToTypeMap.end() && "floating vtbl");
-        const DIType *type = vtblToTypeMap.at(vtbl);
+        const DIType *type = vtblToTypeMap[vtbl];
         assert(hasNode(type) && "trying to get vtbl for type not in graph");
         const DCHNode *node = getNode(type);
         std::vector<std::vector<const Function *>> allVfns = node->getVfnVectors();
@@ -576,13 +576,13 @@ bool DCHGraph::isBase(const DIType *a, const DIType *b, bool firstField) {
     assert(hasNode(a) && hasNode(b) && "DCHG: isBase query for non-existent node!");
     const DCHNode *bNode = getNode(b);
 
-    NodeBS &aChildren = cha(a, firstField);
+    const NodeBS &aChildren = cha(a, firstField);
     return aChildren.test(bNode->getId());
 }
 
 const DIType *DCHGraph::getCanonicalType(const DIType *t) {
     if (canonicalTypeMap.find(t) != canonicalTypeMap.end()) {
-        return canonicalTypeMap.at(t);
+        return canonicalTypeMap[t];
     }
 
     // Canonical type for t is not cached, find one for it.
@@ -590,7 +590,7 @@ const DIType *DCHGraph::getCanonicalType(const DIType *t) {
         if (teq(t, canonType)) {
             // Found a canonical type.
             canonicalTypeMap[t] = canonType;
-            return canonicalTypeMap.at(t);
+            return canonicalTypeMap[t];
         }
     }
 
@@ -598,7 +598,7 @@ const DIType *DCHGraph::getCanonicalType(const DIType *t) {
     canonicalTypes.insert(t);
     canonicalTypeMap.insert({t, t});
 
-    return canonicalTypeMap.at(t);
+    return canonicalTypeMap[t];
 }
 
 const DIType *DCHGraph::stripQualifiers(const DIType *t) {
@@ -933,7 +933,7 @@ void DCHGraph::print(void) const {
 
         currIndent += singleIndent;
 
-        const std::set<const DIDerivedType *> &typedefs = node->getTypedefs();
+        const llvm::DenseSet<const DIDerivedType *> &typedefs = node->getTypedefs();
         for (const DIDerivedType *tdef : typedefs) {
             std::string typedefName = "void";
             if (tdef != NULL) {
