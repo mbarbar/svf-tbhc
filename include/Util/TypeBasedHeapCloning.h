@@ -139,21 +139,21 @@ private:
     bool reuse;
 
     /// Object -> its type.
-    std::map<NodeID, const DIType *> objToType;
+    llvm::DenseMap<NodeID, const DIType *> objToType;
     /// Object -> allocation site.
     /// The value NodeID depends on the pointer analysis (could be
     /// an SVFG node or PAG node for example).
-    std::map<NodeID, NodeID> objToAllocation;
+    llvm::DenseMap<NodeID, NodeID> objToAllocation;
     /// (Original) object -> set of its clones.
-    std::map<NodeID, NodeBS> objToClones;
+    llvm::DenseMap<NodeID, NodeBS> objToClones;
     /// (Clone) object -> original object (opposite of objToclones).
-    std::map<NodeID, NodeID> cloneToOriginalObj;
+    llvm::DenseMap<NodeID, NodeID> cloneToOriginalObj;
     /// Maps nodes (a location like a PAG node or SVFG node) to their filter set.
-    std::map<NodeID, PointsTo> locToFilterSet;
+    llvm::DenseMap<NodeID, PointsTo> locToFilterSet;
     /// Maps objects to the GEP nodes beneath them.
-    std::map<NodeID, NodeBS> objToGeps;
+    llvm::DenseMap<NodeID, NodeBS> objToGeps;
     /// Maps memory objects to their GEP objects. (memobj -> (fieldidx -> geps))
-    std::map<const MemObj *, std::map<unsigned, NodeBS>> memObjToGeps;
+    llvm::DenseMap<const MemObj *, llvm::DenseMap<unsigned, NodeBS>> memObjToGeps;
 
     /// Test whether object is a GEP object. For convenience.
     bool isGep(const PAGNode *n) const;
