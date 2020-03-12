@@ -319,9 +319,9 @@ protected:
     /// Maps VTables to the DIType associated with them.
     std::map<const GlobalValue *, const DIType *> vtblToTypeMap;
     /// Maps types to all children (i.e. CHA).
-    std::map<const DIType *, std::set<const DCHNode *>> chaMap;
+    std::map<const DIType *, NodeBS> chaMap;
     /// Maps types to all children but also considering first field.
-    std::map<const DIType *, std::set<const DCHNode *>> chaFFMap;
+    std::map<const DIType *, NodeBS> chaFFMap;
     /// Maps types to a set with their vtable and all their children's.
     std::map<const DIType *, VTableSet> vtblCHAMap;
     /// Maps callsites to a set of potential virtual functions based on CHA.
@@ -351,7 +351,7 @@ private:
     void buildVTables(const Module &module);
 
     /// Returns a set of all children of type (CHA). Also gradually builds chaMap.
-    std::set<const DCHNode *> &cha(const DIType *type, bool firstField);
+    NodeBS &cha(const DIType *type, bool firstField);
 
     /// Attaches the typedef(s) to the base node.
     void handleTypedef(const DIType *typedefType);

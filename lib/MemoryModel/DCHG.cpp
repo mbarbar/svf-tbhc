@@ -181,19 +181,19 @@ void DCHGraph::buildVTables(const Module &module) {
     }
 }
 
-std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
+NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
     type = getCanonicalType(type);
-    std::map<const DIType *, std::set<const DCHNode *>> &cacheMap = firstField ? chaFFMap : chaMap;
+    std::map<const DIType *, NodeBS> &cacheMap = firstField ? chaFFMap : chaMap;
 
     // Check if we've already computed.
     if (cacheMap.find(type) != cacheMap.end()) {
         return cacheMap.at(type);
     }
 
-    std::set<const DCHNode *> children;
+    NodeBS children;
     const DCHNode *node = getOrCreateNode(type);
     // Consider oneself a child, otherwise the recursion will just come up with nothing.
-    children.insert(node);
+    children.set(node->getId());
     for (const DCHEdge *edge : node->getInEdges()) {
         // Don't care about anything but inheritance, first-field, and standard def. edges.
         if (   edge->getEdgeKind() != DCHEdge::INHERITANCE
@@ -207,9 +207,11 @@ std::set<const DCHNode *> &DCHGraph::cha(const DIType *type, bool firstField) {
             continue;
         }
 
-        std::set<const DCHNode *> cchildren = cha(edge->getSrcNode()->getType(), firstField);
+        NodeBS &cchildren = cha(edge->getSrcNode()->getType(), firstField);
         // Children's children are my children.
-        children.insert(cchildren.begin(), cchildren.end());
+        for (NodeID cchild : cchildren) {
+            children.set(cchild);
+        }
     }
 
     // Cache results.
@@ -482,8 +484,9 @@ const VTableSet &DCHGraph::getCSVtblsBasedonCHA(CallSite cs) {
     }
 
     VTableSet vtblSet;
-    std::set<const DCHNode *> children = cha(type, false);
-    for (const DCHNode *child : children) {
+    NodeBS &children = cha(type, false);
+    for (NodeID childId : children) {
+        DCHNode *child = getGNode(childId);
         const GlobalValue *vtbl = child->getVTable();
         // TODO: what if it is null?
         if (vtbl != nullptr) {
@@ -573,8 +576,8 @@ bool DCHGraph::isBase(const DIType *a, const DIType *b, bool firstField) {
     assert(hasNode(a) && hasNode(b) && "DCHG: isBase query for non-existent node!");
     const DCHNode *bNode = getNode(b);
 
-    std::set<const DCHNode *> &aChildren = cha(a, firstField);
-    return aChildren.find(bNode) != aChildren.end();
+    NodeBS &aChildren = cha(a, firstField);
+    return aChildren.test(bNode->getId());
 }
 
 const DIType *DCHGraph::getCanonicalType(const DIType *t) {
