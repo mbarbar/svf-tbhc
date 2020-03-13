@@ -128,26 +128,26 @@ public:
     typedef std::map<PointsTo, PointsTo, MemRegion::equalPointsTo > PtsToRepPtsSetMap;
 
     /// Map a function to its region set
-    typedef llvm::DenseMap<const Function*, MRSet> FunToMRsMap;
+    typedef DenseMap<const Function*, MRSet> FunToMRsMap;
     /// Map loads/stores to its mem regions,
     /// TODO:visitAtomicCmpXchgInst, visitAtomicRMWInst??
     //@{
-    typedef llvm::DenseMap<const LoadPE*, MRSet> LoadsToMRsMap;
-    typedef llvm::DenseMap<const StorePE*, MRSet> StoresToMRsMap;
+    typedef DenseMap<const LoadPE*, MRSet> LoadsToMRsMap;
+    typedef DenseMap<const StorePE*, MRSet> StoresToMRsMap;
     typedef std::map<CallSite, MRSet> CallSiteToMRsMap;
     //@}
 
     /// Map loads/stores/callsites to their cpts set
     //@{
-    typedef llvm::DenseMap<const LoadPE*, PointsTo> LoadsToPointsToMap;
-    typedef llvm::DenseMap<const StorePE*, PointsTo> StoresToPointsToMap;
+    typedef DenseMap<const LoadPE*, PointsTo> LoadsToPointsToMap;
+    typedef DenseMap<const StorePE*, PointsTo> StoresToPointsToMap;
     typedef std::map<CallSite, PointsTo> CallSiteToPointsToMap;
     //@}
 
     /// Maps Mod-Ref analysis
     //@{
     /// Map a function to its indirect refs/mods of memory objects
-    typedef llvm::DenseMap<const Function*, NodeBS> FunToNodeBSMap;
+    typedef DenseMap<const Function*, NodeBS> FunToNodeBSMap;
     /// Map a callsite to its indirect refs/mods of memory objects
     typedef std::map<CallSite, NodeBS> CallSiteToNodeBSMap;
     //@}

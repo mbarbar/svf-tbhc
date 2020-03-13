@@ -483,7 +483,7 @@ public:
 class IntraPHIVFGNode : public PHIVFGNode {
 
 public:
-    typedef llvm::DenseMap<u32_t,const BasicBlock*> OPIncomingBBs;
+    typedef DenseMap<u32_t,const BasicBlock*> OPIncomingBBs;
 
 private:
     OPIncomingBBs opIncomingBBs;

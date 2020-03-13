@@ -46,7 +46,7 @@ class ICFG : public GenericICFGTy {
 
 public:
 
-    typedef llvm::DenseMap<NodeID, ICFGNode *> ICFGNodeIDToNodeMapTy;
+    typedef DenseMap<NodeID, ICFGNode *> ICFGNodeIDToNodeMapTy;
     typedef std::map<const PAGEdge*, StmtVFGNode*> PAGEdgeToStmtVFGNodeMapTy;
 
     typedef std::map<const Function*, FunEntryBlockNode *> FunToFunEntryNodeMapTy;

@@ -83,15 +83,24 @@ typedef llvm::SparseBitVector<> NodeBS;
 typedef NodeBS PointsTo;
 typedef PointsTo AliasSet;
 
-template <class T>
-using DenseSet = llvm::DenseSet<T>;
-template <class K, class V>
-using DenseMap = llvm::DenseMap<K, V>;
+template <typename T>
+using DenseMapInfo = llvm::DenseMapInfo<T>;
+
+template <typename KeyT, typename ValueT>
+using DenseMapPair = llvm::detail::DenseMapPair<KeyT, ValueT>;
+
+template <typename KeyT, typename ValueT,
+          typename KeyInfoT = DenseMapInfo<KeyT>,
+          typename BucketT = DenseMapPair<KeyT, ValueT>>
+using DenseMap = llvm::DenseMap<KeyT, ValueT, KeyInfoT, BucketT>;
+
+template <typename ValueT, typename ValueInfoT = DenseMapInfo<ValueT>>
+using DenseSet = llvm::DenseSet<ValueT, ValueInfoT>;
 
 typedef std::pair<NodeID, NodeID> NodePair;
 typedef std::set<NodeID> NodeSet;
-typedef llvm::DenseSet<NodePair,llvm::DenseMapInfo<std::pair<NodeID,NodeID> > > NodePairSet;
-typedef llvm::DenseMap<NodePair,NodeID,llvm::DenseMapInfo<std::pair<NodeID,NodeID> > > NodePairMap;
+typedef DenseSet<NodePair,DenseMapInfo<std::pair<NodeID,NodeID> > > NodePairSet;
+typedef DenseMap<NodePair,NodeID,DenseMapInfo<std::pair<NodeID,NodeID> > > NodePairMap;
 typedef std::vector<NodeID> NodeVector;
 typedef std::vector<EdgeID> EdgeVector;
 typedef std::stack<NodeID> NodeStack;

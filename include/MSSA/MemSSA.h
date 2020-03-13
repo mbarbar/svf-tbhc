@@ -67,27 +67,27 @@ public:
     /// Map loads/stores to its mem regions,
     /// TODO:visitAtomicCmpXchgInst, visitAtomicRMWInst??
     //@{
-    typedef llvm::DenseMap<const LoadPE*, MUSet> LoadToMUSetMap;
-    typedef llvm::DenseMap<const StorePE*, CHISet> StoreToChiSetMap;
+    typedef DenseMap<const LoadPE*, MUSet> LoadToMUSetMap;
+    typedef DenseMap<const StorePE*, CHISet> StoreToChiSetMap;
     typedef std::map<CallSite, MUSet> CallSiteToMUSetMap;
     typedef std::map<CallSite, CHISet> CallSiteToCHISetMap;
-    typedef llvm::DenseMap<const BasicBlock*, PHISet> BBToPhiSetMap;
+    typedef DenseMap<const BasicBlock*, PHISet> BBToPhiSetMap;
     //@}
 
     /// Map from fun to its entry chi set and return mu set
-    typedef llvm::DenseMap<const Function*, CHISet> FunToEntryChiSetMap;
-    typedef llvm::DenseMap<const Function*, MUSet> FunToReturnMuSetMap;
+    typedef DenseMap<const Function*, CHISet> FunToEntryChiSetMap;
+    typedef DenseMap<const Function*, MUSet> FunToReturnMuSetMap;
 
     /// For phi insertion
     //@{
     typedef std::vector<const BasicBlock*> BBList;
-    typedef llvm::DenseMap<const BasicBlock*, MRSet> BBToMRSetMap;
-    typedef llvm::DenseMap<const MemRegion*, BBList> MemRegToBBsMap;
+    typedef DenseMap<const BasicBlock*, MRSet> BBToMRSetMap;
+    typedef DenseMap<const MemRegion*, BBList> MemRegToBBsMap;
     //@}
 
     /// For SSA renaming
-    typedef llvm::DenseMap<const MemRegion*, std::vector<MRVer*> > MemRegToVerStackMap;
-    typedef llvm::DenseMap<const MemRegion*, VERSION> MemRegToCounterMap;
+    typedef DenseMap<const MemRegion*, std::vector<MRVer*> > MemRegToVerStackMap;
+    typedef DenseMap<const MemRegion*, VERSION> MemRegToCounterMap;
 
     /// PAG edge list
     typedef PAG::PAGEdgeList PAGEdgeList;
