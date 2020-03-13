@@ -183,7 +183,7 @@ void DCHGraph::buildVTables(const Module &module) {
 
 const NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
     type = getCanonicalType(type);
-    llvm::DenseMap<const DIType *, NodeBS> &cacheMap = firstField ? chaFFMap : chaMap;
+    DenseMap<const DIType *, NodeBS> &cacheMap = firstField ? chaFFMap : chaMap;
 
     // Check if we've already computed.
     if (cacheMap.find(type) != cacheMap.end()) {
@@ -297,7 +297,7 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
         return;
     }
 
-    llvm::DenseSet<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
+    DenseSet<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
     if (type->getTag() == dwarf::DW_TAG_array_type) {
         const DIType *bt = type->getBaseType();
         bt = stripQualifiers(bt);
@@ -933,7 +933,7 @@ void DCHGraph::print(void) const {
 
         currIndent += singleIndent;
 
-        const llvm::DenseSet<const DIDerivedType *> &typedefs = node->getTypedefs();
+        const DenseSet<const DIDerivedType *> &typedefs = node->getTypedefs();
         for (const DIDerivedType *tdef : typedefs) {
             std::string typedefName = "void";
             if (tdef != NULL) {

@@ -83,6 +83,11 @@ typedef llvm::SparseBitVector<> NodeBS;
 typedef NodeBS PointsTo;
 typedef PointsTo AliasSet;
 
+template <class T>
+using DenseSet = llvm::DenseSet<T>;
+template <class K, class V>
+using DenseMap = llvm::DenseMap<K, V>;
+
 typedef std::pair<NodeID, NodeID> NodePair;
 typedef std::set<NodeID> NodeSet;
 typedef llvm::DenseSet<NodePair,llvm::DenseMapInfo<std::pair<NodeID,NodeID> > > NodePairSet;
