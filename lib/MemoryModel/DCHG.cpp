@@ -307,8 +307,8 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
             aggs.insert(getCanonicalType(cbt));
             gatherAggs(cbt);
             // These must be canonical already because of aggs.insert above/below.
-            aggs.insert(containingAggs[cbt].begin(),
-                        containingAggs[cbt].end());
+            aggs.insert(containingAggs[getCanonicalType(cbt)].begin(),
+                        containingAggs[getCanonicalType(cbt)].end());
         }
     } else {
         DINodeArray fields = type->getElements();
@@ -323,8 +323,8 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
                     aggs.insert(getCanonicalType(cft));
                     gatherAggs(cft);
                     // These must be canonical already because of aggs.insert above.
-                    aggs.insert(containingAggs[cft].begin(),
-                                containingAggs[cft].end());
+                    aggs.insert(containingAggs[getCanonicalType(cft)].begin(),
+                                containingAggs[getCanonicalType(cft)].end());
                 }
             }
         }
