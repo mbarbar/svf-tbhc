@@ -11,6 +11,7 @@
 #include "MemoryModel/PointerAnalysis.h"
 #include "DDA/DDAVFSolver.h"
 #include "Util/DPItem.h"
+#include "Util/DataFlowUtil.h"
 
 class FlowDDA;
 class DDAClient;

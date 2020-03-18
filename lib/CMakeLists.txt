@@ -20,7 +20,6 @@ set(SOURCES
     Util/TypeBasedHeapCloning.cpp
     Util/ICFG.cpp
     Util/VFG.cpp
-    Util/DataFlowUtil.cpp
     MemoryModel/ConsG.cpp
     MemoryModel/LocationSet.cpp
     MemoryModel/LocMemModel.cpp
@@ -85,11 +84,11 @@ add_llvm_library(LLVMSvf ${SOURCES})
 
 link_directories( ${CMAKE_BINARY_DIR}/lib/Cudd )
 llvm_map_components_to_libnames(llvm_libs bitwriter core ipo irreader instcombine instrumentation target linker analysis scalaropts support )
-target_link_libraries(LLVMSvf )
+target_link_libraries(LLVMSvf ${llvm_libs})
 if ( CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    target_link_libraries(Svf LLVMCudd )
+    target_link_libraries(Svf LLVMCudd ${llvm_libs})
 else()
-    target_link_libraries(Svf )
+    target_link_libraries(Svf ${llvm_libs})
 endif()
 
 if(DEFINED IN_SOURCE_BUILD)

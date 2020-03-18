@@ -114,7 +114,7 @@ public:
     /// Whether it is constant data, i.e., "0", "1.001", "str"
 	inline bool isConstantData() const {
 		if (hasValue())
-			return SVFUtil::isa<ConstantData>(value) || SVFUtil::isa<ConstantAggregate>(value);
+			return SymbolTableInfo::Symbolnfo()->isConstantObjSym(value);
 		else
 			return false;
 	}

@@ -11,6 +11,7 @@
 #include "MemoryModel/PointerAnalysis.h"
 #include "Util/DPItem.h"
 #include "DDA/DDAVFSolver.h"
+#include "Util/DataFlowUtil.h"
 
 class DDAClient;
 typedef StmtDPItem<SVFGNode> LocDPItem;
