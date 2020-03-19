@@ -259,10 +259,9 @@ void DCHGraph::flatten(const DICompositeType *type) {
             || fieldType->getTag() == dwarf::DW_TAG_class_type
             || fieldType->getTag() == dwarf::DW_TAG_union_type) {
             flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
-            flattenedComposite.insert(flattenedComposite.end(),
-                                      // Must be canonical because that is what we inserted.
-                                      fieldTypes[fieldType].begin(),
-                                      fieldTypes[fieldType].end());
+            for (const DIType *ft : fieldTypes[fieldType]) {
+                flattenedComposite.push_back(ft);
+            }
         } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
             const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
 
@@ -270,10 +269,9 @@ void DCHGraph::flatten(const DICompositeType *type) {
             baseType = stripArray(baseType);
             if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
                 flatten(cbt);
-                flattenedComposite.insert(flattenedComposite.end(),
-                                          // Must be canonical because that is what we inserted.
-                                          fieldTypes[cbt].begin(),
-                                          fieldTypes[cbt].end());
+                for (const DIType *ft : fieldTypes[cbt]) {
+                    flattenedComposite.push_back(ft);
+                }
             } else {
                 flattenedComposite.push_back(getCanonicalType(baseType));
             }
