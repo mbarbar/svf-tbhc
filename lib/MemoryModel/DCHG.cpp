@@ -584,8 +584,22 @@ bool DCHGraph::isBase(const DIType *a, const DIType *b, bool firstField) {
 }
 
 const DIType *DCHGraph::getCanonicalType(const DIType *t) {
-    if (canonicalTypeMap.find(t) != canonicalTypeMap.end()) {
-        return canonicalTypeMap[t];
+    // We want stripped types to be canonical.
+    const DIType *unstrippedT = t;
+    t = stripQualifiers(t);
+
+    // Is there a mapping for the unstripped type? Yes - return it.
+    if (canonicalTypeMap.find(unstrippedT) != canonicalTypeMap.end()) {
+        return canonicalTypeMap[unstrippedT];
+    }
+
+    // There is no mapping for unstripped type (^), is there one for the stripped
+    // type? Yes - map the unstripped type to the same thing.
+    if (unstrippedT != t) {
+        if (canonicalTypeMap.find(t) != canonicalTypeMap.end()) {
+            canonicalTypeMap[unstrippedT] = canonicalTypeMap[t];
+            return canonicalTypeMap[unstrippedT];
+        }
     }
 
     // Canonical type for t is not cached, find one for it.
