@@ -260,7 +260,7 @@ void DCHGraph::flatten(const DICompositeType *type) {
             || fieldType->getTag() == dwarf::DW_TAG_union_type) {
             flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
             for (const DIType *ft : fieldTypes[fieldType]) {
-                flattenedComposite.push_back(ft);
+                fieldTypes[type].push_back(ft);
             }
         } else if (fieldType->getTag() == dwarf::DW_TAG_array_type) {
             const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(fieldType);
@@ -270,13 +270,13 @@ void DCHGraph::flatten(const DICompositeType *type) {
             if (const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
                 flatten(cbt);
                 for (const DIType *ft : fieldTypes[cbt]) {
-                    flattenedComposite.push_back(ft);
+                    fieldTypes[type].push_back(ft);
                 }
             } else {
-                flattenedComposite.push_back(getCanonicalType(baseType));
+                fieldTypes[type].push_back(getCanonicalType(baseType));
             }
         } else {
-            flattenedComposite.push_back(getCanonicalType(fieldType));
+            fieldTypes[type].push_back(getCanonicalType(fieldType));
         }
     }
 }
@@ -302,11 +302,12 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
 
         if (isAgg(bt)) {
             const DICompositeType *cbt = SVFUtil::dyn_cast<DICompositeType>(bt);
-            aggs.insert(getCanonicalType(cbt));
+            containingAggs[getCanonicalType(type)].insert(getCanonicalType(cbt));
             gatherAggs(cbt);
             // These must be canonical already because of aggs.insert above/below.
-            aggs.insert(containingAggs[getCanonicalType(cbt)].begin(),
-                        containingAggs[getCanonicalType(cbt)].end());
+            containingAggs[getCanonicalType(type)].insert(
+                    containingAggs[getCanonicalType(cbt)].begin(),
+                    containingAggs[getCanonicalType(cbt)].end());
         }
     } else {
         DINodeArray fields = type->getElements();
@@ -318,11 +319,12 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
 
                 if (isAgg(ft)) {
                     const DICompositeType *cft = SVFUtil::dyn_cast<DICompositeType>(ft);
-                    aggs.insert(getCanonicalType(cft));
+                    containingAggs[getCanonicalType(type)].insert(getCanonicalType(cft));
                     gatherAggs(cft);
                     // These must be canonical already because of aggs.insert above.
-                    aggs.insert(containingAggs[getCanonicalType(cft)].begin(),
-                                containingAggs[getCanonicalType(cft)].end());
+                    containingAggs[getCanonicalType(type)].insert(
+                            containingAggs[getCanonicalType(cft)].begin(),
+                            containingAggs[getCanonicalType(cft)].end());
                 }
             }
         }
