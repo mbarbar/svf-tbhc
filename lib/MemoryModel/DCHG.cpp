@@ -295,7 +295,10 @@ void DCHGraph::gatherAggs(const DICompositeType *type) {
         return;
     }
 
-    DenseSet<const DIType *> &aggs = containingAggs[getCanonicalType(type)];
+    // Initialise an empty set. We want all aggregates to have a value in
+    // this map, even if empty (e.g. struct has no aggs, only scalars).
+    containingAggs[getCanonicalType(type)];
+
     if (type->getTag() == dwarf::DW_TAG_array_type) {
         const DIType *bt = type->getBaseType();
         bt = stripQualifiers(bt);
