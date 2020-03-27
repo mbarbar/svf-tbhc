@@ -291,7 +291,6 @@ bool DCHGraph::isAgg(const DIType *t) {
 }
 
 void DCHGraph::gatherAggs(const DICompositeType *type) {
-    // A bit similar to flatten. TODO: probably merge the two?
     if (containingAggs.find(getCanonicalType(type)) != containingAggs.end()) {
         return;
     }
