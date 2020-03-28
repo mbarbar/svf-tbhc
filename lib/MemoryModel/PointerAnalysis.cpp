@@ -568,6 +568,8 @@ void PointerAnalysis::dumpPts(NodeID ptr, const PointsTo& pts) {
             outs() << "DummyVal\n";
         else if (SVFUtil::isa<DummyObjPN>(node))
             outs() << "Dummy Obj id: " << node->getId() << "]\n";
+        else if (SVFUtil::isa<CloneObjPN>(node))
+            outs() << "Dummy (clone) Obj id: " << node->getId() << "]\n";
         else {
         		if(!SVFModule::pagReadFromTXT()){
         			outs() << "<" << pagNode->getValue()->getName() << "> ";
