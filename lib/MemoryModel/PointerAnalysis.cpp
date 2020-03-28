@@ -539,6 +539,8 @@ void PointerAnalysis::dumpPts(NodeID ptr, const PointsTo& pts) {
     /// print the points-to set of node which has the maximum pts size.
     if (SVFUtil::isa<DummyObjPN> (node)) {
         outs() << "##<Dummy Obj > id:" << node->getId();
+    } else if (SVFUtil::isa<CloneObjPN> (node)) {
+        outs() << "##<Dummy (Clone) Obj > id:" << node->getId();
     } else if (!SVFUtil::isa<DummyValPN>(node) && !SVFModule::pagReadFromTXT()) {
         outs() << "##<" << node->getValue()->getName() << "> ";
         outs() << "Source Loc: " << getSourceLoc(node->getValue());
