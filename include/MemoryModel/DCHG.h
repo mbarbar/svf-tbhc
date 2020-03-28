@@ -237,6 +237,9 @@ public:
     /// whether to consider first-field edges.
     virtual bool isBase(const DIType *a, const DIType *b, bool firstField);
 
+    /// Returns true if f is a field of b (fields from getFieldTypes).
+    virtual bool isFieldOf(const DIType *f, const DIType *b);
+
     static inline bool classof(const CommonCHGraph *chg) {
         return chg->getKind() == DI;
     }

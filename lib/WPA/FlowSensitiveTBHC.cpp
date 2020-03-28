@@ -101,7 +101,8 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
         }
 
         for (NodeID c : getClones(o)) {
-            if (!isStore || isBase(tildet, getType(c))) {
+            if (!isStore || isBase(tildet, getType(c)) || !tildet
+                || (isFIObjNode(c) && dchg->isFieldOf(tildet, getType(c)))) {
                 if (!filterSet.test(c)) {
                     edgePtsAndClones.set(c);
                 }

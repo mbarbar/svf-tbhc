@@ -583,6 +583,33 @@ bool DCHGraph::isBase(const DIType *a, const DIType *b, bool firstField) {
     return aChildren.test(bNode->getId());
 }
 
+bool DCHGraph::isFieldOf(const DIType *f, const DIType *b) {
+    assert(f && b && "DCHG::isFieldOf: given nullptr!");
+
+    f = getCanonicalType(f);
+    b = getCanonicalType(b);
+    if (f == b) return true;
+
+    if (b->getTag() == dwarf::DW_TAG_array_type || b->getTag() == dwarf::DW_TAG_pointer_type) {
+        const DIType *baseType;
+        if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(b)) {
+            baseType = arrayType->getBaseType();
+        } else if (const DIDerivedType *ptrType = SVFUtil::dyn_cast<DIDerivedType>(b)) {
+            baseType = ptrType->getBaseType();
+        }
+
+        baseType = getCanonicalType(baseType);
+        return f == baseType || (baseType != nullptr && isFieldOf(f, baseType));
+    } else if (b->getTag() == dwarf::DW_TAG_class_type
+               || b->getTag() == dwarf::DW_TAG_structure_type
+               || b->getTag() == dwarf::DW_TAG_union_type) {
+        const std::vector<const DIType *> &fields = getFieldTypes(b);
+        return std::find(fields.begin(), fields.end(), f) != fields.end();
+    } else {
+        return false;
+    }
+}
+
 const DIType *DCHGraph::getCanonicalType(const DIType *t) {
     // We want stripped types to be canonical.
     const DIType *unstrippedT = t;
