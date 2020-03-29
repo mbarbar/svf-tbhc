@@ -116,7 +116,7 @@ const NodeBS &TypeBasedHeapCloning::getGepObjs(NodeID base) {
     return objToGeps[base];
 }
 
-const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSet& ls) {
+const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset) {
     assert(dchg && "TBHC: DCHG not set!");
     // Set of GEP objects we will return.
     NodeBS geps;
@@ -131,7 +131,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
     // First field? Just return the whole object; same thing.
     // For arrays, we want things to work as normal because an array *object* is more
     // like a pointer than a struct object.
-    if (ls.getOffset() == 0 && baseType->getTag() != dwarf::DW_TAG_array_type) {
+    if (offset == 0 && baseType->getTag() != dwarf::DW_TAG_array_type) {
         // The base object is the 0 gep object.
         addGepToObj(base, base, 0);
         geps.set(base);
@@ -144,7 +144,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
         return geps;
     }
 
-    // Caching on ls or offset would improve performance but it seems minimal.
+    // Caching on offset would improve performance but it seems minimal.
     const NodeBS &gepObjs = getGepObjs(base);
     for (NodeID gep : gepObjs) {
         PAGNode *node = ppag->getPAGNode(gep);
@@ -153,7 +153,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
                && "TBHC: expected a GEP or FI object.");
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
-            if (gepNode->getLocationSet().getOffset() == ls.getOffset()) {
+            if (gepNode->getLocationSet().getOffset() == offset) {
                 geps.set(gep);
             }
         } else {
@@ -195,7 +195,9 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, const LocationSe
             newGepType = dchg->getCanonicalType(newGepType);
         } else {
             // Must be a struct/class.
-            newGepType = dchg->getFieldType(getType(base), ls.getOffset());
+            // Don't use newLS because we're operating on the Gep object which is our parent
+            // (i.e. field of some base, not the base itself).
+            newGepType = dchg->getFieldType(getType(base), offset);
         }
 
         setType(newGep, newGepType);

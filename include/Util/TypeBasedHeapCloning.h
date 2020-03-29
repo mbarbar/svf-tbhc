@@ -94,7 +94,7 @@ protected:
     /// Returns the GEP object node(s) of base for ls. This may include clones.
     /// If there are no GEP objects, then getGepObjNode is called on the PAG
     /// (through base's getGepObjNode) which will create one.
-    const NodeBS getGepObjClones(NodeID base, const LocationSet& ls);
+    const NodeBS getGepObjClones(NodeID base, unsigned offset);
 
     /// Initialise the pointees of p at loc (which is type tildet *). reusePossible indicates
     /// whether reuse is a possibility for this initialisation. Returns whether p changed.

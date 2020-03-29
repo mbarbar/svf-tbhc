@@ -272,7 +272,7 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
                     filterSet.set(oq);
                 } else {
                     // Operate on the field and all its clones.
-                    const NodeBS fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
+                    const NodeBS fieldClones = getGepObjClones(oq, normalGep->getLocationSet().getOffset());
                     for (NodeID fc : fieldClones) {
                         gepToSVFGRetrievers[getOriginalObj(fc)].set(gep->getId());
                         tmpDstPts.set(fc);
