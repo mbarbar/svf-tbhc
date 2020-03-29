@@ -169,18 +169,25 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
     if (geps.empty()) {
         // No gep node has even be created, so create one.
         NodeID newGep;
+        LocationSet newLS;
+        // fldIdx is what is returned by getOffset.
+        newLS.setFldIdx(offset);
+        if (const GepObjPN *baseGep = SVFUtil::dyn_cast<GepObjPN>(baseNode)) {
+            newLS = newLS + baseGep->getLocationSet();
+        }
+
         if (isClone(base)) {
             // Don't use ppag->getGepObjNode because base and it's original object
             // have the same memory object which is the key PAG uses.
-            newGep = ppag->addCloneGepObjNode(baseNode->getMemObj(), ls);
+            newGep = ppag->addCloneGepObjNode(baseNode->getMemObj(), newLS);
         } else {
-            newGep = ppag->getGepObjNode(base, ls);
+            newGep = ppag->getGepObjNode(base, newLS);
         }
 
         GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(ppag->getPAGNode(newGep));
         gep->setBaseNode(base);
 
-        addGepToObj(newGep, base, ls.getOffset());
+        addGepToObj(newGep, base, newLS.getOffset());
         const DIType *newGepType;
         if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
             if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
