@@ -242,7 +242,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 
         NodeID prop;
         bool filter = false;
-        if (fieldInsensitive && std::find(fieldTypes.begin(), fieldTypes.end(), tildet) != fieldTypes.end()) {
+        if (fieldInsensitive && tp && dchg->isFieldOf(tildet, tp)) {
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
             ++numTBWU;

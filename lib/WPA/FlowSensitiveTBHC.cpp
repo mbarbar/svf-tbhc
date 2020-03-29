@@ -259,7 +259,7 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
                 // We ignore arrays/pointers because those are array accesses/pointer arithmetic we
                 // assume are correct.
                 // Obviously, non-aggregates cannot have their fields taken so they are spurious.
-                if (!DCHGraph::isAgg(baseType)
+                if ((!DCHGraph::isAgg(baseType) && baseType->getTag() != dwarf::DW_TAG_pointer_type)
                     || (baseType->getTag() != dwarf::DW_TAG_array_type && baseType->getTag() != dwarf::DW_TAG_pointer_type
                         && normalGep->getLocationSet().getOffset() >= dchg->getNumFields(baseType))) {
                     filterSet.set(oq);
@@ -432,13 +432,16 @@ const NodeBS& FlowSensitiveTBHC::getAllFieldsObjNode(NodeID id) {
 
 void FlowSensitiveTBHC::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     PointsTo &pPt = getPts(pId);
-    PointsTo pNewPt;
+    PointsTo originalObjs;
+    for (NodeID c : pPt) {
+        originalObjs.set(getOriginalObj(c));
+    }
 
     const DIType *tildet = getTypeFromCTirMetadata(stmt);
     const PtsMap &ptsInMap = getDFPTDataTy()->getDFInPtsMap(stmt->getId());
     for (PtsMap::value_type kv : ptsInMap) {
         NodeID o = kv.first;
-        if (isClone(o) && pPt.test(getOriginalObj(o))) {
+        if (isClone(o) && originalObjs.test(getOriginalObj(o))) {
             // Clone of an object in p's set is in in's set.
             pPt.set(o);
         }
