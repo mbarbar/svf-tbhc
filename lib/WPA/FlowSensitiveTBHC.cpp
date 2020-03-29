@@ -452,6 +452,18 @@ void FlowSensitiveTBHC::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
             pPt.set(o);
         }
     }
+
+    // There are some Geps missing.
+    for (NodeID o : originalObjs) {
+        if (const GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(o))) {
+            const NodeBS &geps = getGepObjsFromMemObj(gep->getMemObj(), gep->getLocationSet().getOffset());
+            for (NodeID g : geps) {
+                if (ptsInMap.find(g) != ptsInMap.end()) {
+                    pPt.set(g);
+                }
+            }
+        }
+    }
 }
 
 
