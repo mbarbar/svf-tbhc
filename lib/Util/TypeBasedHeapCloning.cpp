@@ -233,8 +233,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
         if (ObjPN *obj = SVFUtil::dyn_cast<ObjPN>(ppag->getPAGNode(o))) {
             fieldInsensitive = obj->getMemObj()->isFieldInsensitive();
             if (tp != nullptr && (tp->getTag() == dwarf::DW_TAG_structure_type
-                                  || tp->getTag() == dwarf::DW_TAG_class_type
-                                  || tp->getTag() == dwarf::DW_TAG_union_type)) {
+                                  || tp->getTag() == dwarf::DW_TAG_class_type)) {
                 fieldTypes = dchg->getFieldTypes(tp);
             }
         }

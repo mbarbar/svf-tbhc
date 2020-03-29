@@ -61,7 +61,7 @@ void DCHGraph::handleDICompositeType(const DICompositeType *compositeType) {
             }
         }
 
-        flatten(compositeType);
+        // flatten(compositeType);
         gatherAggs(compositeType);
 
         break;
@@ -223,17 +223,19 @@ const NodeBS &DCHGraph::cha(const DIType *type, bool firstField) {
 void DCHGraph::flatten(const DICompositeType *type) {
     const DIType *oldType = type;
     type = SVFUtil::dyn_cast<DICompositeType>(getCanonicalType(type));
-    assert(type && "DCHG::flatten: canon type of struct/class/union is not struct/class/union");
+    assert(type && "DCHG::flatten: canon type of struct/class is not struct/class");
     if (fieldTypes.find(type) != fieldTypes.end()) {
         // Already done (necessary because of the recursion).
         return;
     }
 
+    // Create empty vector.
+    fieldTypes[type];
+
     assert(type != nullptr
            && (type->getTag() == dwarf::DW_TAG_class_type
-               || type->getTag() == dwarf::DW_TAG_structure_type
-               || type->getTag() == dwarf::DW_TAG_union_type)
-           && "DCHG::flatten: expected a class/struct/union");
+               || type->getTag() == dwarf::DW_TAG_structure_type)
+           && "DCHG::flatten: expected a class/struct");
 
     // Sort the fields from getElements. Especially a problem for classes; it's all jumbled up.
     std::vector<const DIDerivedType *> fields;
@@ -253,11 +255,10 @@ void DCHGraph::flatten(const DICompositeType *type) {
     for (const DIDerivedType *mt : fields) {
         assert((mt->getTag() == dwarf::DW_TAG_member || mt->getTag() == dwarf::DW_TAG_inheritance)
                && "DCHG: expected member/inheritance");
-        // Either we have a class, struct, union, array, or something not in need of flattening.
+        // Either we have a class, struct, array, or something not in need of flattening.
         const DIType *fieldType = mt->getBaseType();
         if (fieldType->getTag() == dwarf::DW_TAG_structure_type
-            || fieldType->getTag() == dwarf::DW_TAG_class_type
-            || fieldType->getTag() == dwarf::DW_TAG_union_type) {
+            || fieldType->getTag() == dwarf::DW_TAG_class_type) {
             flatten(SVFUtil::dyn_cast<DICompositeType>(fieldType));
             for (const DIType *ft : fieldTypes[fieldType]) {
                 // ft is already a canonical type because the "root" additions insert
@@ -286,8 +287,7 @@ bool DCHGraph::isAgg(const DIType *t) {
     if (t == nullptr) return false;
     return    t->getTag() == dwarf::DW_TAG_array_type
            || t->getTag() == dwarf::DW_TAG_structure_type
-           || t->getTag() == dwarf::DW_TAG_class_type
-           || t->getTag() == dwarf::DW_TAG_union_type;
+           || t->getTag() == dwarf::DW_TAG_class_type;
 }
 
 void DCHGraph::gatherAggs(const DICompositeType *type) {
@@ -601,8 +601,7 @@ bool DCHGraph::isFieldOf(const DIType *f, const DIType *b) {
         baseType = getCanonicalType(baseType);
         return f == baseType || (baseType != nullptr && isFieldOf(f, baseType));
     } else if (b->getTag() == dwarf::DW_TAG_class_type
-               || b->getTag() == dwarf::DW_TAG_structure_type
-               || b->getTag() == dwarf::DW_TAG_union_type) {
+               || b->getTag() == dwarf::DW_TAG_structure_type) {
         const std::vector<const DIType *> &fields = getFieldTypes(b);
         return std::find(fields.begin(), fields.end(), f) != fields.end();
     } else {
