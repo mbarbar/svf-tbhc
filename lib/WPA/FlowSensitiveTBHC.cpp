@@ -216,16 +216,17 @@ bool FlowSensitiveTBHC::processAddr(const AddrSVFGNode* addr) {
 bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
     // Copy of that in FlowSensitive.cpp + some changes.
     double start = stat->getClk();
+    bool changed = false;
 
     NodeID q = gep->getPAGSrcNodeID();
 
     const DIType *tildet = getTypeFromCTirMetadata(gep);
     if (tildet != undefType) {
-        init(gep->getId(), q, tildet, !gepIsLoad(gep->getId()), true);
+        changed = init(gep->getId(), q, tildet, !gepIsLoad(gep->getId()), true);
     }
 
     if (!gep->getPAGEdge()->isPTAEdge()) {
-        return false;
+        return changed;
     }
 
     const PointsTo& qPts = getPts(q);
@@ -239,8 +240,15 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
         } else {
             if (SVFUtil::isa<VariantGepPE>(gep->getPAGEdge())) {
                 setObjFieldInsensitive(oq);
-                NodeID fiObj = oq;
-                tmpDstPts.set(fiObj);
+                tmpDstPts.set(oq);
+                const DIType *t = getType(oq);
+                if (t && (t->getTag() == dwarf::DW_TAG_array_type || t->getTag() == dwarf::DW_TAG_pointer_type)) {
+                    const NodeBS fieldClones = getGepObjClones(oq, 1);
+                    for (NodeID fc : fieldClones) {
+                        gepToSVFGRetrievers[getOriginalObj(fc)].set(gep->getId());
+                        tmpDstPts.set(fc);
+                    }
+                }
             } else if (const NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gep->getPAGEdge())) {
                 const DIType *baseType = getType(oq);
 
@@ -252,25 +260,23 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
                     continue;
                 }
 
-                // If the field offset is too high for this object, it is killed. It seems that a
-                // clone was made on this GEP but this is not the base (e.g. base->f1->f2), and SVF
-                // expects to operate on the base (hence the large offset). The base will have been
-                // cloned at another GEP and back-propagated, thus it'll reach here safe and sound.
-                // We ignore arrays/pointers because those are array accesses/pointer arithmetic we
-                // assume are correct.
-                // Obviously, non-aggregates cannot have their fields taken so they are spurious.
-                if ((!DCHGraph::isAgg(baseType) && baseType->getTag() != dwarf::DW_TAG_pointer_type)
-                    || (baseType->getTag() != dwarf::DW_TAG_array_type && baseType->getTag() != dwarf::DW_TAG_pointer_type
-                        && normalGep->getLocationSet().getOffset() >= dchg->getNumFields(baseType))) {
+                if (DCHGraph::isAgg(baseType) && baseType->getTag() != dwarf::DW_TAG_array_type
+                    && normalGep->getLocationSet().getOffset() >= dchg->getNumFields(baseType)) {
+                    // If the field offset is too high for this object, it is killed. It seems that a
+                    // clone was made on this GEP but this is not the base (e.g. base->f1->f2), and SVF
+                    // expects to operate on the base (hence the large offset). The base will have been
+                    // cloned at another GEP and back-propagated, thus it'll reach here safe and sound.
+                    // We ignore arrays/pointers because those are array accesses/pointer arithmetic we
+                    // assume are correct.
+                    // Obviously, non-aggregates cannot have their fields taken so they are spurious.
                     filterSet.set(oq);
-                    continue;
-                }
-
-                // Operate on the field and all its clones.
-                const NodeBS fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
-                for (NodeID fc : fieldClones) {
-                    gepToSVFGRetrievers[getOriginalObj(fc)].set(gep->getId());
-                    tmpDstPts.set(fc);
+                } else {
+                    // Operate on the field and all its clones.
+                    const NodeBS fieldClones = getGepObjClones(oq, normalGep->getLocationSet());
+                    for (NodeID fc : fieldClones) {
+                        gepToSVFGRetrievers[getOriginalObj(fc)].set(gep->getId());
+                        tmpDstPts.set(fc);
+                    }
                 }
             } else {
                 assert(false && "FSTBHC: new gep edge?");
@@ -281,7 +287,7 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
     double end = stat->getClk();
     copyGepTime += (end - start) / TIMEINTERVAL;
 
-    return unionPts(gep->getPAGDstNodeID(), tmpDstPts);
+    return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || changed;
 }
 
 bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
