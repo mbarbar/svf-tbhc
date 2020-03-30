@@ -277,7 +277,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             ++numInit;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGInit;
         } else if (isBase(tp, tildet) && tp != tildet
-                   && ((!reusePossible && !isGep(obj)) || reusePossible)) {
+                   && ((!reusePossible /*&& !isGep(obj)*/) || reusePossible)) {
             // Downcast.
             // !reuse && !gep because field types are static.
             prop = cloneObject(o, tildet);
