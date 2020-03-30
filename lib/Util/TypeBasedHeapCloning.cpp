@@ -126,6 +126,13 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
     ObjPN *baseNode = SVFUtil::dyn_cast<ObjPN>(node);
     assert(baseNode && "TBHC: base \"object\" node is not an object.");
 
+    // totalOffset is the offset from the real base (i.e. base of base),
+    // offset is the offset into base, whether it is a field itself or not.
+    unsigned totalOffset = offset;
+    if (const GepObjPN *baseGep = SVFUtil::dyn_cast<GepObjPN>(baseNode)) {
+        totalOffset += baseGep->getLocationSet().getOffset();
+    }
+
     const DIType *baseType = getType(base);
 
     // First field? Just return the whole object; same thing.
@@ -153,7 +160,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
                && "TBHC: expected a GEP or FI object.");
 
         if (GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(node)) {
-            if (gepNode->getLocationSet().getOffset() == offset) {
+            if (gepNode->getLocationSet().getOffset() == totalOffset) {
                 geps.set(gep);
             }
         } else {
@@ -171,10 +178,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
         NodeID newGep;
         LocationSet newLS;
         // fldIdx is what is returned by getOffset.
-        newLS.setFldIdx(offset);
-        if (const GepObjPN *baseGep = SVFUtil::dyn_cast<GepObjPN>(baseNode)) {
-            newLS = newLS + baseGep->getLocationSet();
-        }
+        newLS.setFldIdx(totalOffset);
 
         if (isClone(base)) {
             // Don't use ppag->getGepObjNode because base and it's original object
@@ -187,7 +191,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
         GepObjPN *gep = SVFUtil::dyn_cast<GepObjPN>(ppag->getPAGNode(newGep));
         gep->setBaseNode(base);
 
-        addGepToObj(newGep, base, newLS.getOffset());
+        addGepToObj(newGep, base, totalOffset);
         const DIType *newGepType;
         if (baseType->getTag() == dwarf::DW_TAG_array_type || baseType->getTag() == dwarf::DW_TAG_pointer_type) {
             if (const DICompositeType *arrayType = SVFUtil::dyn_cast<DICompositeType>(baseType)) {
@@ -202,7 +206,7 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
             newGepType = dchg->getCanonicalType(newGepType);
         } else {
             // Must be a struct/class.
-            // Don't use newLS because we're operating on the Gep object which is our parent
+            // Don't use totalOffset because we're operating on the Gep object which is our parent
             // (i.e. field of some base, not the base itself).
             newGepType = dchg->getFieldType(getType(base), offset);
         }
