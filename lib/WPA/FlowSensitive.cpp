@@ -667,11 +667,17 @@ void FlowSensitive::printCTirAliasStats(void) {
     unsigned mayAliases = 0, noAliases = 0;
     countAliases(cmpLocs, &mayAliases, &noAliases);
 
+    unsigned total = mayAliases + noAliases;
     llvm::outs() << "eval-ctir-aliases "
-                 << noAliases + mayAliases << " "
+                 << total << " "
                  << mayAliases << " "
                  << noAliases << " "
                  << "\n";
+    llvm::outs() << "  " << "TOTAL : " << total << "\n"
+                 << "  " << "MAY   : " << mayAliases << "\n"
+                 << "  " << "MAY % : " << 100 * ((double)mayAliases/(double)(total)) << "\n"
+                 << "  " << "NO    : " << noAliases << "\n"
+                 << "  " << "NO  % : " << 100 * ((double)noAliases/(double)(total)) << "\n";
 }
 
 void FlowSensitive::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
