@@ -89,9 +89,11 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
     // We should filter out according to src.
     bool isStore = false;
     const DIType *tildet = nullptr;
+    PointsTo storePts;
     if (const StoreSVFGNode *store = SVFUtil::dyn_cast<StoreSVFGNode>(src)) {
         tildet = getTypeFromCTirMetadata(store);
         isStore = true;
+        storePts = getPts(store->getPAGDstNodeID());
     }
 
     const PointsTo &filterSet = getFilterSet(src->getId());
@@ -101,9 +103,12 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge) {
         }
 
         for (NodeID c : getClones(o)) {
-            if (!isStore || isBase(tildet, getType(c)) || !tildet
-                || (isFIObjNode(c) && dchg->isFieldOf(tildet, getType(c)))) {
+            if (!isStore) {
                 if (!filterSet.test(c)) {
+                    edgePtsAndClones.set(c);
+                }
+            } else {
+                if (storePts.test(c) && !filterSet.test(c)) {
                     edgePtsAndClones.set(c);
                 }
             }
