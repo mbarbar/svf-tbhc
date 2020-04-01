@@ -212,6 +212,8 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
         }
 
         setType(newGep, newGepType);
+        // We call the object created in the non-TBHC analysis the original object.
+        setOriginalObj(newGep, ppag->getGepObjNode(baseNode->getMemObj(), offset));
         setAllocationSite(newGep, 0);
 
         geps.set(newGep);
@@ -325,40 +327,53 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 }
 
 NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type) {
-    // Always operate on the original object.
-    if (isClone(o)) o = getOriginalObj(o);
-
-    // Check if a clone of the correct type exists.
-    const NodeBS &clones = getClones(o);
-    for (NodeID clone : clones) {
-        if (getType(clone) == type) {
-            return clone;
-        }
-    }
-
+    NodeID clone;
     const PAGNode *obj = ppag->getPAGNode(o);
-    NodeID clone = o;
     if (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(obj)) {
+        const NodeBS &clones = getGepObjClones(gepObj->getBaseNode(), gepObj->getLocationSet().getOffset());
+        // TODO: a bit of repetition.
+        for (NodeID clone : clones) {
+            if (getType(clone) == type) {
+                return clone;
+            }
+        }
+
         clone = ppag->addCloneGepObjNode(gepObj->getMemObj(), gepObj->getLocationSet());
         // The base needs to know about the new clone.
         addGepToObj(clone, gepObj->getBaseNode(), gepObj->getLocationSet().getOffset());
+
+        addClone(o, clone);
+        addClone(getOriginalObj(o), clone);
+        // The only instance of original object of a Gep object being retrieved is for
+        // IN sets, so we don't care that clone comes from o (we can get that by checking
+        // the base and offset).
+        setOriginalObj(clone, getOriginalObj(o));
     } else if (SVFUtil::isa<FIObjPN>(obj) || SVFUtil::isa<DummyObjPN>(obj)) {
+        o = getOriginalObj(o);
+        // Check there isn't an appropriate clone already.
+        const NodeBS &clones = getClones(o);
+        for (NodeID clone : clones) {
+            if (getType(clone) == type) {
+                return clone;
+            }
+        }
+
         if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
             clone = ppag->addCloneFIObjNode(fiObj->getMemObj());
         } else {
             clone = ppag->addCloneObjNode();
         }
+
+        // Tracking object<->clone mappings.
+        addClone(o, clone);
+        setOriginalObj(clone, o);
     } else {
         assert(false && "FSTBHC: trying to clone unhandled object");
     }
 
-    // Clone's metadata.
+    // Clone's metadata. This can be shared between Geps/otherwise.
     setType(clone, type);
     setAllocationSite(clone, getAllocationSite(o));
-
-    // Tracking object<->clone mappings.
-    addClone(o, clone);
-    setOriginalObj(clone, o);
 
     backPropagate(clone);
 
