@@ -234,6 +234,9 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 
     PointsTo &filterSet = getFilterSet(loc);
     for (NodeID o : pPt) {
+        // If it's been filtered before, it'll be filtered again.
+        if (filterSet.test(o)) continue;
+
         PAGNode *obj = ppag->getPAGNode(o);
         assert(obj && "TBHC: pointee object does not exist in PAG?");
         const DIType *tp = getType(o);  // tp is t'
