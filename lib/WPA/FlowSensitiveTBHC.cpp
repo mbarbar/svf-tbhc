@@ -287,7 +287,8 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
     double end = stat->getClk();
     copyGepTime += (end - start) / TIMEINTERVAL;
 
-    return unionPts(gep->getPAGDstNodeID(), tmpDstPts) || changed;
+    changed = unionPts(gep->getPAGDstNodeID(), tmpDstPts) || changed;
+    return changed;
 }
 
 bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
@@ -360,8 +361,9 @@ bool FlowSensitiveTBHC::processStore(const StoreSVFGNode* store) {
     /// points-to one target and it has been identified as a strong
     /// update, we can't remove those points-to information computed
     /// before this strong update from the OUT set.
-    if (dstPts.empty())
+    if (dstPts.empty()) {
         return false;
+    }
 
     bool changed = false;
     const PointsTo &filterSet = getFilterSet(store->getId());
