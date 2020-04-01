@@ -293,7 +293,7 @@ bool FlowSensitiveTBHC::processGep(const GepSVFGNode* gep) {
 bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
     double start = stat->getClk();
 
-    preparePtsFromIn(load, load->getPAGSrcNodeID());
+    //preparePtsFromIn(load, load->getPAGSrcNodeID());
 
     const DIType *tildet = getTypeFromCTirMetadata(load);
     if (tildet != undefType) {
@@ -466,6 +466,34 @@ void FlowSensitiveTBHC::preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId) {
     }
 }
 
+
+bool FlowSensitiveTBHC::updateInFromIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
+    // IN sets are only based on the original object.
+    return getDFPTDataTy()->updateDFInFromIn(srcStmt->getId(), getOriginalObj(srcVar),
+                                             dstStmt->getId(), getOriginalObj(dstVar));
+}
+
+bool FlowSensitiveTBHC::updateInFromOut(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
+    // OUT set has non-original objects, IN set only has original objects.
+    return getDFPTDataTy()->updateDFInFromOut(srcStmt->getId(), srcVar,
+                                              dstStmt->getId(), getOriginalObj(dstVar));
+}
+
+bool FlowSensitiveTBHC::unionPtsFromIn(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
+    return getDFPTDataTy()->updateTLVPts(stmt->getId(), getOriginalObj(srcVar), dstVar);
+}
+
+bool FlowSensitiveTBHC::propDFInToIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
+    // IN sets are only based on the original object.
+    return getDFPTDataTy()->updateAllDFInFromIn(srcStmt->getId(), getOriginalObj(srcVar),
+                                                dstStmt->getId(), getOriginalObj(dstVar));
+}
+
+bool FlowSensitiveTBHC::propDFOutToIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
+    // OUT set has non-original objects, IN set only has original objects.
+    return getDFPTDataTy()->updateAllDFInFromOut(srcStmt->getId(), srcVar,
+                                                 dstStmt->getId(), getOriginalObj(dstVar));
+}
 
 void FlowSensitiveTBHC::determineWhichGepsAreLoads(void) {
     for (SVFG::iterator nI = svfg->begin(); nI != svfg->end(); ++nI) {
