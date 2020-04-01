@@ -53,6 +53,14 @@ public:
 
     virtual inline const NodeBS& getAllFieldsObjNode(NodeID id) override;
 
+    virtual inline bool updateInFromIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) override;
+    virtual inline bool updateInFromOut(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) override;
+
+    virtual inline bool unionPtsFromIn(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) override;
+
+    virtual inline bool propDFOutToIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) override;
+    virtual inline bool propDFInToIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) override;
+
     /// Updates the PTS of pId to reflect changes (clones of what is in its current PTS)
     /// coming from the in set.
     virtual void preparePtsFromIn(const StmtSVFGNode *stmt, NodeID pId);

@@ -606,15 +606,17 @@ public:
         return true;
     }
     static inline bool classof(const PAGNode *node) {
-        return node->getNodeKind() == PAGNode::DummyObjNode;
+        return node->getNodeKind() == PAGNode::DummyObjNode
+               || node->getNodeKind() == PAGNode::CloneObjNode;
     }
     static inline bool classof(const GenericPAGNodeTy *node) {
-        return node->getNodeKind() == PAGNode::DummyObjNode;
+        return node->getNodeKind() == PAGNode::DummyObjNode
+               || node->getNodeKind() == PAGNode::CloneObjNode;
     }
     //@}
 
     /// Constructor
-    DummyObjPN(NodeID i,const MemObj* m) : ObjPN(NULL, i, m, DummyObjNode) {
+    DummyObjPN(NodeID i,const MemObj* m, PNODEK ty = DummyObjNode) : ObjPN(NULL, i, m, ty) {
     }
 
     /// Return name of this node
@@ -626,7 +628,7 @@ public:
 /*
  * Clone object node; clone for normal object.
  */
-class CloneObjPN: public ObjPN {
+class CloneObjPN: public DummyObjPN {
 public:
     //@{ Methods to support type inquiry through isa, cast, and dyn_cast:
     static inline bool classof(const CloneObjPN *) {
@@ -642,7 +644,7 @@ public:
 
     /// Constructor
     CloneObjPN(NodeID i, const MemObj* m, PNODEK ty = CloneObjNode)
-        : ObjPN(NULL, i, m, ty) {
+        : DummyObjPN(i, m, ty) {
     }
 
     /// Return name of this node
