@@ -321,15 +321,13 @@ bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
     // This results in fewer loop iterations. o_t, o_s --> o.
     PointsTo srcOriginalObjs;
     for (NodeID s : srcPts) {
+        if (filterSet.test(s)) continue;
+        if (pag->isConstantObj(s) || pag->isNonPointerObj(s)) continue;
         srcOriginalObjs.set(getOriginalObj(s));
     }
 
     for (NodeID ptd : srcOriginalObjs) {
-        if (filterSet.test(ptd)) continue;
-
-        if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
-            continue;
-
+        // filterSet tests happened while building srcOriginalObjs.
         if (unionPtsFromIn(load, ptd, dstVar))
             changed = true;
 
