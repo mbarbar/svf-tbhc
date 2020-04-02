@@ -317,7 +317,14 @@ bool FlowSensitiveTBHC::processLoad(const LoadSVFGNode* load) {
 
     const PointsTo& srcPts = getPts(load->getPAGSrcNodeID());
     const PointsTo &filterSet = getFilterSet(load->getId());
-    for (NodeID ptd : srcPts) {
+    // unionPtsFromIn is going to call getOriginalObj on ptd anyway.
+    // This results in fewer loop iterations. o_t, o_s --> o.
+    PointsTo srcOriginalObjs;
+    for (NodeID s : srcPts) {
+        srcOriginalObjs.set(getOriginalObj(s));
+    }
+
+    for (NodeID ptd : srcOriginalObjs) {
         if (filterSet.test(ptd)) continue;
 
         if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
