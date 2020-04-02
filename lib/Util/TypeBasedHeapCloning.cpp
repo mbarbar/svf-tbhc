@@ -351,6 +351,8 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type) {
         // IN sets, so we don't care that clone comes from o (we can get that by checking
         // the base and offset).
         setOriginalObj(clone, getOriginalObj(o));
+        CloneGepObjPN *cloneGepObj = SVFUtil::dyn_cast<CloneGepObjPN>(ppag->getPAGNode(clone));
+        cloneGepObj->setBaseNode(gepObj->getBaseNode());
     } else if (SVFUtil::isa<FIObjPN>(obj) || SVFUtil::isa<DummyObjPN>(obj)) {
         o = getOriginalObj(o);
         // Check there isn't an appropriate clone already.
