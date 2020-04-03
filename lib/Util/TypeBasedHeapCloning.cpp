@@ -15,9 +15,8 @@ const DIType *TypeBasedHeapCloning::undefType = nullptr;
 const std::string TypeBasedHeapCloning::derefFnName = "deref";
 const std::string TypeBasedHeapCloning::mangledDerefFnName = "_Z5derefv";
 
-TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta, bool reuse) {
+TypeBasedHeapCloning::TypeBasedHeapCloning(PointerAnalysis *pta) {
     this->pta = pta;
-    this->reuse = reuse;
 }
 
 void TypeBasedHeapCloning::setDCHG(DCHGraph *dchg) {
@@ -222,10 +221,8 @@ const NodeBS TypeBasedHeapCloning::getGepObjClones(NodeID base, unsigned offset)
     return geps;
 }
 
-bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reusePossible, bool gep) {
+bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep) {
     assert(dchg && "TBHC: DCHG not set!");
-    // Ignore reusePossible if reuse is disabled.
-    reusePossible = reusePossible && reuse;
     bool changed = false;
 
     PointsTo &pPt = pta->getPts(p);
@@ -282,7 +279,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             ++numInit;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGInit;
         } else if (isBase(tp, tildet) && tp != tildet
-                   && ((!reusePossible /*&& !isGep(obj)*/) || reusePossible)) {
+                   && ((!reuse /*&& !isGep(obj)*/) || reuse)) {
             // Downcast.
             // !reuse && !gep because field types are static.
             prop = cloneObject(o, tildet);
@@ -293,7 +290,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             prop = o;
             ++numTBWU;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBWU;
-        } else if (tildet != tp && reusePossible) {
+        } else if (tildet != tp && reuse) {
             // Reuse.
             prop = cloneObject(o, tildet);
             ++numReuse;

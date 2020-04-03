@@ -30,8 +30,7 @@ protected:
     static const std::string mangledDerefFnName;
 
     /// Constructor. pta is the pointer analysis using this object (i.e. that which is extending).
-    /// reuse is whether object reuse is allowed or not.
-    TypeBasedHeapCloning(PointerAnalysis *pta, bool reuse);
+    TypeBasedHeapCloning(PointerAnalysis *pta);
 
     /// Required by user. Handles back-propagation of newly created clone after all
     /// metadata has been set. Used by cloneObject.
@@ -96,9 +95,9 @@ protected:
     /// (through base's getGepObjNode) which will create one.
     const NodeBS getGepObjClones(NodeID base, unsigned offset);
 
-    /// Initialise the pointees of p at loc (which is type tildet *). reusePossible indicates
+    /// Initialise the pointees of p at loc (which is type tildet *). reuse indicates
     /// whether reuse is a possibility for this initialisation. Returns whether p changed.
-    bool init(NodeID loc, NodeID p, const DIType *tildet, bool reusePossible, bool gep=false);
+    bool init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep=false);
 
     /// Returns a clone of o with type type.
     NodeID cloneObject(NodeID o, const DIType *type);
@@ -134,9 +133,6 @@ private:
     PointerAnalysis *pta;
     /// PAG the PTA uses. Just a shortcut for getPAG().
     PAG *ppag = nullptr;
-
-    /// Whether we are allowing reuse.
-    bool reuse;
 
     /// Object -> its type.
     DenseMap<NodeID, const DIType *> objToType;

@@ -84,6 +84,12 @@ private:
     /// is not for a GEP SVFG node, returns false.
     bool gepIsLoad(NodeID gep);
 
+    /// Whether to allow for reuse at stores.
+    bool storeReuse;
+    /// Whether to allow reuse at all instructions (load/store/field).
+    /// allReuse => storeReuse.
+    bool allReuse;
+
     /// Maps GEP objects to the SVFG nodes that retrieved them with getGepObjClones.
     DenseMap<NodeID, NodeBS> gepToSVFGRetrievers;
     /// Maps whether a (SVFG) GEP node is a load or not.
