@@ -34,6 +34,8 @@
 #include "WPA/FlowSensitive.h"
 #include "WPA/Andersen.h"
 
+static llvm::cl::opt<bool> CTirAliasEval("ctir-alias-eval", llvm::cl::init(false), llvm::cl::desc("Prints alias evaluation of ctir instructions in FS analyses"));
+
 using namespace SVFUtil;
 
 FlowSensitive* FlowSensitive::fspta = NULL;
@@ -45,7 +47,8 @@ void FlowSensitive::initialize(SVFModule svfModule) {
     PointerAnalysis::initialize(svfModule);
 
     AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfModule);
-    svfg = memSSA.buildPTROnlySVFG(ander);
+    // When evaluating ctir aliases, we want the whole SVFG.
+    svfg = CTirAliasEval ? memSSA.buildFullSVFG(ander) : memSSA.buildPTROnlySVFG(ander);
     setGraph(svfg);
     //AndersenWaveDiff::releaseAndersenWaveDiff();
 
@@ -106,7 +109,9 @@ void FlowSensitive::finalize()
 
     PointerAnalysis::finalize();
     printCallGraphStats();
-    printCTirAliasStats();
+    if (CTirAliasEval) {
+        printCTirAliasStats();
+    }
 }
 
 /*!
