@@ -256,7 +256,14 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
 
         NodeID prop;
         bool filter = false;
-        if (fieldInsensitive && tp && dchg->isFieldOf(tildet, tp)) {
+        if (tp == undefType) {
+            // o is uninitialised.
+            // GEP objects should never be uninitialised; type assigned at creation.
+            assert(!isGep(obj) && "TBHC: GEP object is untyped!");
+            prop = cloneObject(o, tildet);
+            ++numInit;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGInit;
+        } else if (fieldInsensitive && tp && dchg->isFieldOf(tildet, tp)) {
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
             ++numTBWU;
@@ -271,13 +278,6 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             prop = cloneObject(o, tildet);
             ++numAgg;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGAgg;
-        } else if (tp == undefType) {
-            // o is uninitialised.
-            // GEP objects should never be uninitialised; type assigned at creation.
-            assert(!isGep(obj) && "TBHC: GEP object is untyped!");
-            prop = cloneObject(o, tildet);
-            ++numInit;
-            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGInit;
         } else if (isBase(tp, tildet) && tp != tildet
                    && ((!reuse /*&& !isGep(obj)*/) || reuse)) {
             // Downcast.
