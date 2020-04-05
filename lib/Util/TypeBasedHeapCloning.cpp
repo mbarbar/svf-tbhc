@@ -512,30 +512,37 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
             AliasResult res = bvpta->alias(pPtsFiltered, qPtsFiltered);
 
             bool passed = false;
+            std::string testName = "";
             if (fn->getName() == PointerAnalysis::aliasTestMayAlias
                 || fn->getName() == PointerAnalysis::aliasTestMayAliasMangled) {
                 passed = res == llvm::MayAlias || res == llvm::MustAlias;
+                testName = PointerAnalysis::aliasTestMayAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestNoAlias
                        || fn->getName() == PointerAnalysis::aliasTestNoAliasMangled) {
                 passed = res == llvm::NoAlias;
+                testName = PointerAnalysis::aliasTestNoAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestMustAlias
                        || fn->getName() == PointerAnalysis::aliasTestMustAliasMangled) {
                 passed = res == llvm::MustAlias || res == llvm::MayAlias;
+                testName = PointerAnalysis::aliasTestMustAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestPartialAlias
                        || fn->getName() == PointerAnalysis::aliasTestPartialAliasMangled) {
                 passed = res == llvm::MayAlias || res == llvm::PartialAlias;
+                testName = PointerAnalysis::aliasTestPartialAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestFailMayAlias
                        || fn->getName() == PointerAnalysis::aliasTestFailMayAliasMangled) {
                 passed = res != llvm::MayAlias && res != llvm::MustAlias && res != llvm::PartialAlias;
+                testName = PointerAnalysis::aliasTestFailMayAlias;
             } else if (fn->getName() == PointerAnalysis::aliasTestFailNoAlias
                        || fn->getName() == PointerAnalysis::aliasTestFailNoAliasMangled) {
                 passed = res != llvm::NoAlias;
+                testName = PointerAnalysis::aliasTestFailNoAlias;
             }
 
-            SVFUtil::outs() << "[" << pta->PTAName() << "] Checking " << fn->getName() << "\n";
+            SVFUtil::outs() << "[" << pta->PTAName() << "] Checking " << testName << "\n";
             raw_ostream &msgStream = passed ? SVFUtil::outs() : SVFUtil::errs();
             msgStream << (passed ? SVFUtil::sucMsg("\t SUCCESS") : SVFUtil::errMsg("\t FAILURE"))
-                      << " : " << fn->getName()
+                      << " : " << testName
                       << " check <id:" << p << ", id:" << q << "> "
                       << "at (" << SVFUtil::getSourceLoc(cs.getInstruction()) << ")\n";
 
@@ -549,14 +556,12 @@ void TypeBasedHeapCloning::validateTBHCTests(SVFModule &svfMod) {
                           << " : pts(" << q << ") is empty\n";
             }
 
-            if (fn->getName() == PointerAnalysis::aliasTestMustAlias
-                || fn->getName() == PointerAnalysis::aliasTestMustAliasMangled) {
+            if (testName == PointerAnalysis::aliasTestMustAlias) {
                 msgStream << SVFUtil::wrnMsg("\t WARNING")
                           << " : MUSTALIAS tests are actually MAYALIAS tests\n";
             }
 
-            if (fn->getName() == PointerAnalysis::aliasTestPartialAlias
-                || fn->getName() == PointerAnalysis::aliasTestPartialAliasMangled) {
+            if (testName == PointerAnalysis::aliasTestPartialAlias) {
                 msgStream << SVFUtil::wrnMsg("\t WARNING")
                           << " : PARTIALALIAS tests are actually MAYALIAS tests\n";
             }
