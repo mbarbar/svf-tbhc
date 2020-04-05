@@ -267,6 +267,7 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             // Field-insensitive object but the instruction is operating on a field.
             prop = o;
             ++numTBWU;
+            if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBWU;
         } else if (gep && aggs.find(tildet) != aggs.end()) {
             // SVF treats two consecutive GEPs as children to the same load/store.
             // Special case for aggregates.
