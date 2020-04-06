@@ -565,6 +565,17 @@ const DIType *FlowSensitiveTBHC::getTypeFromCTirMetadata(const SVFGNode *s) {
     return nullptr;
 }
 
+void FlowSensitiveTBHC::expandFIObjs(const PointsTo& pts, PointsTo& expandedPts) {
+    expandedPts = pts;
+    for (NodeID o : pts) {
+        expandedPts |= getAllFieldsObjNode(o);
+        while (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(o))) {
+            o = gepObj->getBaseNode();
+            expandedPts |= getAllFieldsObjNode(o);
+        }
+    }
+}
+
 void FlowSensitiveTBHC::countAliases(std::set<std::pair<NodeID, NodeID>> cmp, unsigned *mayAliases, unsigned *noAliases) {
     std::map<std::pair<NodeID, NodeID>, PointsTo> filteredPts;
     for (std::pair<NodeID, NodeID> locP : cmp) {

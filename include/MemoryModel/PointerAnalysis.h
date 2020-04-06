@@ -464,7 +464,7 @@ public:
     //@}
 
     /// Expand FI objects
-    void expandFIObjs(const PointsTo& pts, PointsTo& expandedPts);
+    virtual void expandFIObjs(const PointsTo& pts, PointsTo& expandedPts);
 
     /// Interface for analysis result storage on filesystem.
     //@{
