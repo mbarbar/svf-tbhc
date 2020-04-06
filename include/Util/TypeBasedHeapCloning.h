@@ -99,8 +99,9 @@ protected:
     /// whether reuse is a possibility for this initialisation. Returns whether p changed.
     bool init(NodeID loc, NodeID p, const DIType *tildet, bool reuse, bool gep=false);
 
-    /// Returns a clone of o with type type.
-    NodeID cloneObject(NodeID o, const DIType *type);
+    /// Returns a clone of o with type type. reuse indicates whether we are cloning
+    /// as a result of reuse.
+    NodeID cloneObject(NodeID o, const DIType *type, bool reuse);
 
     /// Returns the ctir type attached to the value, nullptr if non-existant.
     /// Not static because it needs the DCHG to return the canonical type.
