@@ -912,18 +912,27 @@ static std::string indent(size_t n) {
     return std::string(n, ' ');
 }
 
-void DCHGraph::print(void) const {
+void DCHGraph::print(void) {
     static const std::string line = "-------------------------------------\n";
     static const std::string thickLine = "=====================================\n";
     static const size_t singleIndent = 2;
 
     size_t currIndent = 0;
     SVFUtil::outs() << thickLine;
+    unsigned numStructs = 0;
+    unsigned largestStruct = 0;
     for (DCHGraph::const_iterator it = begin(); it != end(); ++it) {
         const NodeID id = it->first;
         const DCHNode *node = it->second;
 
         SVFUtil::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << " [" << node->getType() << "]" << "\n";
+        if (node->getType() != nullptr
+            && (node->getType()->getTag() == dwarf::DW_TAG_class_type
+                || node->getType()->getTag() == dwarf::DW_TAG_structure_type)) {
+            ++numStructs;
+            unsigned numFields = getFieldTypes(node->getType()).size();
+            largestStruct = numFields > largestStruct ? numFields : largestStruct;
+        }
 
         currIndent += singleIndent;
         SVFUtil::outs() << indent(currIndent) << "Virtual functions\n";
@@ -1007,6 +1016,13 @@ void DCHGraph::print(void) const {
         SVFUtil::outs() << dname.className << "::" << dname.funcName << " : " << diTypeToStr(ct.second) << "\n";
     }
 
+    SVFUtil::outs() << thickLine;
+
+    SVFUtil::outs() << "Other stats\n";
+    SVFUtil::outs() << line;
+    SVFUtil::outs() << "# Canonical types : " << canonicalTypes.size() << "\n";
+    SVFUtil::outs() << "# structs         : " << numStructs << "\n";
+    SVFUtil::outs() << "Largest struct    : " << largestStruct << " fields\n";
     SVFUtil::outs() << thickLine;
 }
 

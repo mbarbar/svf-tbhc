@@ -213,7 +213,7 @@ public:
         GraphPrinter::WriteGraphToFile(SVFUtil::outs(), filename, this);
     }
 
-    void print(void) const;
+    void print(void);
 
     virtual const bool csHasVFnsBasedonCHA(CallSite cs) override {
         return csHasVtblsBasedonCHA(cs);
