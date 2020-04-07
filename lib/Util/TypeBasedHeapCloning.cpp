@@ -307,6 +307,13 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             // If we cloned, we want to keep o in p's PTS but filter it (ignore it later).
             pNewPt.set(o);
             filterSet.set(o);
+            // TODO: hack, sound but imprecise and unclean.
+            // In the aggs case there is a difference between it being good for
+            // arrays and structs. For now, just propagate both the clone and the original
+            // object till a cleaner solution is found.
+            if (gep && aggs.find(tildet) != aggs.end()) {
+                filterSet.reset(o);
+            }
         }
 
         pNewPt.set(prop);
