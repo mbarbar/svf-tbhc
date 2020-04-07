@@ -351,8 +351,8 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type, bool reus
         addClone(o, clone);
         addClone(getOriginalObj(o), clone);
         // The only instance of original object of a Gep object being retrieved is for
-        // IN sets, so we don't care that clone comes from o (we can get that by checking
-        // the base and offset).
+        // IN sets and gepToSVFGRetriever in FSTBHC, so we don't care that clone comes
+        // from o (we can get that by checking the base and offset).
         setOriginalObj(clone, getOriginalObj(o));
         if (CloneGepObjPN *cloneGepObj = SVFUtil::dyn_cast<CloneGepObjPN>(ppag->getPAGNode(clone))) {
             cloneGepObj->setBaseNode(gepObj->getBaseNode());

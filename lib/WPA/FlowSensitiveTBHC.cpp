@@ -59,14 +59,18 @@ void FlowSensitiveTBHC::finalize(void) {
 void FlowSensitiveTBHC::backPropagate(NodeID clone) {
     PAGNode *cloneObj = pag->getPAGNode(clone);
     assert(cloneObj && "FSTBHC: clone does not exist in PAG?");
-    if (SVFUtil::isa<CloneFIObjPN>(cloneObj) || SVFUtil::isa<CloneObjPN>(cloneObj)) {
-        pushIntoWorklist(getAllocationSite(getOriginalObj(clone)));
-    } else if (SVFUtil::isa<CloneGepObjPN>(cloneObj)) {
+    PAGNode *originalObj = pag->getPAGNode(getOriginalObj(clone));
+    assert(cloneObj && "FSTBHC: original object does not exist in PAG?");
+    // Check the original object too because when reuse of a gep occurs, the new object
+    // is an FI object.
+    if (SVFUtil::isa<CloneGepObjPN>(cloneObj) || SVFUtil::isa<GepObjPN>(originalObj)) {
         // Since getGepObjClones is updated, some GEP nodes need to be redone.
         const NodeBS &retrievers = gepToSVFGRetrievers[getOriginalObj(clone)];
         for (NodeID r : retrievers) {
             pushIntoWorklist(r);
         }
+    } else if (SVFUtil::isa<CloneFIObjPN>(cloneObj) || SVFUtil::isa<CloneObjPN>(cloneObj)) {
+        pushIntoWorklist(getAllocationSite(getOriginalObj(clone)));
     } else {
         assert(false && "FSTBHC: unexpected object type?");
     }
