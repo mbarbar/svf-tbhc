@@ -574,8 +574,8 @@ void FlowSensitiveTBHC::expandFIObjs(const PointsTo& pts, PointsTo& expandedPts)
     for (NodeID o : pts) {
         expandedPts |= getAllFieldsObjNode(o);
         while (const GepObjPN *gepObj = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(o))) {
-            o = gepObj->getBaseNode();
             expandedPts |= getAllFieldsObjNode(o);
+            o = gepObj->getBaseNode();
         }
     }
 }
