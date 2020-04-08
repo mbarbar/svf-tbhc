@@ -596,9 +596,8 @@ public:
         return SymbolTableInfo::Symbolnfo()->createDummyObj(i,type);
     }
 
-    inline NodeID addCloneObjNode() {
+    inline NodeID addCloneObjNode(const MemObj *mem) {
         NodeID id = nodeNum;
-        const MemObj* mem = addDummyMemObj(id, NULL);
         return addObjNode(NULL, new CloneObjPN(id, mem), id);
     }
 

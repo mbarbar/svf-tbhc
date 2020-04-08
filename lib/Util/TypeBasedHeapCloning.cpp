@@ -376,9 +376,10 @@ NodeID TypeBasedHeapCloning::cloneObject(NodeID o, const DIType *type, bool reus
 
         if (const FIObjPN *fiObj = SVFUtil::dyn_cast<FIObjPN>(obj)) {
             clone = ppag->addCloneFIObjNode(fiObj->getMemObj());
-        } else {
-            clone = ppag->addCloneObjNode();
+        } else if (const DummyObjPN *dummyObj = SVFUtil::dyn_cast<DummyObjPN>(obj)) {
+            clone = ppag->addCloneObjNode(dummyObj->getMemObj());
         }
+        // We checked above that it's an FIObj or a DummyObj.
 
         // Tracking object<->clone mappings.
         addClone(o, clone);
