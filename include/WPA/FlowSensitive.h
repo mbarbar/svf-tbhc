@@ -183,7 +183,7 @@ protected:
     virtual inline bool unionPtsFromIn(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
         return getDFPTDataTy()->updateTLVPts(stmt->getId(),srcVar,dstVar);
     }
-    inline bool unionPtsFromTop(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
+    virtual inline bool unionPtsFromTop(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
         return getDFPTDataTy()->updateATVPts(srcVar,stmt->getId(),dstVar);
     }
 
