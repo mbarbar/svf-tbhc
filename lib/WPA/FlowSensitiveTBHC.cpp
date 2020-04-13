@@ -494,16 +494,18 @@ bool FlowSensitiveTBHC::updateInFromIn(const SVFGNode* srcStmt, NodeID srcVar, c
 }
 
 bool FlowSensitiveTBHC::updateInFromOut(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
-    // OUT set has non-original objects, IN set only has original objects.
+    // OUT/IN sets only have original objects.
     return getDFPTDataTy()->updateDFInFromOut(srcStmt->getId(), getOriginalObj(srcVar),
                                               dstStmt->getId(), getOriginalObj(dstVar));
 }
 
 bool FlowSensitiveTBHC::unionPtsFromIn(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
+    // IN sets only have original objects.
     return getDFPTDataTy()->updateTLVPts(stmt->getId(), getOriginalObj(srcVar), dstVar);
 }
 
 bool FlowSensitiveTBHC::unionPtsFromTop(const SVFGNode* stmt, NodeID srcVar, NodeID dstVar) {
+    // OUT sets only have original objects.
     return getDFPTDataTy()->updateATVPts(srcVar, stmt->getId(), getOriginalObj(dstVar));
 }
 
@@ -514,7 +516,7 @@ bool FlowSensitiveTBHC::propDFInToIn(const SVFGNode* srcStmt, NodeID srcVar, con
 }
 
 bool FlowSensitiveTBHC::propDFOutToIn(const SVFGNode* srcStmt, NodeID srcVar, const SVFGNode* dstStmt, NodeID dstVar) {
-    // OUT set has non-original objects, IN set only has original objects.
+    // OUT/IN sets only have original objects.
     return getDFPTDataTy()->updateAllDFInFromOut(srcStmt->getId(), srcVar,
                                                  dstStmt->getId(), getOriginalObj(dstVar));
 }
