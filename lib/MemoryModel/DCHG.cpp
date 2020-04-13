@@ -921,9 +921,17 @@ void DCHGraph::print(void) {
     SVFUtil::outs() << thickLine;
     unsigned numStructs = 0;
     unsigned largestStruct = 0;
+    std::set<NodeID> nodes;
     for (DCHGraph::const_iterator it = begin(); it != end(); ++it) {
-        const NodeID id = it->first;
-        const DCHNode *node = it->second;
+        nodes.insert(it->first);
+    }
+
+    for (NodeID id : nodes) {
+        if (*nodes.begin() != id) {
+            SVFUtil::outs() << line;
+        }
+
+        const DCHNode *node = getGNode(id);
 
         SVFUtil::outs() << indent(currIndent) << id << ": " << diTypeToStr(node->getType()) << " [" << node->getType() << "]" << "\n";
         if (node->getType() != nullptr
@@ -1002,10 +1010,6 @@ void DCHGraph::print(void) {
         currIndent -= singleIndent;
 
         currIndent -= singleIndent;
-
-        if (std::next(it) != end()) {
-            SVFUtil::outs() << line;
-        }
     }
 
     SVFUtil::outs() << thickLine;
