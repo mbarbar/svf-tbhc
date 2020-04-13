@@ -312,6 +312,8 @@ public:
         return constructorToType.lookup(constructor);
     }
 
+    bool isFirstField(const DIType *f, const DIType *b);
+
 protected:
     /// SVF Module this CHG is built from.
     SVFModule svfModule;

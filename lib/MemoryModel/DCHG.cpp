@@ -795,6 +795,30 @@ bool DCHGraph::teq(const DIType *t1, const DIType *t2) {
     return false;
 }
 
+bool DCHGraph::isFirstField(const DIType *f, const DIType *b) {
+    // TODO: some improvements.
+    //   - cha should be changed to accept which edge types to use,
+    //     then we can call cha(..., DCHEdge::FIRST_FIELD).
+    //   - If not ^, this could benefit from caching.
+    f = getCanonicalType(f);
+    b = getCanonicalType(b);
+
+    if (f == b) return true;
+
+    const DCHNode *node = getNode(f);
+    assert(node && "DCHG::isFirstField: node not found");
+    // Consider oneself a child, otherwise the recursion will just come up with nothing.
+    for (const DCHEdge *edge : node->getInEdges()) {
+        // Only care about first-field edges.
+        if (edge->getEdgeKind() == DCHEdge::FIRST_FIELD) {
+            if (edge->getSrcNode()->getType() == b) return true;
+            if (isFirstField(edge->getSrcNode()->getType(), b)) return true;
+        }
+    }
+
+    return false;
+}
+
 std::string DCHGraph::diTypeToStr(const DIType *t) {
     std::stringstream ss;
 

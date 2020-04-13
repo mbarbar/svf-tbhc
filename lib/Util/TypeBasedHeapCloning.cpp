@@ -279,9 +279,16 @@ bool TypeBasedHeapCloning::init(NodeID loc, NodeID p, const DIType *tildet, bool
             prop = cloneObject(o, tildet, false);
             ++numAgg;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGAgg;
-        } else if (isBase(tp, tildet) && tp != tildet) {
+        } else if (isBase(tp, tildet) && tp != tildet
+                   && (reuse || dchg->isFirstField(tp, tildet) || (!reuse && pta->isHeapMemObj(o)))) {
             // Downcast.
-            // !reuse && !gep because field types are static.
+            // One of three conditions:
+            //  - !reuse && heap: because downcasts should not happen to stack/globals.
+            //  - isFirstField because ^ can happen because when we take the field of a
+            //    struct that is a struct, we get its first field, then it may downcast
+            //    back to the struct at another GEP.
+            //    TODO: this can probably be solved more cleanly.
+            //  - reuse: because it can happen to stack/heap objects.
             prop = cloneObject(o, tildet, reuse);
             ++numTBSSU;
             if (!pta->isHeapMemObj(o) && !SVFUtil::isa<DummyObjPN>(obj)) ++numSGTBSSU;
