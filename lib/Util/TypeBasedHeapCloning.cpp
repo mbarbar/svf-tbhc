@@ -629,7 +629,7 @@ void TypeBasedHeapCloning::dumpStats(void) {
     }
 
     indent = "  ";
-    SVFUtil::outs() << indent << "Total: " << total << "\n";
+    SVFUtil::outs() << indent << "Total: " << total << " clones\n";
     SVFUtil::outs() << indent << "==================================\n";
 
     SVFUtil::outs() << indent << "INITIALISE : " << numInit  << "\n";
