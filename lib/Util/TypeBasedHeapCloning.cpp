@@ -601,13 +601,13 @@ void TypeBasedHeapCloning::dumpStats(void) {
     // Print clones with their types.
     SVFUtil::outs() << indent << "=== Original objects to clones ===\n";
     indent = "    ";
-    unsigned total = 0;
+    unsigned totalClones = 0;
     const NodeBS objs = getObjsWithClones();
     for (NodeID o : objs) {
         const NodeBS &clones = getClones(o);
         if (clones.count() == 0) continue;
 
-        total += clones.count();
+        totalClones += clones.count();
         SVFUtil::outs() << indent
                         << "  " << o << " : "
                         << "(" << clones.count() << ")"
@@ -629,7 +629,9 @@ void TypeBasedHeapCloning::dumpStats(void) {
     }
 
     indent = "  ";
-    SVFUtil::outs() << indent << "Total: " << total << " clones\n";
+    SVFUtil::outs() << indent
+                    << "Total: " << ppag->getObjectNodeNum() + ppag->getFieldObjNodeNum() + totalClones
+                    << " (" << totalClones << " clones)\n";
     SVFUtil::outs() << indent << "==================================\n";
 
     SVFUtil::outs() << indent << "INITIALISE : " << numInit  << "\n";

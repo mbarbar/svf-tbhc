@@ -999,6 +999,8 @@ void DCHGraph::print(void) {
                 arrow = "--first-field-->";
             } else if (edge->getEdgeKind() == DCHEdge::INSTANCE) {
                 arrow = "---instance---->";
+            } else if (edge->getEdgeKind() == DCHEdge::STD_DEF) {
+                arrow = "---standard---->";
             } else {
                 arrow = "----unknown---->";
             }
