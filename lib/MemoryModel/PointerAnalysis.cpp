@@ -307,7 +307,9 @@ void PointerAnalysis::finalize() {
 
     getPTACallGraph()->dump("callgraph_final");
 
-    if(!pag->isBuiltFromFile() && EnableAliasCheck)
+    // FSTBHC has it's own TBHC-specific test validation.
+    if(!pag->isBuiltFromFile() && EnableAliasCheck
+       && !SVFUtil::isa<FlowSensitiveTBHC>(this))
         validateTests();
 
     if (!UsePreCompFieldSensitive)
