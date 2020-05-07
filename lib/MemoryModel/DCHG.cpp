@@ -1054,5 +1054,7 @@ void DCHGraph::print(void) {
     SVFUtil::outs() << "# structs         : " << numStructs << "\n";
     SVFUtil::outs() << "Largest struct    : " << largestStruct << " fields\n";
     SVFUtil::outs() << thickLine;
+
+    SVFUtil::outs().flush();
 }
 
